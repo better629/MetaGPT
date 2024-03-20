@@ -40,12 +40,12 @@ class RAGExample:
     """Show how to use RAG for evaluation."""
 
     def __init__(self):
-
         self.benchmark = RAGBenchMark()
         self.embedding = get_rag_embedding()
 
     async def rag_evaluate_pipeline(self,dataset_name=['all']):
-
+        """Show how to use RAG for evaluation pipeline."""
+        
         dataset_config = self.benchmark.load_dataset()
 
         for dataset in dataset_config.datasets:
@@ -56,7 +56,9 @@ class RAGExample:
                     retriever_configs=[FAISSRetrieverConfig(persist_path=output_dir)],
                     ranker_configs=[LLMRankerConfig()],
                 )
+                
                 results = []
+                
                 for gt_info in dataset.gt_info:
                     result = await self.rag_evaluate_single(
                         question=gt_info['question'],
@@ -69,7 +71,6 @@ class RAGExample:
 
                 with open(os.path.join(EXAMPLE_BENCHMARK_PATH,dataset.name,'bm_result.json'),'w',encoding='utf-8')as f:
                     json.dump(results,f,ensure_ascii=False,indent=4)
-
 
     async def rag_evaluate_single(self, question,reference,ground_truth,print_title=True):
         """This example run rag pipeline, use faiss&bm25 retriever and llm ranker, will print something like:
@@ -131,7 +132,6 @@ class RAGExample:
                  'question':question,
                     }
                 }
-
 
         result = await self.evaluate_result(answer.response, ground_truth, nodes, [reference])
         result['log']['question'] = question
