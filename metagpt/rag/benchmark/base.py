@@ -1,13 +1,31 @@
 import evaluate
 import jieba
 import asyncio
+import os
+import json
+
+from typing import List
+from pydantic import BaseModel
 
 from llama_index.core.evaluation import SemanticSimilarityEvaluator
 from llama_index.core.embeddings import BaseEmbedding
 from llama_index.core.schema import NodeWithScore
 
 from metagpt.rag.factories import get_rag_embedding
+from metagpt.const import EXAMPLE_BENCHMARK_PATH
+
+
+class DatasetInfo(BaseModel):
+    name: str
+    document_files: List[str]
+    gt_info: List[dict]
+
+class DatasetConfig(BaseModel):
+    datasets: List[DatasetInfo]
+
+
 class RAGBenchMark:
+
     def __init__(self,
         embed_model: BaseEmbedding = None,
          ):
@@ -16,6 +34,7 @@ class RAGBenchMark:
             embed_model=embed_model or get_rag_embedding(),
         )
 
+
     def bleu_score(
         self,
         response: str,
@@ -23,9 +42,7 @@ class RAGBenchMark:
         with_penalty=False
     ) -> float:
         f = lambda text: list(jieba.cut(text))
-        bleu = evaluate.load(
-            path = 'bleu'
-        )
+        bleu = evaluate.load(path = './metrics/bleu')
         results = bleu.compute(predictions=[response], references=[[reference]], tokenizer=f)
 
         bleu_avg = results['bleu']
@@ -47,9 +64,7 @@ class RAGBenchMark:
     ) -> float:
         # pip install rouge_score
         f = lambda text: list(jieba.cut(text))
-        rouge = evaluate.load(
-            path = 'rouge'
-            )
+        rouge = evaluate.load(path = './metrics/rouge')
 
         results = rouge.compute(predictions=[response], references=[[reference]], tokenizer=f, rouge_types=['rougeL'])
         score = results['rougeL']
@@ -61,6 +76,7 @@ class RAGBenchMark:
         reference_doc: list[str]
     ) -> float:
         # 目前只考虑reference_doc 为 1 的情况
+
         if nodes:
             for node in nodes:
                 if reference_doc == node.text:
@@ -75,11 +91,28 @@ class RAGBenchMark:
             response: str,
             reference: str
     ) -> float:
+
         result = await self.evaluator.aevaluate(
             response=response,
             reference=reference,
         )
+
         return result.score
+
+    @staticmethod
+    def load_dataset():
+        with open(os.path.join(EXAMPLE_BENCHMARK_PATH,"dataset_info.json"),'r',encoding='utf-8')as f:
+            infos = json.load(f)
+            dataset_config = DatasetConfig(datasets=[
+                DatasetInfo(
+                    name=name,
+                    document_files=[os.path.join(EXAMPLE_BENCHMARK_PATH,name,file) for file in info['document_file'].split(',')],
+                    gt_info=json.load(open(os.path.join(EXAMPLE_BENCHMARK_PATH,name,info['gt_file']),'r',encoding='utf-8'))
+                )
+                for dataset_info in infos
+                for name,info in dataset_info.items()
+            ])
+        return dataset_config
 
 if __name__=='__main__':
     benchmark = RAGBenchMark()
