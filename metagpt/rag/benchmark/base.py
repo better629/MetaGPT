@@ -42,7 +42,7 @@ class RAGBenchMark:
         with_penalty=False
     ) -> float:
         f = lambda text: list(jieba.cut(text))
-        bleu = evaluate.load(path = './metrics/bleu')
+        bleu = evaluate.load(path = '../../metrics/bleu')
         results = bleu.compute(predictions=[response], references=[[reference]], tokenizer=f)
 
         bleu_avg = results['bleu']
@@ -64,7 +64,7 @@ class RAGBenchMark:
     ) -> float:
         # pip install rouge_score
         f = lambda text: list(jieba.cut(text))
-        rouge = evaluate.load(path = './metrics/rouge')
+        rouge = evaluate.load(path = '../../metrics/rouge')
 
         results = rouge.compute(predictions=[response], references=[[reference]], tokenizer=f, rouge_types=['rougeL'])
         score = results['rougeL']
@@ -75,16 +75,40 @@ class RAGBenchMark:
         nodes: list[NodeWithScore],
         reference_doc: list[str]
     ) -> float:
-        # 目前只考虑reference_doc 为 1 的情况
 
         if nodes:
-            for node in nodes:
-                if reference_doc == node.text:
-                    return 1.0
-                else:
-                    continue
+            total_recall = sum(
+                any(node.text in doc for node in nodes)
+                for doc in reference_doc
+            )
+            return total_recall / len(reference_doc)
         else:
             return 0.0
+
+    def HitRate(
+        self,
+        nodes: list[NodeWithScore],
+        reference_doc: list[str]
+    ) ->float:
+        if nodes:
+            return 1.0 if any(node.text in doc for doc in reference_doc for node in nodes) else 0.0
+        else:
+            return 0.0
+
+    def MRR(
+        self,
+        nodes: list[NodeWithScore],
+        reference_doc: list[str]
+    ) ->float:
+        mrr_sum = 0.0
+
+        for i, doc in enumerate(reference_doc, start=1):
+            for node in nodes:
+                if node.text in doc:
+                    mrr_sum += 1.0 / i
+                    break
+
+        return mrr_sum / len(reference_doc) if reference_doc else 0.0
 
     async def SemanticSimilarity(
             self,
