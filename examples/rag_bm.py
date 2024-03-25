@@ -1,28 +1,18 @@
 """RAG benchmark pipeline"""
 
 import asyncio
-import json
 import os
 
-from metagpt.const import (
-    DATA_PATH,
-    EXAMPLE_DATA_PATH,
-    EXAMPLE_BENCHMARK_PATH
-)
-from metagpt.logs import logger
-from metagpt.rag.engines import SimpleEngine
-from metagpt.rag.factories import get_rag_embedding
-from metagpt.rag.benchmark import RAGBenchMark
-from metagpt.rag.schema import (
-    FAISSRetrieverConfig,
-    LLMRankerConfig,
-    FAISSIndexConfig,
-    BM25RetrieverConfig,
-    ColbertRerankConfig,
-)
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.schema import NodeWithScore
 
+from metagpt.const import DATA_PATH, EXAMPLE_BENCHMARK_PATH, EXAMPLE_DATA_PATH
+from metagpt.logs import logger
+from metagpt.rag.benchmark import RAGBenchMark
+from metagpt.rag.engines import SimpleEngine
+from metagpt.rag.factories import get_rag_embedding
+from metagpt.rag.schema import FAISSIndexConfig, FAISSRetrieverConfig, LLMRankerConfig
+from metagpt.utils.common import write_json_file
 
 DOC_PATH = EXAMPLE_DATA_PATH / "rag_bm/summary_writer.txt"
 QUESTION = "2023年7月20日，应急管理部、财政部联合下发《因灾倒塌、损坏住房恢复重建救助工作规范》的通知，规范倒损住房恢复重建救助相关工作。"
@@ -36,56 +26,52 @@ GROUND_TRUTH_TRANVEL = "2023-07-28 10:14:27作者：白剑峰来源：人民日�
 GROUND_TRUTH_ANSWER = "“启明行动”是为了防控儿童青少年的近视问题，并发布了《防控儿童青少年近视核心知识十条》。"
 
 LLM_TIP = "If you not sure, just answer I don't know."
+LLM_ERROR = "Retrieve failed due to LLM wasn't follow instruction"
+EMPTY_ERROR = "Empty Response"
 
 
 class RAGExample:
     """Show how to use RAG for evaluation."""
 
     def __init__(self):
-
         self.benchmark = RAGBenchMark()
         self.embedding = get_rag_embedding()
 
-    async def rag_evaluate_pipeline(self,dataset_name=['CRUD']):
-
+    async def rag_evaluate_pipeline(self, dataset_name: list[str] = ["CRUD"]):
         dataset_config = self.benchmark.load_dataset()
 
         for dataset in dataset_config.datasets:
-            if 'all' in dataset_name or dataset.name in dataset_name:
+            if "all" in dataset_name or dataset.name in dataset_name:
                 output_dir = DATA_PATH / f"rag_faiss_bm_{dataset.name}"
 
                 if os.path.exists(output_dir):
                     logger.info("Loading Exists index!")
                     self.engine = SimpleEngine.from_index(
-                        index_config=FAISSIndexConfig(persist_path=output_dir),
-                        ranker_configs=[LLMRankerConfig()]
+                        index_config=FAISSIndexConfig(persist_path=output_dir), ranker_configs=[LLMRankerConfig()]
                     )
                 else:
                     logger.info("Loading index from document!")
                     self.engine = SimpleEngine.from_docs(
                         input_files=dataset.document_files,
-                        #retriever_configs=[FAISSRetrieverConfig(persist_path=output_dir)],
-                        retriever_configs=[FAISSRetrieverConfig(persist_path=output_dir)], # ,BM25RetrieverConfig()
-#                       retriever_configs=[BM25RetrieverConfig()],
-                        ranker_configs=[LLMRankerConfig()], #  ColbertRerankConfig,LLMRankerConfig()
-                        transformations=[SentenceSplitter(chunk_size=256,chunk_overlap=0)]
+                        # retriever_configs=[FAISSRetrieverConfig(persist_path=output_dir)],
+                        retriever_configs=[FAISSRetrieverConfig(persist_path=output_dir)], 
+                        ranker_configs=[LLMRankerConfig()],
+                        transformations=[SentenceSplitter(chunk_size=256, chunk_overlap=0)],
                     )
                 results = []
                 for gt_info in dataset.gt_info:
                     result = await self.rag_evaluate_single(
-                        question=gt_info['question'],
-                        reference=gt_info['gt_reference'],
-                        ground_truth=gt_info['gt_answer']
+                        question=gt_info["question"],
+                        reference=gt_info["gt_reference"],
+                        ground_truth=gt_info["gt_answer"],
                     )
                     results.append(result)
                 logger.info(f"=====The {dataset.name} BenchMark dataset assessment is complete!=====")
                 self._print_bm_result(results)
 
-                with open(os.path.join(EXAMPLE_BENCHMARK_PATH,dataset.name,'bm_result.json'),'w',encoding='utf-8')as f:
-                    json.dump(results,f,ensure_ascii=False,indent=4)
+                write_json_file(os.path.join(EXAMPLE_BENCHMARK_PATH, dataset.name, "bm_result.json"), results, "utf-8")
 
-
-    async def rag_evaluate_single(self, question,reference,ground_truth,print_title=True):
+    async def rag_evaluate_single(self, question, reference, ground_truth, print_title=True):
         """This example run rag pipeline, use faiss&bm25 retriever and llm ranker, will print something like:
 
         Retrieve Result:
@@ -126,34 +112,31 @@ class RAGExample:
             answer = await self.engine.aquery(question)
             self._print_result(answer, state="Query")
 
-
         except Exception as e:
             print(e)
             return {
-                'metrics':
-                 {
-                 'bleu-avg': 0.0,
-                 'bleu-1': 0.0,
-                 'bleu-2': 0.0,
-                 'bleu-3': 0.0,
-                 'bleu-4': 0.0,
-                 'rouge-L': 0.0,
-                 'semantic similarity': 0.0,
-                 'recall': 0.0,
-                 'hit_rate': 0.0,
-                 'mrr': 0.0,
-                 'length': 0
-                 },
-                 'log': {
-                 'generated_text':"Retrieve failed due to LLM wasn't follow instruction",
-                 'ground_truth_text':ground_truth,
-                 'question':question,
-                    }
-                }
-
+                "metrics": {
+                    "bleu-avg": 0.0,
+                    "bleu-1": 0.0,
+                    "bleu-2": 0.0,
+                    "bleu-3": 0.0,
+                    "bleu-4": 0.0,
+                    "rouge-L": 0.0,
+                    "semantic similarity": 0.0,
+                    "recall": 0.0,
+                    "hit_rate": 0.0,
+                    "mrr": 0.0,
+                    "length": 0,
+                },
+                "log": {
+                    "generated_text": "Retrieve failed due to LLM wasn't follow instruction",
+                    "ground_truth_text": ground_truth,
+                    "question": question,
+                },
+            }
 
         result = await self.evaluate_result(answer.response, ground_truth, nodes, reference)
-        result['log']['question'] = question
+        result["log"]["question"] = question
 
         logger.info("==========RAG BenchMark result demo as follows==========")
         logger.info(result)
@@ -173,7 +156,7 @@ class RAGExample:
         # 在这里会重新计算Embedding,与init中的from_docs重复
         SimpleEngine.from_docs(
             input_files=[TRAVEL_DOC_PATH],
-            retriever_configs=[FAISSRetrieverConfig(dimensions = 512,persist_path=output_dir)],
+            retriever_configs=[FAISSRetrieverConfig(dimensions=512, persist_path=output_dir)],
         )
 
         # load index
@@ -183,7 +166,7 @@ class RAGExample:
 
         # query
         nodes = engine.retrieve(QUESTION)
-        self._print_result(nodes,state='Retrieve')
+        self._print_result(nodes, state="Retrieve")
 
         answer = engine.query(TRAVEL_QUESTION)
         self._print_result(answer, state="Query")
@@ -192,33 +175,33 @@ class RAGExample:
         self,
         response: str = None,
         reference: str = None,
-        nodes : list[NodeWithScore] = None,
-        reference_doc: list[str] = None
+        nodes: list[NodeWithScore] = None,
+        reference_doc: list[str] = None,
     ):
         recall = self.benchmark.recall(nodes, reference_doc)
         bleu_avg, bleu1, bleu2, bleu3, bleu4 = self.benchmark.bleu_score(response, reference)
-        rouge_l = self.benchmark.rougeL_score(response, reference)
+        rouge_l = self.benchmark.rougel_score(response, reference)
         hit_rate = self.benchmark.HitRate(nodes, reference_doc)
         mrr = self.benchmark.MRR(nodes, reference_doc)
 
         result = {
-            'metrics': {
-                'bleu-avg': bleu_avg or 0.0,
-                'bleu-1': bleu1 or 0.0,
-                'bleu-2': bleu2 or 0.0,
-                'bleu-3': bleu3 or 0.0,
-                'bleu-4': bleu4 or 0.0,
-                'rouge-L': rouge_l,
-                'semantic similarity': await self.benchmark.SemanticSimilarity(response, reference),
-                'recall': recall,
-                'hit_rate': hit_rate,
-                'mrr': mrr,
-                'length': len(response)
+            "metrics": {
+                "bleu-avg": bleu_avg or 0.0,
+                "bleu-1": bleu1 or 0.0,
+                "bleu-2": bleu2 or 0.0,
+                "bleu-3": bleu3 or 0.0,
+                "bleu-4": bleu4 or 0.0,
+                "rouge-L": rouge_l,
+                "semantic similarity": await self.benchmark.SemanticSimilarity(response, reference),
+                "recall": recall,
+                "hit_rate": hit_rate,
+                "mrr": mrr,
+                "length": len(response),
             },
-            'log': {
-                'generated_text': response,
-                'ground_truth_text': reference,
-            }
+            "log": {
+                "generated_text": response,
+                "ground_truth_text": reference,
+            },
         }
         return result
 
@@ -242,22 +225,26 @@ class RAGExample:
     @staticmethod
     def _print_bm_result(result):
         import pandas as pd
-        metrics = [item['metrics'] for item in result
-                   if item['log']['generated_text'] !="Retrieve failed due to LLM wasn't follow instruction"
-                   and item['log']['generated_text'] != "Empty Response"
-                   ]
+
+        metrics = [
+            item["metrics"]
+            for item in result
+            if item["log"]["generated_text"] != LLM_ERROR and item["log"]["generated_text"] != EMPTY_ERROR
+        ]
 
         data = pd.DataFrame(metrics)
         logger.info(f"\n {data.mean()}")
 
-        llm_errors =  [item for item in result
-                       if item['log']['generated_text'] =="Retrieve failed due to LLM wasn't follow instruction"]
-        retrieve_errors = [item for item in result
-                        if item['log']['generated_text'] == "Empty Response"]
-        logger.info(f"Percentage of retrieval failures due to incorrect LLM instruction following:"
-                    f" {100.0 * len(llm_errors) / len(result)}%")
-        logger.info(f"Percentage of retrieval failures due to retriever not recalling any documents is:"
-                    f" {100.0 * len(retrieve_errors) / len(result)}%")
+        llm_errors = [item for item in result if item["log"]["generated_text"] == LLM_ERROR]
+        retrieve_errors = [item for item in result if item["log"]["generated_text"] == EMPTY_ERROR]
+        logger.info(
+            f"Percentage of retrieval failures due to incorrect LLM instruction following:"
+            f" {100.0 * len(llm_errors) / len(result)}%"
+        )
+        logger.info(
+            f"Percentage of retrieval failures due to retriever not recalling any documents is:"
+            f" {100.0 * len(retrieve_errors) / len(result)}%"
+        )
 
     async def _retrieve_and_print(self, question):
         nodes = await self.engine.aretrieve(question)
