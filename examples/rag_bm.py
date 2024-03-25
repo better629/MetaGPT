@@ -17,8 +17,10 @@ from metagpt.rag.schema import (
     FAISSRetrieverConfig,
     LLMRankerConfig,
     FAISSIndexConfig,
+    BM25RetrieverConfig,
+    ColbertRerankConfig,
 )
-
+from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core.schema import NodeWithScore
 
 
@@ -40,25 +42,35 @@ class RAGExample:
     """Show how to use RAG for evaluation."""
 
     def __init__(self):
+
         self.benchmark = RAGBenchMark()
         self.embedding = get_rag_embedding()
 
-    async def rag_evaluate_pipeline(self,dataset_name=['all']):
-        """Show how to use RAG for evaluation pipeline."""
-        
+    async def rag_evaluate_pipeline(self,dataset_name=['CRUD']):
+
         dataset_config = self.benchmark.load_dataset()
 
         for dataset in dataset_config.datasets:
             if 'all' in dataset_name or dataset.name in dataset_name:
-                output_dir = DATA_PATH / f"rag_faiss_{dataset.name}"
-                self.engine = SimpleEngine.from_docs(
-                    input_files=dataset.document_files,
-                    retriever_configs=[FAISSRetrieverConfig(persist_path=output_dir)],
-                    ranker_configs=[LLMRankerConfig()],
-                )
-                
+                output_dir = DATA_PATH / f"rag_faiss_bm_{dataset.name}"
+
+                if os.path.exists(output_dir):
+                    logger.info("Loading Exists index!")
+                    self.engine = SimpleEngine.from_index(
+                        index_config=FAISSIndexConfig(persist_path=output_dir),
+                        ranker_configs=[LLMRankerConfig()]
+                    )
+                else:
+                    logger.info("Loading index from document!")
+                    self.engine = SimpleEngine.from_docs(
+                        input_files=dataset.document_files,
+                        #retriever_configs=[FAISSRetrieverConfig(persist_path=output_dir)],
+                        retriever_configs=[FAISSRetrieverConfig(persist_path=output_dir)], # ,BM25RetrieverConfig()
+#                       retriever_configs=[BM25RetrieverConfig()],
+                        ranker_configs=[LLMRankerConfig()], #  ColbertRerankConfig,LLMRankerConfig()
+                        transformations=[SentenceSplitter(chunk_size=256,chunk_overlap=0)]
+                    )
                 results = []
-                
                 for gt_info in dataset.gt_info:
                     result = await self.rag_evaluate_single(
                         question=gt_info['question'],
@@ -71,6 +83,7 @@ class RAGExample:
 
                 with open(os.path.join(EXAMPLE_BENCHMARK_PATH,dataset.name,'bm_result.json'),'w',encoding='utf-8')as f:
                     json.dump(results,f,ensure_ascii=False,indent=4)
+
 
     async def rag_evaluate_single(self, question,reference,ground_truth,print_title=True):
         """This example run rag pipeline, use faiss&bm25 retriever and llm ranker, will print something like:
@@ -113,7 +126,9 @@ class RAGExample:
             answer = await self.engine.aquery(question)
             self._print_result(answer, state="Query")
 
-        except:
+
+        except Exception as e:
+            print(e)
             return {
                 'metrics':
                  {
@@ -124,6 +139,9 @@ class RAGExample:
                  'bleu-4': 0.0,
                  'rouge-L': 0.0,
                  'semantic similarity': 0.0,
+                 'recall': 0.0,
+                 'hit_rate': 0.0,
+                 'mrr': 0.0,
                  'length': 0
                  },
                  'log': {
@@ -133,7 +151,8 @@ class RAGExample:
                     }
                 }
 
-        result = await self.evaluate_result(answer.response, ground_truth, nodes, [reference])
+
+        result = await self.evaluate_result(answer.response, ground_truth, nodes, reference)
         result['log']['question'] = question
 
         logger.info("==========RAG BenchMark result demo as follows==========")
@@ -179,6 +198,8 @@ class RAGExample:
         recall = self.benchmark.recall(nodes, reference_doc)
         bleu_avg, bleu1, bleu2, bleu3, bleu4 = self.benchmark.bleu_score(response, reference)
         rouge_l = self.benchmark.rougeL_score(response, reference)
+        hit_rate = self.benchmark.HitRate(nodes, reference_doc)
+        mrr = self.benchmark.MRR(nodes, reference_doc)
 
         result = {
             'metrics': {
@@ -190,6 +211,8 @@ class RAGExample:
                 'rouge-L': rouge_l,
                 'semantic similarity': await self.benchmark.SemanticSimilarity(response, reference),
                 'recall': recall,
+                'hit_rate': hit_rate,
+                'mrr': mrr,
                 'length': len(response)
             },
             'log': {
@@ -219,7 +242,10 @@ class RAGExample:
     @staticmethod
     def _print_bm_result(result):
         import pandas as pd
-        metrics = [item['metrics'] for item in result]
+        metrics = [item['metrics'] for item in result
+                   if item['log']['generated_text'] !="Retrieve failed due to LLM wasn't follow instruction"
+                   and item['log']['generated_text'] != "Empty Response"
+                   ]
 
         data = pd.DataFrame(metrics)
         logger.info(f"\n {data.mean()}")
