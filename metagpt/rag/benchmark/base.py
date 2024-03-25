@@ -36,7 +36,7 @@ class RAGBenchMark:
 
     def bleu_score(self, response: str, reference: str, with_penalty=False) -> float:
         f = lambda text: list(jieba.cut(text))
-        bleu = evaluate.load(path="./metrics/bleu")
+        bleu = evaluate.load(path="bleu")
         results = bleu.compute(predictions=[response], references=[[reference]], tokenizer=f)
 
         bleu_avg = results["bleu"]
@@ -54,7 +54,7 @@ class RAGBenchMark:
     def rougel_score(self, response: str, reference: str) -> float:
         # pip install rouge_score
         f = lambda text: list(jieba.cut(text))
-        rouge = evaluate.load(path="./metrics/rouge")
+        rouge = evaluate.load(path="rouge")
 
         results = rouge.compute(predictions=[response], references=[[reference]], tokenizer=f, rouge_types=["rougeL"])
         score = results["rougeL"]
