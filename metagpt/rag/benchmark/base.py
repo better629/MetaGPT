@@ -93,7 +93,7 @@ class RAGBenchMark:
         return result.score
 
     @staticmethod
-    def load_dataset():
+    def load_dataset(ds_names: list[str] = ["CRUD"]):
         with open(os.path.join(EXAMPLE_BENCHMARK_PATH, "dataset_info.json"), "r", encoding="utf-8") as f:
             infos = json.load(f)
             dataset_config = DatasetConfig(
@@ -102,14 +102,14 @@ class RAGBenchMark:
                         name=name,
                         document_files=[
                             os.path.join(EXAMPLE_BENCHMARK_PATH, name, file)
-                            for file in info["document_file"].split(",")
+                            for file in info["document_file"]
                         ],
                         gt_info=json.load(
                             open(os.path.join(EXAMPLE_BENCHMARK_PATH, name, info["gt_file"]), "r", encoding="utf-8")
                         ),
                     )
-                    for dataset_info in infos
-                    for name, info in dataset_info.items()
+                    for dataset_info in dataset_info[name]
+                    for name in ds_names  
                 ]
             )
         return dataset_config
