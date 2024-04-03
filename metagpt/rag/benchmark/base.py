@@ -102,14 +102,14 @@ class RAGBenchMark:
                         name=name,
                         document_files=[
                             os.path.join(EXAMPLE_BENCHMARK_PATH, name, file)
-                            for file in info["document_file"]
+                            for file in info["document_files"]
                         ],
                         gt_info=json.load(
                             open(os.path.join(EXAMPLE_BENCHMARK_PATH, name, info["gt_file"]), "r", encoding="utf-8")
                         ),
                     )
-                    for dataset_info in dataset_info[name]
-                    for name in ds_names  
+                    for dataset_info in info if name in ds_names or "all" in ds_names
+                    for name, info in dateset_info.items()
                 ]
             )
         return dataset_config
