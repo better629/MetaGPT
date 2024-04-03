@@ -108,8 +108,9 @@ class RAGBenchMark:
                             open(os.path.join(EXAMPLE_BENCHMARK_PATH, name, info["gt_file"]), "r", encoding="utf-8")
                         ),
                     )
-                    for dataset_info in info if name in ds_names or "all" in ds_names
+                    for dataset_info in infos 
                     for name, info in dateset_info.items()
+                    if name in ds_names or "all" in ds_names
                 ]
             )
         return dataset_config
