@@ -1,13 +1,13 @@
 [
   {
     "simplified_CRUD":{
-      "document_file":"documents.txt",
+      "document_files":["documents.txt"],
       "gt_file":"answer.json"
     }
   },
   {
     "simplified_RGB ":{
-      "document_file":"documents.txt",
+      "document_files":["documents.txt"],
       "gt_file":"answer.json"
     }
   }
