@@ -37,7 +37,7 @@ class RAGExample:
         self.embedding = get_rag_embedding()
 
     async def rag_evaluate_pipeline(self, dataset_name: list[str] = ["CRUD"]):
-        dataset_config = self.benchmark.load_dataset()
+        dataset_config = self.benchmark.load_dataset(dataset_name)
 
         for dataset in dataset_config.datasets:
             if "all" in dataset_name or dataset.name in dataset_name:
