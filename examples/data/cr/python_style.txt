@@ -1,0 +1,203 @@
+Python风格规范
+分号
+小技巧
+
+不要在行尾加分号, 也不要用分号将两条命令放在同一行.
+
+行长度
+小技巧
+
+每行不超过80个字符
+
+例外:
+
+长的导入模块语句
+
+注释里的URL,路径以及其他的一些长标记
+
+不便于换行，不包含空格的模块级字符串常量，比如url或者路径
+
+Pylint 禁用注释.（例如：``# pylint: disable=invalid-name）
+
+除非是在 with 语句需要三个以上的上下文管理器的情况下，否则不要使用反斜杠连接行.
+
+Python会将 圆括号, 中括号和花括号中的行隐式的连接起来 , 你可以利用这个特点. 如果需要, 你可以在表达式外围增加一对额外的圆括号.
+
+Yes: foo_bar(self, width, height, color='black', design=None, x='foo',
+             emphasis=None, highlight=0)
+
+     if (width == 0 and height == 0 and
+         color == 'red' and emphasis == 'strong'):
+如果一个文本字符串在一行放不下, 可以使用圆括号来实现隐式行连接:
+
+x = ('This will build a very long long '
+     'long long long long long long string')
+在注释中，如果必要，将长的URL放在一行上。
+
+Yes:  # See details at
+      # http://www.example.com/us/developer/documentation/api/content/v2.0/csv_file_name_extension_full_specification.html
+No:  # See details at
+     # http://www.example.com/us/developer/documentation/api/content/\
+     # v2.0/csv_file_name_extension_full_specification.html
+当 with 表达式需要使用三个及其以上的上下文管理器时，可以使用反斜杠换行.若只需要两个，请使用嵌套的with.
+
+Yes:  with very_long_first_expression_function() as spam, \
+           very_long_second_expression_function() as beans, \
+           third_thing() as eggs:
+          place_order(eggs, beans, spam, beans)
+No:  with VeryLongFirstExpressionFunction() as spam, \
+          VeryLongSecondExpressionFunction() as beans:
+       PlaceOrder(eggs, beans, spam, beans)
+Yes:  with very_long_first_expression_function() as spam:
+          with very_long_second_expression_function() as beans:
+              place_order(beans, spam)
+注意上面例子中的元素缩进; 你可以在本文的 缩进 部分找到解释.
+
+另外在其他所有情况下，若一行超过80个字符，但 yapf 却无法将该行字数降至80个字符以下时，则允许该行超过80个字符长度.
+
+括号
+小技巧
+
+宁缺毋滥的使用括号
+
+除非是用于实现行连接, 否则不要在返回语句或条件语句中使用括号. 不过在元组两边使用括号是可以的.
+
+Yes: if foo:
+         bar()
+       while x:
+           x = bar()
+       if x and y:
+           bar()
+       if not x:
+           bar()
+       # For a 1 item tuple the ()s are more visually obvious than the comma.
+       onesie = (foo,)
+       return foo
+       return spam, beans
+       return (spam, beans)
+       for (x, y) in dict.items(): ...
+No:  if (x):
+         bar()
+     if not(x):
+         bar()
+     return (foo)
+缩进
+小技巧
+
+用4个空格来缩进代码
+
+绝对不要用tab, 也不要tab和空格混用. 对于行连接的情况, 你应该要么垂直对齐换行的元素(见 行长度 部分的示例), 或者使用4空格的悬挂式缩进(这时第一行不应该有参数):
+
+Yes:   # Aligned with opening delimiter
+       foo = long_function_name(var_one, var_two,
+                                var_three, var_four)
+
+       # Aligned with opening delimiter in a dictionary
+       foo = {
+           long_dictionary_key: value1 +
+                                value2,
+           ...
+       }
+
+       # 4-space hanging indent; nothing on first line
+       foo = long_function_name(
+           var_one, var_two, var_three,
+           var_four)
+
+       # 4-space hanging indent in a dictionary
+       foo = {
+           long_dictionary_key:
+               long_dictionary_value,
+           ...
+       }
+No:    # Stuff on first line forbidden
+      foo = long_function_name(var_one, var_two,
+          var_three, var_four)
+
+      # 2-space hanging indent forbidden
+      foo = long_function_name(
+        var_one, var_two, var_three,
+        var_four)
+
+      # No hanging indent in a dictionary
+      foo = {
+          long_dictionary_key:
+              long_dictionary_value,
+              ...
+      }
+序列元素尾部逗号
+小技巧
+
+仅当 ], ), } 和末位元素不在同一行时，推荐使用序列元素尾部逗号. 当末位元素尾部有逗号时，元素后的逗号可以指示 YAPF 将序列格式化为每行一项.
+
+Yes:   golomb3 = [0, 1, 3]
+Yes:   golomb4 = [
+           0,
+           1,
+           4,
+           6,
+       ]
+No:    golomb4 = [
+           0,
+           1,
+           4,
+           6
+       ]
+空行
+小技巧
+
+顶级定义之间空两行, 方法定义之间空一行
+
+顶级定义之间空两行, 比如函数或者类定义. 方法定义, 类定义与第一个方法之间, 都应该空一行. 函数或方法中, 某些地方要是你觉得合适, 就空一行.
+
+空格
+小技巧
+
+按照标准的排版规范来使用标点两边的空格
+
+括号内不要有空格.
+
+Yes: spam(ham[1], {eggs: 2}, [])
+No:  spam( ham[ 1 ], { eggs: 2 }, [ ] )
+不要在逗号, 分号, 冒号前面加空格, 但应该在它们后面加(除了在行尾).
+
+Yes: if x == 4:
+         print(x, y)
+     x, y = y, x
+No:  if x == 4 :
+         print(x , y)
+     x , y = y , x
+参数列表, 索引或切片的左括号前不应加空格.
+
+Yes: spam(1)
+no: spam (1)
+Yes: dict['key'] = list[index]
+No:  dict ['key'] = list [index]
+在二元操作符两边都加上一个空格, 比如赋值(=), 比较(==, <, >, !=, <>, <=, >=, in, not in, is, is not), 布尔(and, or, not). 至于算术操作符两边的空格该如何使用, 需要你自己好好判断. 不过两侧务必要保持一致.
+
+Yes: x == 1
+No:  x<1
+当 = 用于指示关键字参数或默认参数值时, 不要在其两侧使用空格. 但若存在类型注释的时候,需要在 = 周围使用空格.
+
+Yes: def complex(real, imag=0.0): return magic(r=real, i=imag)
+Yes: def complex(real, imag: float = 0.0): return Magic(r=real, i=imag)
+No:  def complex(real, imag = 0.0): return magic(r = real, i = imag)
+No:  def complex(real, imag: float=0.0): return Magic(r = real, i = imag)
+不要用空格来垂直对齐多行间的标记, 因为这会成为维护的负担(适用于:, #, =等):
+
+Yes:
+     foo = 1000  # comment
+     long_name = 2  # comment that should not be aligned
+
+     dictionary = {
+         "foo": 1,
+         "long_name": 2,
+         }
+No:
+     foo       = 1000  # comment
+     long_name = 2     # comment that should not be aligned
+
+     dictionary = {
+         "foo"      : 1,
+         "long_name": 2,
+         }

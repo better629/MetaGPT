@@ -68,3 +68,29 @@ class File:
             content = b"".join(chunks)
             logger.debug(f"Successfully read file, the path of file: {file_path}")
             return content
+
+    @classmethod
+    @handle_exception
+    async def read_file_in_line_chunks(cls, file_path, max_chars_per_read: int = None, encoding: str = "utf-8"):
+        """Generator to read file, each time read lines that does not exceed the specified maximum."""
+
+        max_chars = max_chars_per_read or cls.CHUNK_SIZE
+        async with aiofiles.open(file_path, "r", encoding=encoding) as file:
+            chunk = []
+            current_size = 0
+            i = 0
+            async for line in file:
+                i += 1
+
+                if current_size + len(line) > max_chars:
+                    # If the current chunk is full, yield it and start a new one
+                    yield "".join(chunk)
+                    chunk = []
+                    current_size = 0
+
+                chunk.append(line)
+                current_size += len(line)
+
+            # Yield any remaining lines in the last chunk
+            if chunk:
+                yield "".join(chunk)
