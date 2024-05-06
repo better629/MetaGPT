@@ -2,13 +2,34 @@
 # -*- coding: utf-8 -*-
 # @Desc   : extract points from patch firstly or use the passed whole points
 
+import json
 
 from unidiff import PatchSet
 
 from metagpt.actions.action import Action
+from metagpt.logs import logger
+from metagpt.rag.engines.simple import SimpleEngine
+from metagpt.rag.schema import FAISSRetrieverConfig
+from metagpt.utils.common import parse_json_code_block
+from metagpt.utils.cr.cleaner import rm_patch_useless_part
 from metagpt.utils.cr.schema import Point
 
-EXTRACT_PROMPT = """
+EXTRACT_POINT_PROMPT_TEMPLATE = """
+NOTICE
+Role: You are a professional engineer with Python and Java stack.
+With the given pull-request(PR) Patch, try to do the code review and print the comments.
+
+## Patch
+```
+{patch}
+```
+
+## Output Format
+```json
+["comment_1", "comment_2", "comment_n]
+```
+
+output the comments in json format with list of str.
 """
 
 
@@ -16,8 +37,32 @@ class GenPatchPoints(Action):
     name: str = "PatchPoints"
 
     async def run(self, patch: PatchSet, points: list[Point], do_extract: bool = False) -> list[Point]:
-        if not do_extract:
+        if do_extract:
+            patch: PatchSet = rm_patch_useless_part(patch)
+
             # do the points extraction from the patch and then find the matched point from the points through RAG
-            pass
+            prompt = EXTRACT_POINT_PROMPT_TEMPLATE.format(patch=str(patch))
+            resp = await self.llm.aask(prompt)
+            json_str = parse_json_code_block(resp)[0]
+            comments = json.loads(json_str)
+
+            # create retrieval engine
+            engine = SimpleEngine.from_objs(
+                points,
+                retriever_configs=[FAISSRetrieverConfig(similarity_top_k=2)],
+                # ranker_configs=[LLMRankerConfig()]
+            )
+            points_map = {}
+            retri_cnt = 0
+            for cmt in comments:
+                nodes = await engine.aretrieve(query=cmt)
+                for node in nodes:
+                    retri_cnt += 1
+                    point = node.metadata["obj"]
+                    points_map[point.id] = point
+            points = list(points_map.values())
+            points_str = "\n".join([f"{p.id} {p.text}" for p in points])
+            logger.debug(f"retrieved points: {points_str}")
+            logger.info(f"retrieved num: {retri_cnt}, merged num: {len(points)}")
 
         return points
