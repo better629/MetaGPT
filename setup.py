@@ -46,6 +46,7 @@ extras_require = {
         "docx2txt==0.8",
     ],
     "android_assistant": ["pyshine==0.0.9", "opencv-python==4.6.0.66"],
+    "code_review": ["unidiff==0.7.5", "aiosqlite==0.20.0"],
 }
 
 extras_require["test"] = [

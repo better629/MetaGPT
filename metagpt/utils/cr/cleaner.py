@@ -3,6 +3,7 @@
 import tempfile
 
 import aiofiles
+from unidiff import PatchSet
 
 from metagpt.logs import logger
 
@@ -43,3 +44,16 @@ class FileCleaner:
 
 
 clean_and_mark_file = FileCleaner.clean_and_mark_file
+
+
+def rm_patch_useless_part(patch: PatchSet, used_suffix: list[str] = ["py", "java"]) -> PatchSet:
+    new_patch = PatchSet("")
+    useless_files = []
+    for pfile in patch:
+        suffix = str(pfile.target_file).split(".")[-1]
+        if suffix not in used_suffix or pfile.is_removed_file:
+            useless_files.append(pfile.path)
+            continue
+        new_patch.append(pfile)
+    logger.info(f"total file num: {len(patch)}, used file num: {len(new_patch)}, useless_files: {useless_files}")
+    return new_patch
