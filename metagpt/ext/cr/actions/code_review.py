@@ -12,13 +12,11 @@ from metagpt.utils.common import parse_json_code_block
 from metagpt.utils.cr.cleaner import rm_patch_useless_part
 from metagpt.utils.cr.schema import Point
 
-CODE_REVIEW_SYSTEM_PROMPT = """
-You are a professional engineer with Python and Java stack.
-With the given pull-request(PR) Patch, and reference standard Points, you should give comments of the PR and output in json format.
-With the PR code and its comment reference point, to judge if it's a valid comment.
-"""
-
 CODE_REVIEW_PROMPT_TEMPLATE = """
+NOTICE
+Role: You are a professional engineer with Python and Java stack.
+With the given pull-request(PR) Patch, and reference standard Points, you should give comments of the PR and output in json format.
+
 ## Patch
 ```
 {patch}
@@ -31,10 +29,10 @@ CODE_REVIEW_PROMPT_TEMPLATE = """
 ```json
 [
     {{
-        "commented_file": "the file which you give comments from the patch",
-        "comment": "the comment of the code",
-        "code": "the code in the Patch which has comment",
-        "point_id": "the point id which the comment references to"
+        "commented_file": "The file name which you give comments from the patch",
+        "comment": "The comment of the code",
+        "code": "The code in the Patch which to be commented, three lines code before and after",
+        "point_id": "The point id which the comment references to"
     }}
 ]
 ```
@@ -44,6 +42,10 @@ just print the PR Patch comments in json format like **Output Format**.
 
 
 CODE_REVIEW_COMFIRM_TEMPLATE = """
+NOTICE
+Role: You are a professional engineer with Python and Java stack.
+With the PR code and its comment reference point, to judge if it's a valid comment.
+
 ## Code
 ```
 {code}
@@ -84,7 +86,7 @@ class CodeReview(Action):
             prompt = CODE_REVIEW_COMFIRM_TEMPLATE.format(
                 code=cmt.get("code"), comment=cmt.get("comment"), point=cmt.get("point_raw_cont")
             )
-            resp = await self.llm.aask(prompt, system_msgs=[CODE_REVIEW_SYSTEM_PROMPT])
+            resp = await self.llm.aask(prompt)
             if "True" in resp or "true" in resp:
                 new_comments.append(cmt)
         logger.info(f"original comments num: {len(comments)}, confirmed comments num: {len(new_comments)}")
@@ -95,7 +97,7 @@ class CodeReview(Action):
 
         points_str = "\n".join([f"{p.id} {p.text}" for p in points])
         prompt = CODE_REVIEW_PROMPT_TEMPLATE.format(patch=str(patch), points=points_str)
-        resp = await self.llm.aask(prompt, system_msgs=[CODE_REVIEW_SYSTEM_PROMPT])
+        resp = await self.llm.aask(prompt)
         json_str = parse_json_code_block(resp)[0]
         comments = json.loads(json_str)
 
