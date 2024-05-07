@@ -29,7 +29,7 @@ class FileCleaner:
             async for line in infile:
                 # remove empty line and mark line numbers before each line, such as L1, L2, ...
                 if line.strip():
-                    await outfile.write(f"L{line_number} {line}")
+                    await outfile.write(f"L{line_number} {line.lstrip()}")
                     line_number += 1
 
         logger.info(f"clean and mark file success, input_file: {input_file}, output_file: {output_file}")

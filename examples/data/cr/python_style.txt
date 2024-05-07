@@ -1,203 +1,473 @@
-Python风格规范
-分号
-小技巧
+             第    5  章
+                                            Python            编码规范
 
-不要在行尾加分号, 也不要用分号将两条命令放在同一行.
 
-行长度
-小技巧
+               俗话说：“没有规矩不成方圆。”编程工作往往都是一个团队协同进行，因而一致的编
+           码规范非常有必要，这样写成的代码便于团队中的其他人员阅读，也便于编写者自己以后
+           阅读。
+               关于本书的       Python 编码规范借鉴了        Python 官方的    PEP8  编码规范①和谷歌         Python 编码
+           规范②。
 
-每行不超过80个字符
+           5.1     命名规范
 
-例外:
+               程序代码中到处都是标识符，因此取一个一致并且符合规范的名字非常重要。Python                                      中命
+           名规范采用多种不同方式。不同的代码元素命名不同，下面将分类说明。
+               • 包名：全部小写字母，中间可以由点分隔开，不推荐使用下画线。作为命名空间，包名
+                                                                                                  扫码看视频
+                 应该具有唯一性，推荐采用公司或组织域名的倒置，如                           com.apple.quicktime.v2。
+               • 模块名：全部小写字母，如果是多个单词构成，可以用下画线隔开，如                               dummy_threading。
+               • 类名：采用大驼峰法命名③，如               SplitViewController。
+               • 异常名：异常属于类，命名同类命名，但应该使用                       Error 作为后缀。如     FileNotFoundError。
+               • 变量名：全部小写字母，如果由多个单词构成，可以用下画线隔开。如果变量应用于模
+                 块或函数内部，则变量名可以由单下画线开头；变量类内部私有使用变量名可以双下画
+                 线开头。不要命名双下画线开头和结尾的变量，这是                           Python 保留的。另外，避免使用
+                 小写   L、大写    O 和大写    I 作为变量名。
+               • 函数名和方法名：命名同变量命名，如                   balance_account、_push_cm_exit。
+               • 常量名：全部大写字母，如果是由多个单词构成，可以用下画线隔开，如                                        YEAR  和
+                 WEEK_OF_MONTH。
+               命名规范示例如下：
 
-长的导入模块语句
+               _saltchars = _string.ascii_letters + _string.digits + './'
 
-注释里的URL,路径以及其他的一些长标记
+               def mksalt(method=None):
 
-不便于换行，不包含空格的模块级字符串常量，比如url或者路径
+               ①　参考地址     https://www.python.org/dev/peps/pep-0008。
+               ②　参考地址     https://google.github.io/styleguide/pyguide.html。
+               ③　大驼峰法命名是驼峰命名的一种，驼峰命名是指混合使用大小写字母来命名。驼峰命名分为小驼峰法和大驼
+           峰法。小驼峰法就是第一个单词全部小写，后面的单词首字母大写，如                      myRoomCount；大驼峰法是第一个单词的首
+           字母也大写，如     ClassRoom。
 
-Pylint 禁用注释.（例如：``# pylint: disable=invalid-name）
 
-除非是在 with 语句需要三个以上的上下文管理器的情况下，否则不要使用反斜杠连接行.
+                    if method is None:
+                        method = methods[0]
+                    s = '${}$'.format(method.ident) if method.ident else ''
+                    s += ''.join(_sr.choice(_saltchars) for char in range(method.salt_chars))
+                    return s
 
-Python会将 圆括号, 中括号和花括号中的行隐式的连接起来 , 你可以利用这个特点. 如果需要, 你可以在表达式外围增加一对额外的圆括号.
+                METHOD_SHA256 = _Method('SHA256', '5', 16, 63)
+                METHOD_SHA512 = _Method('SHA512', '6', 16, 106)
 
-Yes: foo_bar(self, width, height, color='black', design=None, x='foo',
-             emphasis=None, highlight=0)
+                methods = []
+                for _method in (METHOD_SHA512, METHOD_SHA256, METHOD_MD5, METHOD_CRYPT):
+                    _result = crypt('', _method)
+                    if _result and len(_result) == _method.total_size:
+                        methods.append(_method)
 
-     if (width == 0 and height == 0 and
-         color == 'red' and emphasis == 'strong'):
-如果一个文本字符串在一行放不下, 可以使用圆括号来实现隐式行连接:
+           5.2       注释规范
 
-x = ('This will build a very long long '
-     'long long long long long long string')
-在注释中，如果必要，将长的URL放在一行上。
+                Python   中注释的语法有三种：单行注释、多行注释和文档注释。本节介绍如何规范使用这
+           些注释。
+扫码看视频           5.2.1       文件注释
+                文件注释就是在每一个文件开头添加注释，采用多行注释。文件注释通常包括如下信息：
+           版权信息、文件名、所在模块、作者信息、历史版本信息、文件内容和作用等。
+                下面看一个文件注释的示例：
 
-Yes:  # See details at
-      # http://www.example.com/us/developer/documentation/api/content/v2.0/csv_file_name_extension_full_specification.html
-No:  # See details at
-     # http://www.example.com/us/developer/documentation/api/content/\
-     # v2.0/csv_file_name_extension_full_specification.html
-当 with 表达式需要使用三个及其以上的上下文管理器时，可以使用反斜杠换行.若只需要两个，请使用嵌套的with.
+                # 
+                   版权所有             北京智捷东方科技有限公司
+                #            2015 
+                   许可信息查看                       文件
+                #                LICENSE.txt
+                   描述
+                #       :
+                      实现日期基本功能
+                #   
+                   历史版本
+                #            :
+                                     创建    关东升
+                #   2015-7-22:            
+                                     添加           库
+                #   2015-8-20:            socket
+                                     添加         库
+                #   2015-8-22:            math
+                #
+                上述注释只是提供了版权信息、文件内容和历史版本信息等，文件注释要根据实际情况包
+           括内容。
+                5.2.2       文档注释
 
-Yes:  with very_long_first_expression_function() as spam, \
-           very_long_second_expression_function() as beans, \
-           third_thing() as eggs:
-          place_order(eggs, beans, spam, beans)
-No:  with VeryLongFirstExpressionFunction() as spam, \
-          VeryLongSecondExpressionFunction() as beans:
-       PlaceOrder(eggs, beans, spam, beans)
-Yes:  with very_long_first_expression_function() as spam:
-          with very_long_second_expression_function() as beans:
-              place_order(beans, spam)
-注意上面例子中的元素缩进; 你可以在本文的 缩进 部分找到解释.
+                文档注释就是文档字符串，注释内容能够生成                                      API  帮助文档，可以使用                 Python   官方提供
+           的  pydoc   工具从      Python   源代码文件中提取这些信息，也可以生成                                 HTML     文件。所有公有的模
+           块、函数、类和方法都应该进行文档注释。
+                文档注释规范有些“苛刻”。文档注释推荐使用一对三重双引号“                                                   """”包裹起来，注意不
+           推荐使用三重单引号“                   '''”。文档注释应该位于被注释的模块、函数、类和方法内部的第一条
 
-另外在其他所有情况下，若一行超过80个字符，但 yapf 却无法将该行字数降至80个字符以下时，则允许该行超过80个字符长度.
 
-括号
-小技巧
+              语句。如果文档注释一行能够注释完成，结束的三重双引号也在同一行。如果文档注释很长，
+              第一行注释之后要留一个空行，然后剩下的注释内容换行要与开始三重双引号对齐，最后结束
+              的三重双引号要独占一行，并与开始三重双引号对齐。
+                    下面代码是         Python   官方提供的         base64.py    文件的一部分。
 
-宁缺毋滥的使用括号
+                    #! /usr/bin/env python3
 
-除非是用于实现行连接, 否则不要在返回语句或条件语句中使用括号. 不过在元组两边使用括号是可以的.
+                                                                                                                            ①
+                    """Base16, Base32, Base64 (RFC 3548), Base85 and Ascii85 data encodings""" 
 
-Yes: if foo:
-         bar()
-       while x:
-           x = bar()
-       if x and y:
-           bar()
-       if not x:
-           bar()
-       # For a 1 item tuple the ()s are more visually obvious than the comma.
-       onesie = (foo,)
-       return foo
-       return spam, beans
-       return (spam, beans)
-       for (x, y) in dict.items(): ...
-No:  if (x):
-         bar()
-     if not(x):
-         bar()
-     return (foo)
-缩进
-小技巧
+                    # Modiﬁed 04-Oct-1995 by Jack Jansen to use binascii module
+                    # Modiﬁed 30-Dec-2003 by Barry Warsaw to add full RFC 3548 support
+                    # Modiﬁed 22-May-2007 by Guido van Rossum to use bytes everywhere
 
-用4个空格来缩进代码
+                    import re
+                    import struct
+                    import binascii
 
-绝对不要用tab, 也不要tab和空格混用. 对于行连接的情况, 你应该要么垂直对齐换行的元素(见 行长度 部分的示例), 或者使用4空格的悬挂式缩进(这时第一行不应该有参数):
+                    bytes_types = (bytes, bytearray)  # Types acceptable as binary data
 
-Yes:   # Aligned with opening delimiter
-       foo = long_function_name(var_one, var_two,
-                                var_three, var_four)
+                                                                                                                            ②
+                    def _bytes_from_decode_data(s):        
+                        if isinstance(s, str):
+                            try:
+                                return s.encode('ascii')
+                            except UnicodeEncodeError:
+                                raise ValueError('string argument should contain only ASCII characters')
+                        if isinstance(s, bytes_types):
+                            return s
+                        try:
+                            return memoryview(s).tobytes()
+                        except TypeError:
+                            raise TypeError("argument should be a bytes-like object or ASCII "
+                                            "string, not %r" % s._class_._name_) from None
 
-       # Aligned with opening delimiter in a dictionary
-       foo = {
-           long_dictionary_key: value1 +
-                                value2,
-           ...
-       }
 
-       # 4-space hanging indent; nothing on first line
-       foo = long_function_name(
-           var_one, var_two, var_three,
-           var_four)
+                    # Base64 encoding/decoding uses binascii
 
-       # 4-space hanging indent in a dictionary
-       foo = {
-           long_dictionary_key:
-               long_dictionary_value,
-           ...
-       }
-No:    # Stuff on first line forbidden
-      foo = long_function_name(var_one, var_two,
-          var_three, var_four)
+                    def b64encode(s, altchars=None):
+                                                                                                                            ③
+                        """Encode the bytes-like object s using Base64 and return a bytes object. 
 
-      # 2-space hanging indent forbidden
-      foo = long_function_name(
-        var_one, var_two, var_three,
-        var_four)
+                                                                                                                            ④
+                        Optional altchars should be a byte string of length 2 which speciﬁes an 
+                        alternative alphabet for the '+' and '/' characters.  This allows an
+                        application to e.g. generate url or ﬁlesystem safe Base64 strings.
+                                                                                                                            ⑤
+                        """          
+                        encoded = binascii.b2a_base64(s, newline=False)
+                        if altchars is not None:
+                            assert len(altchars) == 2, repr(altchars)
+                            return encoded.translate(bytes.maketrans(b'+/', altchars))
+                    return encoded
 
-      # No hanging indent in a dictionary
-      foo = {
-          long_dictionary_key:
-              long_dictionary_value,
-              ...
-      }
-序列元素尾部逗号
-小技巧
 
-仅当 ], ), } 和末位元素不在同一行时，推荐使用序列元素尾部逗号. 当末位元素尾部有逗号时，元素后的逗号可以指示 YAPF 将序列格式化为每行一项.
+                上述代码第①行是只有一行的文档注释，代码第③行                                          ~ 第⑤行是多行的文档注释，注意它
+           的第一行后面是一个空行，代码第④行接着进行注释，它要与开始三重双引号对齐。代码第⑤
+           行是结束三重双引号，它独占一行，而且与开始三重双引号对齐。另外，代码第②行定义的函
+           数没有文档注释，这是因为该函数是模块私有的，通过它的命名                                                    _bytes_from_decode_data        可
+           知它是私有的。
+                5.2.3       代码注释
+                程序代码中处理文档注释时还需要在一些关键的地方添加代码注释，文档注释一般是给一
+           些看不到源代码的人看的帮助文档，而代码注释是给阅读源代码的人参考的。代码注释一般采
+           用单行注释和多行注释。示例代码如下：
 
-Yes:   golomb3 = [0, 1, 3]
-Yes:   golomb4 = [
-           0,
-           1,
-           4,
-           6,
-       ]
-No:    golomb4 = [
-           0,
-           1,
-           4,
-           6
-       ]
-空行
-小技巧
+                                                                                                               ①
+                # Base32 encoding/decoding must be done in Python        
+                _b32alphabet = b'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+                _b32tab2 = None
+                _b32rev = None
 
-顶级定义之间空两行, 方法定义之间空一行
+                def b32encode(s):
+                    """Encode the bytes-like object s using Base32 and return a bytes object.
+                    """
+                    global _b32tab2
+                                                                                                               ②
+                    # Delay the initialization of the table to not waste memory   
+                                                                                                               ③
+                    # if the function is never called         
+                    if _b32tab2 is None:
+                        b32tab = [bytes((i,)) for i in _b32alphabet]
+                        _b32tab2 = [a + b for a in b32tab for b in b32tab]
+                        b32tab = None
 
-顶级定义之间空两行, 比如函数或者类定义. 方法定义, 类定义与第一个方法之间, 都应该空一行. 函数或方法中, 某些地方要是你觉得合适, 就空一行.
+                    if not isinstance(s, bytes_types):
+                        s = memoryview(s).tobytes()
+                    leftover = len(s) % 5
+                                                                                                               ④
+                    # Pad the last quantum with zero bits if necessary       
+                    if leftover:
+                        s = s + b'\0' * (5 - leftover)  # Don't use += !
+                    encoded = bytearray()
+                    from_bytes = int.from_bytes
+                    b32tab2 = _b32tab2
+                    for i in range(0, len(s), 5):
+                        c = from_bytes(s[i: i + 5], 'big')
+                                                                                                               ⑤
+                        encoded += (b32tab2[c >> 30] +           # bits 1 – 10      
+                                    b32tab2[(c >> 20) & 0x3ff] + # bits 11 - 20
+                                    b32tab2[(c >> 10) & 0x3ff] + # bits 21 - 30
+                                    b32tab2[c & 0x3ff]           # bits 31 - 40
+                                   )
+                    # Adjust for any leftover partial quanta
+                    if leftover == 1:
+                        encoded[-6:] = b'======'
+                   elif leftover == 2:
+                       encoded[-4:] = b'===='
+                   elif leftover == 3:
+                       encoded[-3:] = b'==='
+                   elif leftover == 4:
+                       encoded[-1:] = b'='
+                   return bytes(encoded)
 
-空格
-小技巧
+               上述代码第②行         ~ 第④行都是单行注释，要求与其后的代码具有一样的缩进级别。代码
+           第①行    ~ 第③行是多行注释，注释时要求与其后的代码具有一样的缩进级别。代码第⑤行
+           是尾端进行注释，这要求注释内容极短，应该再有足够的空白（至少两个空格）来分开代码
+           和注释。
+               5.2.4    使用    TODO     注释
 
-按照标准的排版规范来使用标点两边的空格
+               PyCharm  等 IDE  工具都为源代码提供了一些特殊的注释，就是在代码中加一些标识，便
+           于  IDE 工具快速定位代码，TODO            注释就是其中的一种。TODO              注释虽然不是       Python 官方所
+           提供的，但是主流的           IDE 工具也都支持        TODO  注释。有     TODO   注释说明此处有待处理的任
+           务，或代码没有编写完成。示例代码如下：
 
-括号内不要有空格.
+               import com.pkg2.hello as module1
+               from com.pkg2.hello import z
 
-Yes: spam(ham[1], {eggs: 2}, [])
-No:  spam( ham[ 1 ], { eggs: 2 }, [ ] )
-不要在逗号, 分号, 冒号前面加空格, 但应该在它们后面加(除了在行尾).
+               y = 20
 
-Yes: if x == 4:
-         print(x, y)
-     x, y = y, x
-No:  if x == 4 :
-         print(x , y)
-     x , y = y , x
-参数列表, 索引或切片的左括号前不应加空格.
+                      声明函数
+               # TODO         
+                                           访问当前模块变量
+               print(y)     #                            y
+                                           访问                 模块变量
+               print(module1.y)  #             com.pkg2.hello        y
+                                           访问                 模块变量
+               print(z)     #                  com.pkg2.hello        z
 
-Yes: spam(1)
-no: spam (1)
-Yes: dict['key'] = list[index]
-No:  dict ['key'] = list [index]
-在二元操作符两边都加上一个空格, 比如赋值(=), 比较(==, <, >, !=, <>, <=, >=, in, not in, is, is not), 布尔(and, or, not). 至于算术操作符两边的空格该如何使用, 需要你自己好好判断. 不过两侧务必要保持一致.
+               这些注释可以在         PyCharm 工具的    TODO  视图查看，如果没有打开             TODO  视图，可以将鼠
+           标放到    PyCharm 左下角      按钮上，弹出如图         5-1 所示的菜单，选择         TODO，打开如图       5-2 所示
+           的  TODO  视图，单击其中的         TODO   可跳转到注释处。
 
-Yes: x == 1
-No:  x<1
-当 = 用于指示关键字参数或默认参数值时, 不要在其两侧使用空格. 但若存在类型注释的时候,需要在 = 周围使用空格.
 
-Yes: def complex(real, imag=0.0): return magic(r=real, i=imag)
-Yes: def complex(real, imag: float = 0.0): return Magic(r=real, i=imag)
-No:  def complex(real, imag = 0.0): return magic(r = real, i = imag)
-No:  def complex(real, imag: float=0.0): return Magic(r = real, i = imag)
-不要用空格来垂直对齐多行间的标记, 因为这会成为维护的负担(适用于:, #, =等):
+           5.3       导入规范
 
-Yes:
-     foo = 1000  # comment
-     long_name = 2  # comment that should not be aligned
+                导入语句总是放在文件顶部，位于模块注释和文档注释之后，模块全局变量和常量之前。
+           每一个导入语句只能导入一个模块，示例代码如下。
 
-     dictionary = {
-         "foo": 1,
-         "long_name": 2,
-         }
-No:
-     foo       = 1000  # comment
-     long_name = 2     # comment that should not be aligned
+扫码看视频           推荐：
 
-     dictionary = {
-         "foo"      : 1,
-         "long_name": 2,
-         }
+                import re
+                import struct
+                import binascii
+                不推荐：
+
+                import re, struct, binascii
+
+                但是如果        from import    后面跟有多个代码元素是可以的。
+
+                from codeop import CommandCompiler, compile_command
+                导入语句应该按照从通用到特殊的顺序分组，顺序是：标准库→第三方库→自己模块。每
+           一组之间有一个空行，而且组中模块是按照英文字母顺序排序的。
+
+                                                                                 ①
+                import io      
+                import os
+                import pkgutil
+                import platform
+                import re
+                import sys
+                                                                                 ②
+                import time     
+
+                                                                                 ③
+                from html import unescape    
+
+                                                                                 ④
+                from com.pkg1 import example   
+
+
+
+                    上述代码中导入语句分为三组，代码第①行和第②行是标准库中的模块，注意它的导入顺
+              序是有序的，代码第③行是导入第三方库中的模块，代码第④行是导入自己的模块。
+
+              5.4        代码排版
+
+                    代码排版包括空行、空格、断行和缩进等内容。代码排版内容比较多，工作量很大，也非
+              常重要。
+                    5.4.1      空行                                                                                                 扫码看视频
+                    空行用以将逻辑相关的代码段分隔开，以提高可读性。下面是使用空行的规范。
+                  （1）import        语句块前后保留两个空行，示例代码如下，其中①②处和③④处是两个
+              空行。
+
+                    # Copyright 2007 Google, Inc. All Rights Reserved.
+                    # Licensed to PSF under a Contributor Agreement.
+
+                    """Abstract Base Classes (ABCs) according to PEP 3119."""
+                    ①
+                    ②
+
+                    from _weakrefset import WeakSet 
+                    ③
+                    ④
+
+                  （2）函数声明之前保留两个空行，示例代码如下，其中①②处是两个空行。
+
+                    from _weakrefset import WeakSet 
+                    ①
+                    ②
+
+                    def abstractmethod(funcobj):
+                        funcobj._isabstractmethod_ = True
+                        return funcobj
+
+                  （3）类声明之前保留两个空行，示例代码如下，其中①②处是两个空行。
+
+                    ①
+                    ②
+
+                    class abstractclassmethod(classmethod):
+                        _isabstractmethod_ = True
+
+                        def _init_(self, callable):
+                            callable._isabstractmethod_ = True
+                            super()._init_(callable)
+
+                  （4）方法声明之前保留一个空行，示例代码如下，其中①处是一个空行。
+
+                    class abstractclassmethod(classmethod):
+                        _isabstractmethod_ = True
+                         ①
+                        
+                        def _init_(self, callable):
+                            callable._isabstractmethod_ = True
+                            super()._init_(callable)
+
+               （5）两个逻辑代码块之间应该保留一个空行，示例代码如下，其中①处是一个空行。
+
+                    def convert_timestamp(val):
+                        datepart, timepart = val.split(b" ")
+                        year, month, day = map(int, datepart.split(b"-"))
+                        timepart_full = timepart.split(b".")
+                        hours, minutes, seconds = map(int, timepart_full[0].split(b":"))
+                        if len(timepart_full) == 2:
+                            microseconds = int('{:0<6.6}'.format(timepart_full[1].decode()))
+                        else:
+                            microseconds = 0
+                           ①
+                        
+                        val = datetime.datetime(year, month, day, hours, minutes, seconds, microseconds)
+                        return val
+                5.4.2       空格
+                代码中的有些位置是需要有空格的，这个工作量也很大。下面是使用空格的规范。
+               （1）赋值符号“=”前后各有一个空格。
+
+                a = 10
+                c = 10
+
+               （2）所有的二元运算符都应该使用空格与操作数分开。
+
+                a += c + d
+
+               （3）一元运算符：算法运算符取反“-”和运算符取反“~”。                                                 
+
+                b = 10
+                a = -b
+                y = ~b
+
+               （4）括号内不要有空格，Python                       中括号包括小括号“()”、中括号“[]”和大括号“{}”。
+                推荐：
+
+                doque(cat[1], {dogs: 2}, [])
+                不推荐：
+
+                doque(cat[ 1 ], { dogs: 2 }, [  ])
+
+               （5）不要在逗号、分号、冒号前面有空格，而是要在它们后面有一个空格，除非该符号已
+           经是行尾了。
+                推荐：
+
+                if x == 88:
+                    print x, y
+                x, y = y, x
+                不推荐：
+
+                if x == 88 :
+                        print x , y
+                    x , y = y , x
+
+                  （6）参数列表、索引或切片的左括号前不应有空格。
+                    推荐：
+
+                    doque(1)
+                    dogs['key'] = list[index]
+                    不推荐：
+
+                    doque (1)
+                    dict ['key'] = list [index]
+
+                    5.4.3      缩进
+
+                    4 个空格常被作为缩进排版的一个级别。虽然在开发时程序员可以使用制表符进行缩进，
+              而默认情况下一个制表符等于                         8 个空格，但是不同的                 IDE   工具中一个制表符与空格对应个数
+              会有不同，所以不要使用制表符缩进。
+                    代码块的内容相当于首行缩进一个级别（4                                 个空格），示例如下：
+
+                    class abstractclassmethod(classmethod):
+                        _isabstractmethod_ = True
+
+                        def _init_(self, callable):
+                            callable._isabstractmethod_ = True
+                            super()._init_(callable)
+
+                    def _new_(mcls, name, bases, namespace, **kwargs):
+                        cls = super()._new_(mcls, name, bases, namespace, **kwargs)
+                        for base in bases:
+                            for name in getattr(base, "_abstractmethods_", set()):
+                                value = getattr(cls, name, None)
+                                if getattr(value, "_isabstractmethod_", False):
+                                    abstracts.add(name)
+                        cls._abstractmethods_ = frozenset(abstracts)
+
+                        return cls
+
+                    5.4.4      断行
+
+                    一行代码中最多             79 个字符，对于文档注释和多行注释时一行最多                                     72 个字符，但是如果注
+              释中包含        URL   地址可以不受这个限制。否则，如果超过则需断行，可以依据下面的一般规范
+              断开。
+                  （1）在逗号后面断开。
+
+                    bar = long_function_name(name1, name2,
+                                             name3, name4)
+                    def long_function_name(var_one, var_two,
+                                           var_three, var_four):
+
+
+
+               （2）在运算符前面断开。
+
+                name1 = name2 * (name3 + name4
+                                         - name5) + 4 * name6
+
+               （3）尽量不要使用续行符“                       \ ”，当有括号（包括大括号、中括号和小括号）则在括号中断
+           开，这样可以不使用续行符。
+
+                def long_function_name(var_one, var_two,
+                                       var_three, var_four):
+                                                                                           ①
+                    return var_one + var_two + var_three \  
+                           + var_four 
+
+
+                name1 = name2 * (name3 + name4
+                                         - name5) + 4 * name6
+
+                bar = long_function_name(name1, name2,
+                                         name3, name4)
+
+                foo = {
+                    long_dictionary_key: name1 + name2
+                                         - name3 + name4 - name5
+                }
+
+                c = list[name2 * name3
+                      + name4 - name5 + 4 * name6] 
+                上述代码第①行使用了续行符进行断行，其他的断行都是在括号中实现的，所以省略了续
+           行符。有时为了省略续行符，会将表达式用小括号括起来，如下代码所示。
+
+                def long_function_name(var_one, var_two,
+                                       var_three, var_four):
+                    return (var_one + var_two + var_three 
+                           + var_four)
+                提示：在        Python   中反斜杠“          \ ”可以作为续行符使用，告诉解释器当前行和下一行是连接
+           在一起的。但在大括号、中括号和小括号中续行是隐式的。
+
+           本章小结
+
+                通过对本章内容的学习，读者可以了解到                                   Python   编码规范，包括命名规范、注释规范、
+           导入规范和代码排版等内容。
