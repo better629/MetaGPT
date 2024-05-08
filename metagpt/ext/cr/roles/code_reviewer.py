@@ -30,7 +30,7 @@ class CRComments(BaseModel):
 class CodeReviewer(Role):
     name: str = "Jones"
     profile: str = "CodeReviewer"
-    goal: str = "find potential mistakes or bugs from the code and then give comments"
+    goal: str = "find potential mistakes or bugs from the code and then give comments with suggestions"
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
