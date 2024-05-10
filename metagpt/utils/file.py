@@ -83,13 +83,26 @@ class File:
         """
 
         max_chars = max_chars_per_read or cls.CHUNK_SIZE
+
         async with aiofiles.open(file_path, "r", encoding=encoding) as file:
             chunk = []
             current_size = 0
 
             async for line in file:
-                if current_size + len(line) > max_chars:
-                    # If the current chunk is full, yield it and start a new one
+                line_length = len(line)
+
+                if line_length > max_chars:
+                    # If the current line exceeds the maximum character limit, process the existing chunk first.
+                    if chunk:
+                        yield "".join(chunk)
+                        chunk = []
+                        current_size = 0
+
+                    yield line
+                    continue
+
+                if current_size + line_length > max_chars:
+                    # If the current chunk is full, yield it and start a new one.
                     yield "".join(chunk)
                     chunk = []
                     current_size = 0
