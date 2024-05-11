@@ -18,11 +18,10 @@ from metagpt.utils.cr.schema import Point
 
 CODE_REVIEW_PROMPT_TEMPLATE = """
 NOTICE
-Role: You are a professional engineer with Python and Java stack.
-With the given pull-request(PR) Patch, and referenced standard Points, you should do the code review and give comments of the PR on problematic code by order.
+With the given pull-request(PR) Patch, and referenced Points(Code Standards), you should compare each point with the code one-by-one.
 
-The Patch code has added line no for reading, but the review should focus on new code added in the Patch (lines starting with line no and '+')
-Each point is start with a line no and follows with the point content
+The Patch code has added line no at the first character each line for reading, but the review should focus on new added code inside the `Patch` (lines starting with line no and '+').
+Each point is start with a line no and follows with the point description.
 
 ## Patch
 ```
@@ -36,18 +35,19 @@ Each point is start with a line no and follows with the point content
 ```json
 [
     {{
-        "commented_file": "The file name which you give comments from the patch",
-        "comment": "The problem description and suggestion on the problematic code, each comment should be restricted to the commented file",
+        "commented_file": "The file name which you give a comment from the patch",
+        "comment": "The chinese comment of code which do not meet point description and give modify suggestions",
         "code_start_line": "the code start line no like `10` in the Patch of current comment",
         "code_end_line": "the code end line no like `15` in the Patch of current comment",
-        "point_id": "The point id which the comment references to"
+        "point_id": "The point id which the `comment` references to"
     }}
 ]
 ```
 
 CodeReview guidelines:
-- Each comment is generated according to corresponding point and give related rewrite suggestion.
-- Provide up to 15 comments of the patch code. Try to provide diverse and insightful comments across different commented files.
+- Generate code `comment` that do not meet the point description.
+- Each `comment` should be restricted inside the `commented_file`
+- Provide up to 15 comments of the patch code. Try to provide diverse and insightful comments across different `commented_file`.
 - Don't suggest to add docstring unless it's necessary indeed.
 
 Just print the PR Patch comments in json format like **Output Format**.
@@ -58,10 +58,6 @@ You are a professional engineer with Python and Java stack, and good at code rev
 """
 
 CODE_REVIEW_COMFIRM_TEMPLATE = """
-NOTICE
-Role: You are a professional engineer with Python and Java stack.
-With the PR code block, to judge if the `comment` is a valid one refers to point, .
-
 ## Code
 ```
 {code}
@@ -72,7 +68,7 @@ With the PR code block, to judge if the `comment` is a valid one refers to point
 ## Point
 {point}
 
-To think if the comment on the code matches the point.
+With the PR code block, to think if the `comment` matches the description of the point.
 Just print `True` if matches else `False`.
 """
 
@@ -92,12 +88,11 @@ class CodeReview(Action):
                     new_comments.append(
                         {
                             "commented_file": cmt.get("commented_file"),
-                            # "code": cmt.get("code"),
                             "code": code,
                             "comment": cmt.get("comment"),
                             "point_id": p.id,
                             "point": p.text,
-                            "point_raw_cont": p.detail,
+                            # "point_raw_cont": p.detail,
                         }
                     )
                     break
@@ -123,6 +118,7 @@ class CodeReview(Action):
         logger.debug(f"patch with line no\n{str(patch)}")
 
         points_str = "\n".join([f"{p.id} {p.text}" for p in points])
+        logger.info(f"\npoints_str: \n{points_str}")
         prompt = CODE_REVIEW_PROMPT_TEMPLATE.format(patch=str(patch), points=points_str)
         resp = await self.llm.aask(prompt)
         json_str = parse_json_code_block(resp)[0]

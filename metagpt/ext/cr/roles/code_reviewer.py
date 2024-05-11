@@ -29,8 +29,8 @@ class CRComments(BaseModel):
 
 class CodeReviewer(Role):
     name: str = "Jones"
-    profile: str = "CodeReviewer"
-    goal: str = "find potential mistakes or bugs from the code and then give comments with suggestions"
+    profile: str = "PR-Reviewer"
+    goal: str = "designed to review a Git Pull Request (PR)"
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
