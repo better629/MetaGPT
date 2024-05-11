@@ -28,6 +28,9 @@ class PointManager:
 
         Args:
             input_file: Path to the standard point file.
+
+        Returns:
+            None
         """
 
         output_file = await clean_and_mark_file(input_file)
@@ -42,13 +45,23 @@ class PointManager:
 
         Args:
             points: List of Point.
+
+        Returns:
+            None
         """
 
         rows = [point.model_dump(exclude="id") for point in points]
         await self._dao.create(rows)
 
     async def get_points(self, fields: list[str] = None) -> list[Point]:
-        """Get points from generated result"""
+        """Get points from generated result
+
+        Args:
+            fields: points fields to filter, default None
+
+        Returns:
+            list[Point]: list of fetched points
+        """
 
         points = await self._dao.query(fields=fields)
         return [Point(**p) for p in points]
@@ -79,6 +92,8 @@ class CodeReviewer:
             patch_file_path: Path to the patch file
             points: list of Points generate from standard point file or load from generated result
 
+        Returns
+            list[dict]: list of code review comments, the comment is dict type.
         """
         from metagpt.ext.cr.actions.code_review import CodeReview
         from metagpt.ext.cr.actions.gen_patch_points import GenPatchPoints
