@@ -93,7 +93,7 @@ class CodeReviewer:
             points: list of Points generate from standard point file or load from generated result
 
         Returns
-            list[dict]: list of code review comments, the comment is dict type.
+            list[dict]: list of code review comments, the comment is dict type, and keys of the comment are `commented_file`, `code`, `comment`, `point_id`, `point`.
         """
         from metagpt.ext.cr.actions.code_review import CodeReview
         from metagpt.ext.cr.actions.gen_patch_points import GenPatchPoints
