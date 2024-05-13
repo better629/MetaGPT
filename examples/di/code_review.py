@@ -12,7 +12,7 @@ from metagpt.roles.di.data_interpreter import DataInterpreter
 async def main():
     di = DataInterpreter(tools=["PointManager", "CodeReviewer"])
     example_di_path = Path(__file__).parents[1]
-    pr_file_path = example_di_path.joinpath("data/cr/mg_pr_1193_5483cc6-d0b00e3.patch").as_posix()
+    pr_file_path = example_di_path.joinpath("data/cr/mg_pr_1193_5483cc6-d0b00e3_small.patch").as_posix()
     standford_file_path = example_di_path.joinpath("data/cr/python_style.txt").as_posix()
     requirement = (
         f"load the standard point file `{standford_file_path}` and "
