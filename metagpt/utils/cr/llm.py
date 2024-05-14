@@ -34,8 +34,8 @@ L8 顶级定义之间空两行, 方法定义之间空一行
 L9 顶级定义之间空两行, 比如函数或者类定义. 方法定义, 类定义与第一个方法之间, 都应该空一行. 函数或方法中, 某些地方要是你觉得合适, 就空一行.
 
 ### Output
-L2-L5, 缩进的规则：用4个空格，不要用tab
-L6-L9, 空行的规则：函数或者类定义空两行，方法定义空一行
+L2-L5 缩进的规则：用4个空格，不要用tab
+L6-L9 空行的规则：函数或者类定义空两行，方法定义空一行
 
 let's think step by step.
 """
@@ -84,10 +84,10 @@ class PointLLM:
         for row in points.split("\n"):
             row = row.strip()
 
-            if not row:
+            if not row or not row.startswith("L"):
                 continue
 
-            line_range, text = row.split(",", 1)
+            line_range, text = row.split(" ", 1)
             start_line = end_line = line_range
 
             if "-" in line_range:
