@@ -34,10 +34,10 @@ class PointTable(Base):
 
     id = Column(Integer, primary_key=True)
     text = Column(String, nullable=False)
-    file_path = Column(String, nullable=True)
-    start_line = Column(Integer, nullable=True)
-    end_line = Column(Integer, nullable=True)
-    detail = Column(String, nullable=True)
+    file_path = Column(String, nullable=False, default="")
+    start_line = Column(Integer, nullable=False, default=0)
+    end_line = Column(Integer, nullable=False, default=0)
+    detail = Column(String, nullable=False, default="")
 
 
 async def create_tables():
