@@ -34,9 +34,9 @@ class PointTable(Base):
 
     id = Column(Integer, primary_key=True)
     text = Column(String, nullable=False)
-    file_path = Column(String, nullable=False)
-    start_line = Column(Integer, nullable=False)
-    end_line = Column(Integer, nullable=False)
+    file_path = Column(String, nullable=True)
+    start_line = Column(Integer, nullable=True)
+    end_line = Column(Integer, nullable=True)
     detail = Column(String, nullable=True)
 
 

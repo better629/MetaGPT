@@ -19,7 +19,7 @@ from metagpt.ext.cr.roles.code_reviewer import CodeReviewer, PatchPoints
 from metagpt.schema import Message
 from metagpt.tools.libs.cr import PointManager
 
-INPUT_PATCH_FILE = EXAMPLE_DATA_PATH / "cr/mg_pr_1193_5483cc6-d0b00e3.patch"
+INPUT_PATCH_FILE = EXAMPLE_DATA_PATH / "cr/mg_pr_1193_5483cc6-d0b00e3_small.patch"
 
 
 async def main():
