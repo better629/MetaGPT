@@ -2,10 +2,10 @@ import asyncio
 
 from unidiff import PatchSet
 
-from metagpt.const import DATA_PATH
+from metagpt.const import EXAMPLE_DATA_PATH
 from metagpt.ext.cr.actions.modify_code import ModifyCode
 
-INPUT_PATCH_FILE = DATA_PATH / "cr/poc/alvinc16-spring-petclinic-PR1.patch"
+INPUT_PATCH_FILE = EXAMPLE_DATA_PATH / "cr/alvinc16-spring-petclinic-PR1.patch"
 
 
 COMMENTS = [

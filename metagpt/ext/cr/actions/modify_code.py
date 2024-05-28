@@ -23,8 +23,8 @@ The Patch code has added line no at the first character each line for reading, b
 
 
 Code Modification guidelines:
-- Look at `comment` and `point_detail`, modify the code by `comment` and `point_detail`, use `code_start_line` and `code_end_line` to locate the problematic code, fix the problematic code by `comment` in Comments.
-- Create a Patch that satifies the git patch standard, but do not change the hunk header.
+- Use `code_start_line` and `code_end_line` to locate the problematic code, fix the code by `comment` and `point_detail`.
+- Create a patch that satifies the git patch standard.
 - Do not print line no in the new patch code.
 
 Just print the Patch in the format like **Output Format**.
