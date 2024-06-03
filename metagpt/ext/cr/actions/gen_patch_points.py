@@ -86,11 +86,15 @@ class GenPatchPoints(Action):
 
     async def select_patch_points(self, patch: PatchSet, points: list[Point]) -> list[Point]:
         # do the points selection according to the patch
+        point_ids = set()
         points_str = "\n".join([f"{p.id} {p.text}" for p in points])
-        prompt = SELECT_POINTS_PROMPT_TEMPLATE.format(patch=str(patch), points=points_str)
-        resp = await self.llm.aask(prompt)
-        json_str = parse_json_code_block(resp)[0]
-        point_ids = json.loads(json_str)
+        for patched_file in patch:
+            prompt = SELECT_POINTS_PROMPT_TEMPLATE.format(patch=str(patched_file), points=points_str)
+            resp = await self.llm.aask(prompt)
+            json_str = parse_json_code_block(resp)[0]
+            patched_file_point_ids = json.loads(json_str)
+            if len(patched_file_point_ids) != 0:
+                point_ids.update(patched_file_point_ids)
 
         new_points = []
         for point in points:

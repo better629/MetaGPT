@@ -116,17 +116,18 @@ class CodeReview(Action):
         patch: PatchSet = rm_patch_useless_part(patch)
         patch: PatchSet = add_line_num_on_patch(patch)
         logger.debug(f"patch with line no\n{str(patch)}")
-
+        result = []
         points_str = "\n".join([f"{p.id} {p.text}" for p in points])
-        logger.info(f"\npoints_str: \n{points_str}")
-        prompt = CODE_REVIEW_PROMPT_TEMPLATE.format(patch=str(patch), points=points_str)
-        resp = await self.llm.aask(prompt)
-        json_str = parse_json_code_block(resp)[0]
-        comments = json.loads(json_str)
+        for patched_file in patch:
+            prompt = CODE_REVIEW_PROMPT_TEMPLATE.format(patch=str(patched_file), points=points_str)
+            resp = await self.llm.aask(prompt)
+            json_str = parse_json_code_block(resp)[0]
+            comments = json.loads(json_str)
+            if len(comments) != 0:
+                comments = self.format_comments(comments, points, patched_file)
+                # comments = await self.confirm_comments(comments)
+                for comment in comments:
+                    if comment["code"]:
+                        result.append(comment)
 
-        comments = self.format_comments(comments, points, patch)
-
-        comments = await self.confirm_comments(comments)
-
-        logger.info(f"the comments of the PR:\n{comments}")
-        return comments
+        return result
