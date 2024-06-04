@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict
 from unidiff import PatchSet
 
 from metagpt.ext.cr.actions.code_review import CodeReview
+from metagpt.ext.cr.actions.code_review_metric import CodeReviewEvaluation
 from metagpt.ext.cr.actions.gen_patch_points import GenPatchPoints
 from metagpt.roles.role import Role, RoleReactMode
 from metagpt.schema import Message
@@ -31,11 +32,14 @@ class CodeReviewer(Role):
     name: str = "Jones"
     profile: str = "PR-Reviewer"
     goal: str = "designed to review a Git Pull Request (PR)"
+    pr: str = ""
+    mode: int = 0
+    calculate_type: str = ""
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
-        self.set_actions([GenPatchPoints, CodeReview])
+        self.set_actions([GenPatchPoints, CodeReview, CodeReviewEvaluation(pr=self.pr, mode=self.mode, calculate_type=self.calculate_type)])
         self._set_react_mode(RoleReactMode.BY_ORDER)
 
     async def _act(self) -> Message:
@@ -50,6 +54,10 @@ class CodeReviewer(Role):
             patch_points = msg.instruct_content
             cr_comments = await todo.run(patch=patch_points.patch, points=patch_points.points)
             ic = CRComments(cr_comments=cr_comments)
+        elif isinstance(todo, CodeReviewEvaluation):
+            cr_result = msg.instruct_content.cr_comments
+            metric_result = await todo.run(cr_result=cr_result)
+            ic = {"metric_result_info": metric_result}
 
         msg = Message(content=msg.content, instruct_content=ic)
         self.rc.memory.add(msg)

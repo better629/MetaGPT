@@ -11,9 +11,6 @@ python3 cr/code_review.py
 """
 
 import asyncio
-import json
-from datetime import datetime
-
 from unidiff import PatchSet
 
 from metagpt.const import EXAMPLE_DATA_PATH
@@ -21,8 +18,9 @@ from metagpt.ext.cr.roles.code_reviewer import CodeReviewer, PatchPoints
 from metagpt.schema import Message
 from metagpt.tools.libs.cr import PointManager
 
-INPUT_PATCH_FILE = EXAMPLE_DATA_PATH / "cr/6.patch"
-patch_file_name = "6"
+INPUT_PATCH_FILE = EXAMPLE_DATA_PATH / "cr/1090.patch"
+patch_file_name = "1090"
+
 
 async def main():
     # get points from existed result
@@ -31,11 +29,11 @@ async def main():
 
     patch: PatchSet = PatchSet(INPUT_PATCH_FILE.read_text(encoding='utf-8'))
 
-    crer = CodeReviewer()
-    msg = await crer.run(Message(content="code review on PR patch", instruct_content=PatchPoints(patch=patch, points=points)))
-    with open(f'CR-{patch_file_name}-{datetime.timestamp(datetime.now())}-result.json', 'w', encoding='utf-8') as file:
-        file.writelines(json.dumps(msg.instruct_content.cr_comments, ensure_ascii=False))
+    code_reviewer = CodeReviewer(pr=patch_file_name, mode=0, calculate_type="")
+    msg = await code_reviewer.run(
+        Message(content="code review on PR patch", instruct_content=PatchPoints(patch=patch, points=points)))
     return msg
+
 
 if __name__ == "__main__":
     asyncio.run(main())

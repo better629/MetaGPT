@@ -103,9 +103,9 @@ class GenPatchPoints(Action):
         return new_points
 
     async def run(self, patch: PatchSet, points: list[Point], do_extract: bool = True) -> list[Point]:
-        if do_extract:
-            patch: PatchSet = rm_patch_useless_part(patch)
-
-            points = await self.select_patch_points(patch, points)
+        # if do_extract:
+        #     patch: PatchSet = rm_patch_useless_part(patch)
+        #
+        #     points = await self.select_patch_points(patch, points)
 
         return points

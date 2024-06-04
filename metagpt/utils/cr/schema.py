@@ -8,6 +8,8 @@ class Point(BaseModel):
     start_line: int = Field(default=0, description="The starting line number that the point refers to.")
     end_line: int = Field(default=0, description="The ending line number that the point refers to.")
     detail: str = Field(default="", description="File content from start_line to end_line.")
+    yes_example: str = Field(default="", description="yes of point examples")
+    no_example: str = Field(default="", description="no of point examples")
 
     def rag_key(self) -> str:
         return self.text
