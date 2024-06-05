@@ -123,7 +123,7 @@ if (ownersResults.isEmpty()) {
 1090,SolrSearchServiceImpl.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,StringBuilder sb = new StringBuilder();
 1090,SolrSearchServiceImpl.java,22,禁止在 equals()中使用 NULL或者null 做比较,"if (!rangeValues[1].equals(""null""))"
 2723,TaskRuntimeHelper.java,15,避免对象进行不必要的 NULL或者null 检查,if (authenticatedUserId != null && !authenticatedUserId.isEmpty() && userGroupManager!=null)
-2723,TaskRuntimeHelper.java,1,避免未使用的临时变量,"Integer ok = 0;,"
+2723,TaskRuntimeHelper.java,2,避免未使用的临时变量,"Integer ok = 0;,"
 2723,TaskRuntimeHelper.java,25,判断逻辑应简洁，不能有重复或者无意义的判断,"if (task == null) {
                 task = taskService.createTaskQuery().taskId(taskId).singleResult();
                 //Check this only for tasks from processInstance
