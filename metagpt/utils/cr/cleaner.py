@@ -57,12 +57,12 @@ class FileCleaner:
 clean_and_mark_file = FileCleaner.clean_and_mark_file
 
 
-def rm_patch_useless_part(patch: PatchSet, used_suffix: list[str] = ["py", "java"]) -> PatchSet:
+def rm_patch_useless_part(patch: PatchSet, used_suffix: list[str] = ["java"]) -> PatchSet:
     new_patch = PatchSet("")
     useless_files = []
     for pfile in patch:
         suffix = str(pfile.target_file).split(".")[-1]
-        if suffix not in used_suffix or pfile.is_removed_file:
+        if suffix not in used_suffix or pfile.is_removed_file or "test" in pfile.target_file.casefold():
             useless_files.append(pfile.path)
             continue
         new_patch.append(pfile)
