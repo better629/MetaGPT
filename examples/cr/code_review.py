@@ -18,7 +18,7 @@ from metagpt.ext.cr.roles.code_reviewer import CodeReviewer, PatchPoints
 from metagpt.schema import Message
 from metagpt.tools.libs.cr import PointManager
 
-patch_list = ['812']
+patch_list = ['1090']
 # patch_list = ['1', '2', '3', '4', '5', '6', '7', '8', '14', '99', '356', '812', '1000', '1090', '2723']
 
 
