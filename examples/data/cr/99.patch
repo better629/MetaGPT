@@ -1,0 +1,283 @@
+diff --git a/modules/activiti-json-converter/src/main/java/org/activiti/editor/constants/StencilConstants.java b/modules/activiti-json-converter/src/main/java/org/activiti/editor/constants/StencilConstants.java
+index 58e91af82cb..cff2f69b273 100644
+--- a/modules/activiti-json-converter/src/main/java/org/activiti/editor/constants/StencilConstants.java
++++ b/modules/activiti-json-converter/src/main/java/org/activiti/editor/constants/StencilConstants.java
+@@ -140,7 +140,13 @@ public interface StencilConstants {
+   final String PROPERTY_FORM_TYPE = "formproperty_type";
+   final String PROPERTY_FORM_EXPRESSION = "formproperty_expression";
+   final String PROPERTY_FORM_VARIABLE = "formproperty_variable";
+-
++  final String PROPERTY_FORM_REQUIRED = "formproperty_required";
++  final String PROPERTY_FORM_READABLE = "formproperty_readable";
++  final String PROPERTY_FORM_WRITEABLE = "formproperty_writeable";
++  final String PROPERTY_FORM_FORM_VALUES = "formproperty_formvalues";
++  final String PROPERTY_FORM_FORM_VALUE_ID = "formproperty_formvalue_id";
++  final String PROPERTY_FORM_FORM_VALUE_NAME = "formproperty_formvalue_name";
++
+ 	final String PROPERTY_SCRIPT_FORMAT = "scriptformat";
+ 	final String PROPERTY_SCRIPT_TEXT = "scripttext";
+
+diff --git a/modules/activiti-json-converter/src/main/java/org/activiti/editor/language/json/converter/BaseBpmnJsonConverter.java b/modules/activiti-json-converter/src/main/java/org/activiti/editor/language/json/converter/BaseBpmnJsonConverter.java
+index 75cac0e9856..5ce771fcd8b 100644
+--- a/modules/activiti-json-converter/src/main/java/org/activiti/editor/language/json/converter/BaseBpmnJsonConverter.java
++++ b/modules/activiti-json-converter/src/main/java/org/activiti/editor/language/json/converter/BaseBpmnJsonConverter.java
+@@ -28,6 +28,7 @@
+ import org.activiti.bpmn.model.FlowElement;
+ import org.activiti.bpmn.model.FlowNode;
+ import org.activiti.bpmn.model.FormProperty;
++import org.activiti.bpmn.model.FormValue;
+ import org.activiti.bpmn.model.GraphicInfo;
+ import org.activiti.bpmn.model.ImplementationType;
+ import org.activiti.bpmn.model.Lane;
+@@ -351,7 +352,17 @@ protected void convertJsonToFormProperties(JsonNode objectNode, BaseElement elem
+
+     JsonNode formPropertiesNode = getProperty(PROPERTY_FORM_PROPERTIES, objectNode);
+     if (formPropertiesNode != null) {
++      if (formPropertiesNode.isValueNode() && StringUtils.isNotEmpty(formPropertiesNode.asText())) {
++        try {
++          formPropertiesNode = objectMapper.readTree(formPropertiesNode.asText());
++        } catch (Exception e) {
++          LOGGER.info("Form properties node can not be read", e);
++        }
++      }
+       JsonNode itemsArrayNode = formPropertiesNode.get(EDITOR_PROPERTIES_GENERAL_ITEMS);
++      String readWriteReqNode = null;
++      JsonNode formValuesNode = null;
++      JsonNode formValuesArrayNode = null;
+       if (itemsArrayNode != null) {
+         for (JsonNode formNode : itemsArrayNode) {
+           JsonNode formIdNode = formNode.get(PROPERTY_FORM_ID);
+@@ -363,6 +374,38 @@ protected void convertJsonToFormProperties(JsonNode objectNode, BaseElement elem
+             formProperty.setType(getValueAsString(PROPERTY_FORM_TYPE, formNode));
+             formProperty.setExpression(getValueAsString(PROPERTY_FORM_EXPRESSION, formNode));
+             formProperty.setVariable(getValueAsString(PROPERTY_FORM_VARIABLE, formNode));
++            readWriteReqNode = getValueAsString(PROPERTY_FORM_REQUIRED, formNode);
++            if (PROPERTY_VALUE_YES.equalsIgnoreCase(readWriteReqNode))
++              formProperty.setRequired(true);
++            readWriteReqNode = getValueAsString(PROPERTY_FORM_READABLE, formNode);
++            if (PROPERTY_VALUE_NO.equalsIgnoreCase(readWriteReqNode))
++              formProperty.setReadable(false);
++            readWriteReqNode = getValueAsString(PROPERTY_FORM_WRITEABLE, formNode);
++            if (PROPERTY_VALUE_NO.equalsIgnoreCase(readWriteReqNode))
++                formProperty.setWriteable(false);
++
++            formValuesNode = formNode.get(PROPERTY_FORM_FORM_VALUES);
++            if (formValuesNode != null && StringUtils.isNotEmpty(formValuesNode.asText()) && !("undefined".equals(formValuesNode.asText()))) {
++              if (formValuesNode.isValueNode()) {
++                try {
++                  formValuesNode = objectMapper.readTree(formValuesNode.asText());
++                } catch (Exception e) {
++                  LOGGER.info("Form properties values node can not be read", e);
++                }
++              }
++              formValuesArrayNode = formValuesNode.get(EDITOR_PROPERTIES_GENERAL_ITEMS);
++              List<FormValue> formValues = new ArrayList<FormValue>();
++              for (JsonNode valueNode : formValuesArrayNode) {
++                JsonNode valueIdNode = valueNode.get(PROPERTY_FORM_FORM_VALUE_ID);
++                if (valueIdNode != null && StringUtils.isNotEmpty(valueIdNode.asText())) {
++                  FormValue formValue = new FormValue();
++                  formValue.setId(valueIdNode.asText());
++                  formValue.setName(getValueAsString(PROPERTY_FORM_FORM_VALUE_NAME, valueNode));
++                  formValues.add(formValue);
++                }
++              }
++              formProperty.setFormValues(formValues);
++            }
+
+             if (element instanceof StartEvent) {
+               ((StartEvent) element).getFormProperties().add(formProperty);
+diff --git a/modules/activiti-json-converter/src/main/java/org/activiti/editor/language/json/converter/BpmnJsonConverter.java b/modules/activiti-json-converter/src/main/java/org/activiti/editor/language/json/converter/BpmnJsonConverter.java
+index 53e9df71150..45c93eccebd 100644
+--- a/modules/activiti-json-converter/src/main/java/org/activiti/editor/language/json/converter/BpmnJsonConverter.java
++++ b/modules/activiti-json-converter/src/main/java/org/activiti/editor/language/json/converter/BpmnJsonConverter.java
+@@ -18,6 +18,8 @@
+ import java.util.List;
+ import java.util.Map;
+
++import org.activiti.bpmn.model.ActivitiListener;
++
+ import math.geom2d.Point2D;
+ import math.geom2d.conic.Circle2D;
+ import math.geom2d.line.Line2D;
+@@ -30,6 +32,7 @@
+ import org.activiti.bpmn.model.FlowElement;
+ import org.activiti.bpmn.model.FlowNode;
+ import org.activiti.bpmn.model.GraphicInfo;
++import org.activiti.bpmn.model.ImplementationType;
+ import org.activiti.bpmn.model.Lane;
+ import org.activiti.bpmn.model.Pool;
+ import org.activiti.bpmn.model.Process;
+@@ -315,6 +318,11 @@ public BpmnModel convertToBpmnModel(JsonNode modelNode) {
+         process.setDocumentation(processDocumentationNode.asText());
+       }
+
++      JsonNode processExecutionListenerNode = modelNode.get(EDITOR_SHAPE_PROPERTIES).get(PROPERTY_EXECUTION_LISTENERS);
++      if (processExecutionListenerNode != null && StringUtils.isNotEmpty(processExecutionListenerNode.asText())){
++         process.setExecutionListeners(convertJsonToListeners(processExecutionListenerNode));
++      }
++
+       processJsonElements(shapesArrayNode, modelNode, process, shapeMap);
+     }
+
+@@ -372,6 +380,40 @@ public void processJsonElements(JsonNode shapesArrayNode, JsonNode modelNode,
+     }
+   }
+
++  private List<ActivitiListener> convertJsonToListeners(JsonNode listenersNode) {
++    List<ActivitiListener> executionListeners = new ArrayList<ActivitiListener>();
++
++    try {
++      listenersNode = objectMapper.readTree(listenersNode.asText());
++    } catch (Exception e) {
++      LOGGER.info("Listeners node can not be read", e);
++    }
++
++    JsonNode itemsArrayNode = listenersNode.get(EDITOR_PROPERTIES_GENERAL_ITEMS);
++    if (itemsArrayNode != null) {
++      for (JsonNode itemNode : itemsArrayNode) {
++        JsonNode typeNode = itemNode.get(PROPERTY_EXECUTION_LISTENER_EVENT);
++        if (typeNode != null && StringUtils.isNotEmpty(typeNode.asText())) {
++
++          ActivitiListener listener = new ActivitiListener();
++          listener.setEvent(typeNode.asText());
++          if (StringUtils.isNotEmpty(itemNode.get(PROPERTY_EXECUTION_LISTENER_CLASS).asText())) {
++            listener.setImplementationType(ImplementationType.IMPLEMENTATION_TYPE_CLASS);
++            listener.setImplementation(itemNode.get(PROPERTY_EXECUTION_LISTENER_CLASS).asText());
++          } else if (StringUtils.isNotEmpty(itemNode.get(PROPERTY_EXECUTION_LISTENER_EXPRESSION).asText())) {
++            listener.setImplementationType(ImplementationType.IMPLEMENTATION_TYPE_EXPRESSION);
++            listener.setImplementation(itemNode.get(PROPERTY_EXECUTION_LISTENER_EXPRESSION).asText());
++          } else if (StringUtils.isNotEmpty(itemNode.get(PROPERTY_EXECUTION_LISTENER_DELEGATEEXPRESSION).asText())) {
++            listener.setImplementationType(ImplementationType.IMPLEMENTATION_TYPE_DELEGATEEXPRESSION);
++            listener.setImplementation(itemNode.get(PROPERTY_EXECUTION_LISTENER_DELEGATEEXPRESSION).asText());
++          }
++          executionListeners.add(listener);
++        }
++      }
++    }
++    return executionListeners;
++  }
++
+   private void fillSubShapes(Map<String, SubProcess> subShapesMap, SubProcess subProcess) {
+     for (FlowElement flowElement : subProcess.getFlowElements()) {
+       if (flowElement instanceof SubProcess) {
+@@ -428,7 +470,7 @@ private void postProcessElements(Process process, Collection<FlowElement> flowEl
+       }
+     }
+   }
+-
++
+   private Activity retrieveAttachedRefObject(String attachedToRefId, Collection<FlowElement> flowElementList) {
+     for (FlowElement flowElement : flowElementList) {
+       if (attachedToRefId.equals(flowElement.getId())) {
+diff --git a/modules/activiti-webapp-explorer2/src/main/resources/stencilset.json b/modules/activiti-webapp-explorer2/src/main/resources/stencilset.json
+index 16638787ab0..159e4b040cd 100644
+--- a/modules/activiti-webapp-explorer2/src/main/resources/stencilset.json
++++ b/modules/activiti-webapp-explorer2/src/main/resources/stencilset.json
+@@ -137,7 +137,7 @@
+     "name" : "formdefinition",
+     "properties" : [ {
+       "id" : "formproperties",
+-      "type" : "Complex",
++      "type" : "multiplecomplex",
+       "title" : "Form properties",
+       "value" : "",
+       "description" : "Definition of the form with a list of form properties",
+@@ -189,11 +189,17 @@
+           "value" : "long",
+           "refToView" : ""
+         }, {
+-          "id" : "c3",
++          "id" : "c4",
+           "title" : "Boolean",
+           "title_de" : "Boolean",
+           "value" : "boolean",
+           "refToView" : ""
++        }, {
++          "id" : "c5",
++          "title" : "Enum",
++          "title_de" : "Enum",
++          "value" : "enum",
++          "refToView" : ""
+         } ]
+       }, {
+         "id" : "formproperty_expression",
+@@ -215,6 +221,79 @@
+         "value" : "",
+         "width" : 200,
+         "optional" : false
++      }, {
++        "id" : "formproperty_required",
++        "name" : "Required",
++        "name_de" : "Typ",
++        "type" : "Choice",
++        "value" : "",
++        "width" : 100,
++        "optional" : false,
++        "items" : [ {
++          "id" : "yes",
++          "title" : "Yes",
++          "value" : "Yes"
++        }, {
++          "id" : "no",
++          "title" : "No",
++          "value" : "No"
++        } ]
++      }, {
++        "id" : "formproperty_readable",
++        "name" : "Readable",
++        "name_de" : "Typ",
++        "type" : "Choice",
++        "value" : "",
++        "width" : 100,
++        "optional" : false,
++        "items" : [ {
++          "id" : "yes",
++          "title" : "Yes",
++          "value" : "Yes"
++        }, {
++          "id" : "no",
++          "title" : "No",
++          "value" : "No"
++        } ]
++      }, {
++        "id" : "formproperty_writeable",
++        "name" : "Writeable",
++        "name_de" : "Typ",
++        "type" : "Choice",
++        "value" : "",
++        "width" : 100,
++        "optional" : false,
++        "items" : [ {
++          "id" : "yes",
++          "title" : "Yes",
++          "value" : "Yes"
++        }, {
++          "id" : "no",
++          "title" : "No",
++          "value" : "No"
++        } ]
++      }, {
++        "id" : "formproperty_formvalues",
++        "name" : "Form values",
++        "name_de" : "Typ",
++        "type" : "Complex",
++        "width" : 300,
++        "optional" : false,
++        "complexItems" : [ {
++          "id" : "formproperty_formvalue_id",
++          "name" : "Id",
++          "type" : "String",
++          "value" : "",
++          "width" : 100,
++          "optional" : false
++        }, {
++          "id" : "formproperty_formvalue_name",
++          "name" : "Name",
++          "type" : "String",
++          "value" : "",
++          "width" : 200,
++          "optional" : false
++        } ]
+       } ]
+     } ]
+   }, {

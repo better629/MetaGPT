@@ -1,0 +1,46 @@
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/PetController.java b/src/main/java/org/springframework/samples/petclinic/owner/PetController.java
+index 781fb5805ca..490bbfced3d 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/PetController.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/PetController.java
+@@ -29,7 +29,8 @@
+ import org.springframework.web.bind.annotation.PathVariable;
+ import org.springframework.web.bind.annotation.PostMapping;
+ import org.springframework.web.bind.annotation.RequestMapping;
+-
++import java.text.SimpleDateFormat;
++import java.util.Date;
+ import jakarta.validation.Valid;
+ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+@@ -159,4 +160,31 @@ public String processUpdateForm(@Valid Pet pet, BindingResult result, Owner owne
+ 		return "redirect:/owners/{ownerId}";
+ 	}
+
++	public void switchDefaultOrder() {
++		int number = 3;
++		switch (number) {
++			default:
++				System.out.println("This is the default block, which is incorrectly placed here.");
++				break;
++			case 1:
++				System.out.println("Number one");
++				break;
++			case 2:
++				System.out.println("Number two");
++				break;
++		}
++	}
++
++	if (StringUtils.hasText(petName)) {
++		Pet existingPet = owner.getPet(petName.toLowerCase(), false);
++		if (existingPet != null && existingPet.getName() == petName) {
++			result.rejectValue("name", "duplicate", "already exists");
++		}
++	}
++
++	public void formatDate(Date date) {
++		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
++		System.out.println("Formatted date: " + sdf.format(date));
++	}
++
+ }

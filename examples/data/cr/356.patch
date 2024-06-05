@@ -1,0 +1,480 @@
+diff --git a/admin/broadleaf-open-admin-platform/src/main/java/org/broadleafcommerce/openadmin/web/controller/entity/AdminBasicOperationsController.java b/admin/broadleaf-open-admin-platform/src/main/java/org/broadleafcommerce/openadmin/web/controller/entity/AdminBasicOperationsController.java
+index 32a76a9150e..5ba729472d9 100644
+--- a/admin/broadleaf-open-admin-platform/src/main/java/org/broadleafcommerce/openadmin/web/controller/entity/AdminBasicOperationsController.java
++++ b/admin/broadleaf-open-admin-platform/src/main/java/org/broadleafcommerce/openadmin/web/controller/entity/AdminBasicOperationsController.java
+@@ -17,9 +17,11 @@
+  * limitations under the License.
+  * #L%
+  */
++
+ package org.broadleafcommerce.openadmin.web.controller.entity;
+
+ import org.apache.commons.lang3.StringUtils;
++import org.broadleafcommerce.common.web.JsonResponse;
+ import org.broadleafcommerce.openadmin.dto.BasicFieldMetadata;
+ import org.broadleafcommerce.openadmin.dto.ClassMetadata;
+ import org.broadleafcommerce.openadmin.dto.DynamicResultSet;
+@@ -57,10 +59,10 @@
+  */
+ @Controller("blAdminBasicOperationsController")
+ public class AdminBasicOperationsController extends AdminAbstractController {
+-
++
+     @Resource(name = "blSearchFieldResolver")
+     protected SearchFieldResolver searchFieldResolver;
+-
++
+     /**
+      * Shows the modal dialog that is used to select a "to-one" collection item. For example, this could be used to show
+      * a list of categories for the ManyToOne field "defaultCategory" in Product.
+@@ -76,9 +78,9 @@ public class AdminBasicOperationsController extends AdminAbstractController {
+      */
+     @RequestMapping(value = "/{owningClass:.*}/{collectionField:.*}/select", method = RequestMethod.GET)
+     public String showSelectCollectionItem(HttpServletRequest request, HttpServletResponse response, Model model,
+-            @PathVariable  Map<String, String> pathVars,
++            @PathVariable Map<String, String> pathVars,
+             @PathVariable(value = "owningClass") String owningClass,
+-            @PathVariable(value="collectionField") String collectionField,
++            @PathVariable(value = "collectionField") String collectionField,
+             @RequestParam(required = false) String requestingEntityId,
+             @RequestParam(defaultValue = "false") boolean dynamicField,
+             @RequestParam MultiValueMap<String, String> requestParams) throws Exception {
+@@ -90,7 +92,7 @@ public String showSelectCollectionItem(HttpServletRequest request, HttpServletRe
+         ppr.addCustomCriteria("owningClass=" + owningClass);
+         ppr.addCustomCriteria("requestingField=" + collectionField);
+         ClassMetadata mainMetadata = service.getClassMetadata(ppr).getDynamicResultSet().getClassMetaData();
+-
++
+         // Only get collection property metadata when there is a non-structured content field that I am looking for
+         Property collectionProperty = null;
+         FieldMetadata md = null;
+@@ -99,7 +101,7 @@ public String showSelectCollectionItem(HttpServletRequest request, HttpServletRe
+             md = collectionProperty.getMetadata();
+             ppr = PersistencePackageRequest.fromMetadata(md, sectionCrumbs);
+         }
+-
++
+         ppr.addFilterAndSortCriteria(getCriteria(requestParams));
+         ppr.setStartIndex(getStartIndex(requestParams));
+         ppr.setMaxIndex(getMaxIndex(requestParams));
+@@ -107,9 +109,9 @@ public String showSelectCollectionItem(HttpServletRequest request, HttpServletRe
+         ppr.addCustomCriteria("requestingEntityId=" + requestingEntityId);
+         ppr.addCustomCriteria("owningClass=" + owningClass);
+         ppr.addCustomCriteria("requestingField=" + collectionField);
+-
++
+         modifyFetchPersistencePackageRequest(ppr, pathVars);
+-
++
+         DynamicResultSet drs = service.getRecords(ppr).getDynamicResultSet();
+         ListGrid listGrid = null;
+         // If we're dealing with a lookup from a dynamic field, we need to build the list grid differently
+@@ -125,7 +127,7 @@ public String showSelectCollectionItem(HttpServletRequest request, HttpServletRe
+         } else if (md instanceof BasicFieldMetadata) {
+             listGrid = formService.buildCollectionListGrid(null, drs, collectionProperty, owningClass, sectionCrumbs);
+         }
+-
++
+         model.addAttribute("listGrid", listGrid);
+         model.addAttribute("viewType", "modal/simpleSelectEntity");
+
+@@ -137,11 +139,11 @@ public String showSelectCollectionItem(HttpServletRequest request, HttpServletRe
+     }
+
+     @RequestMapping(value = "/{owningClass:.*}/{collectionField:.*}/typeahead", method = RequestMethod.GET)
+-    public @ResponseBody List<Map<String, String>> getTypeaheadResults(HttpServletRequest request,
++    public @ResponseBody List<Map<String, String>> getTypeaheadResults(HttpServletRequest request,
+             HttpServletResponse response, Model model,
+             @PathVariable Map<String, String> pathVars,
+             @PathVariable(value = "owningClass") String owningClass,
+-            @PathVariable(value="collectionField") String collectionField,
++            @PathVariable(value = "collectionField") String collectionField,
+             @RequestParam(required = false) String query,
+             @RequestParam(required = false) String requestingEntityId,
+             @RequestParam MultiValueMap<String, String> requestParams) throws Exception {
+@@ -158,7 +160,7 @@ public String showSelectCollectionItem(HttpServletRequest request, HttpServletRe
+         ppr.removeFilterAndSortCriteria("query");
+         ppr.removeFilterAndSortCriteria("requestingEntityId");
+         ppr.addCustomCriteria("requestingEntityId=" + requestingEntityId);
+-
++
+         // This list of datums will populate the typeahead suggestions.
+         List<Map<String, String>> responses = new ArrayList<Map<String, String>>();
+         if (md instanceof BasicFieldMetadata) {
+@@ -185,6 +187,18 @@ public String showSelectCollectionItem(HttpServletRequest request, HttpServletRe
+         return responses;
+     }
+
++    /*
++     * @return - Integer representing the number of minutes for session timeout
++     */
++    @RequestMapping(value = "/sessionTimerInactiveInterval", method = RequestMethod.GET)
++    public @ResponseBody String sessionTimerInactiveInterval(HttpServletRequest request,
++            HttpServletResponse response) throws Exception {
++        long maxInterval = request.getSession().getMaxInactiveInterval() * 1000;
++        return (new JsonResponse(response)).with("maxInterval", maxInterval).with("resetTime", System.currentTimeMillis()).done();
++    }
++
++
++
+     /**
+      * Hook method to allow a user to modify the persistence package request for a fetch on a select lookup.
+      *
+@@ -192,6 +206,6 @@ public String showSelectCollectionItem(HttpServletRequest request, HttpServletRe
+      * @param pathVars
+      */
+     protected void modifyFetchPersistencePackageRequest(PersistencePackageRequest ppr, Map<String, String> pathVars) {
+-
++
+     }
+ }
+diff --git a/admin/broadleaf-open-admin-platform/src/main/resources/messages/OpenAdminMessages.properties b/admin/broadleaf-open-admin-platform/src/main/resources/messages/OpenAdminMessages.properties
+index 00ede747645..6bb19787dfd 100644
+--- a/admin/broadleaf-open-admin-platform/src/main/resources/messages/OpenAdminMessages.properties
++++ b/admin/broadleaf-open-admin-platform/src/main/resources/messages/OpenAdminMessages.properties
+@@ -147,6 +147,8 @@ Dashboard=Dashboard
+
+ header.loading=Loading
+ header.logout=Logout
++header.stay.logged.in=Stay Logged In
++header.session.expire=Session Expiring ...
+ header.password.change=Change Password
+ header.profile.edit=Edit Profile
+ save.successful=Successfully saved
+diff --git a/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/css/admin/components.css b/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/css/admin/components.css
+index 1f74d63025a..10f6398f69b 100644
+--- a/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/css/admin/components.css
++++ b/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/css/admin/components.css
+@@ -17,6 +17,57 @@
+  * limitations under the License.
+  * #L%
+  */
++
++#lightbox {
++    /** Default lightbox to hidden */
++    display: none;
++    z-index: 1030;
++}
++
++#lightbox #expire-message {
++    height: 300px;
++    text-align: center;
++    top: 50%;
++    width: 500px;
++    margin-left: -250px;
++    margin-top: -150px;
++}
++
++#lightbox #expire-message #expire-header {
++    text-align: left;
++    background: linear-gradient(to bottom, #525252 0%,#424242 100%);
++    border: 1px solid #464646;
++
++}
++
++#lightbox #expire-message #expire-header #expire-header-message {
++    color: #F0F0F0;
++    margin-left: 10px;
++    font-weight: bold;
++}
++
++#lightbox #expire-message #expire-header span {
++    margin-left: 10px;
++}
++
++#lightbox #expire-message .expire-button {
++    background: linear-gradient(to bottom, #525252 0%,#424242 100%);
++    border: 1px solid #464646;
++    color: #F0F0F0;
++    margin-top: 25px;
++
++}
++
++#lightbox #expire-message #expire-text {
++    color: #333;
++    font-size: 16px;
++}
++
++#lightbox #expire-message #expire-text span {
++    color: #8EAA2B;
++    font-weight: bold;
++}
++
+ ul.entity-type-selection {
+ 	list-style-type: none;
+ }
+diff --git a/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/js/admin/blc-admin-init.js b/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/js/admin/blc-admin-init.js
+index 424772cfebd..5a909cc172d 100644
+--- a/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/js/admin/blc-admin-init.js
++++ b/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/js/admin/blc-admin-init.js
+@@ -45,6 +45,8 @@
+         $.fn.broadleafListgrid          ? $doc.broadleafListgrid() : null;
+
+         BLCAdmin.initializeFields();
++        BLCAdmin.sessionTimer.initTimer();
++
+     });
+
+     // UNCOMMENT THE LINE YOU WANT BELOW IF YOU WANT IE8 SUPPORT AND ARE USING .block-grids
+diff --git a/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/js/admin/components/sessionTimer.js b/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/js/admin/components/sessionTimer.js
+new file mode 100644
+index 00000000000..eb5296eba7c
+--- /dev/null
++++ b/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/js/admin/components/sessionTimer.js
+@@ -0,0 +1,180 @@
++/*
++ * #%L
++ * BroadleafCommerce Open Admin Platform
++ * %%
++ * Copyright (C) 2009 - 2015 Broadleaf Commerce
++ * %%
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *       http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ * #L%
++ */
++/**
++ * @author Nick Crum
++ */
++
++(function($, BLCAdmin) {
++
++    var sessionTimeLeft = 0;
++    var activityPingInterval = 30000;
++    var pingInterval = 1000;
++    var defaultSessionTime = 0;
++    var EXPIRE_MESSAGE_TIME = 60000;
++
++    BLCAdmin.sessionTimer = {
++
++        initTimer : function() {
++            this.resetTimer();
++
++        },
++
++        resetTimer : function() {
++            BLC.get({
++                url : BLC.servletContext + "/sessionTimerInactiveInterval"
++            }, function(data) {
++                sessionTimeLeft = data.maxInterval * 2 / 3;
++                defaultSessionTime = sessionTimeLeft;
++                $.cookie("sessionResetTime", data.resetTime);
++            });
++        },
++
++        getTimeLeft : function() {
++            return sessionTimeLeft;
++        },
++
++        getTimeLeftSeconds : function() {
++            return sessionTimeLeft / 1000;
++        },
++
++        isExpired : function() {
++            return sessionTimeLeft <= 0;
++        },
++
++        getDefaultSessionTime : function() {
++            return defaultSessionTime;
++        },
++
++        decrement : function(val) {
++            sessionTimeLeft -= val;
++        },
++
++        getActivityPingInterval : function() {
++            return activityPingInterval;
++        },
++
++        getPingInterval : function() {
++            return pingInterval;
++        },
++
++        getExpireMessageTime : function() {
++            return EXPIRE_MESSAGE_TIME;
++        },
++
++        timeSinceLastReset : function() {
++            return (new Date()).getTime() - $.cookie("sessionResetTime");
++        },
++
++        verifyAndUpdateTimeLeft : function() {
++            var exactTimeLeft = (this.getDefaultSessionTime() - this
++                    .timeSinceLastReset());
++            exactTimeLeft = exactTimeLeft - (exactTimeLeft % pingInterval);
++
++            if (exactTimeLeft > sessionTimeLeft) {
++                sessionTimeLeft = exactTimeLeft;
++                return true;
++            }
++            return false;
++        },
++
++        invalidateSession : function() {
++            BLC.get({
++                url : BLC.servletContext + "/adminLogout.htm"
++            }, function(data) {
++                window.location.replace(BLC.servletContext
++                        + "/login?sessionTimeout=true");
++            });
++        }
++
++    };
++})(jQuery, BLCAdmin);
++
++$(document)
++        .ready(
++                function() {
++                    var activityCount = 0;
++                    $(document).keypress(function(e) {
++                        activityCount++;
++                    });
++
++                    var updateTimer = function() {
++
++                        BLCAdmin.sessionTimer.decrement(BLCAdmin.sessionTimer
++                                .getPingInterval());
++
++                        if (BLCAdmin.sessionTimer.verifyAndUpdateTimeLeft()) {
++                            $("#lightbox").fadeOut("slow");
++                            return true;
++                        }
++
++                        if (BLCAdmin.sessionTimer.getTimeLeft() < BLCAdmin.sessionTimer
++                                .getExpireMessageTime()) {
++
++                            if (BLCAdmin.sessionTimer.isExpired()) {
++                                $("#lightbox").fadeOut("slow");
++                                BLCAdmin.sessionTimer.invalidateSession();
++                                return false;
++                            }
++
++                            $("#expire-text")
++                                    .html(
++                                            BLCAdmin.messages.sessionCountdown
++                                                    + BLCAdmin.sessionTimer
++                                                            .getTimeLeftSeconds()
++                                                    + BLCAdmin.messages.sessionCountdownEnd);
++
++                            $("#lightbox").fadeIn("slow");
++                            activityCount = 0;
++
++                            return true;
++
++                        } else if (BLCAdmin.sessionTimer.getTimeLeft()
++                                % BLCAdmin.sessionTimer
++                                        .getActivityPingInterval() == 0) {
++                            if (activityCount > 0) {
++                                BLCAdmin.sessionTimer.resetTimer();
++                                activityCount = 0;
++                                return true;
++                            }
++
++                        }
++
++                        return true;
++                    };
++
++                    stayLoggedIn = function() {
++                        $.doTimeout('update');
++                        $("#lightbox").fadeOut("slow");
++                        activityCount = 0;
++                        BLCAdmin.sessionTimer.resetTimer();
++                        $.doTimeout('update', BLCAdmin.sessionTimer
++                                .getPingInterval(), updateTimer);
++                    }
++
++                    $("#stay-logged-in").click(function() {
++                        stayLoggedIn();
++                        return false;
++                    });
++
++                    BLCAdmin.sessionTimer.resetTimer();
++                    $.doTimeout('update', BLCAdmin.sessionTimer
++                            .getPingInterval(), updateTimer);
++
++                });
+\ No newline at end of file
+diff --git a/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/js/admin/ui/messages_en.js b/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/js/admin/ui/messages_en.js
+index 0b0fa58fb3c..2e61feabe71 100644
+--- a/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/js/admin/ui/messages_en.js
++++ b/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/js/admin/ui/messages_en.js
+@@ -40,7 +40,11 @@
+         error : 'Error',
+         forbidden403 : '403 Forbidden',
+         errorOccurred : 'An error occurred',
+-        loading : 'Loading'
++        loading : 'Loading',
++
++        // Session timer messages
++        sessionCountdown: 'Your session expires in <span>',
++        sessionCountdownEnd: '</span> seconds'
+
+     };
+
+diff --git a/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/templates/layout/partials/footer.html b/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/templates/layout/partials/footer.html
+index 3f0fe226f29..06caa1f514a 100644
+--- a/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/templates/layout/partials/footer.html
++++ b/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/templates/layout/partials/footer.html
+@@ -74,10 +74,12 @@
+                        admin/components/listGrid.js,
+                        admin/components/listGrid-filter.js,
+                        admin/components/listGrid-paginate.js,
+-                       admin/components/typeahead.js" />
++                       admin/components/typeahead.js,
++                       admin/components/sessionTimer.js" />
+
+     <blc:bundle name="admin-init.js"
+                 mapping-prefix="/js/"
+                 files="admin/blc-admin-init.js" />
++
+
+ </footer>
+diff --git a/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/templates/layout/partials/header.html b/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/templates/layout/partials/header.html
+index e819e4154a7..ed24d966749 100644
+--- a/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/templates/layout/partials/header.html
++++ b/admin/broadleaf-open-admin-platform/src/main/resources/open_admin_style/templates/layout/partials/header.html
+@@ -1,5 +1,11 @@
+ <header class="top-bar">
++
++
++
+     <div class="attached">
++
++
++
+         <div class="brand">
+             <span><a th:href="@{/}"><img th:src="@{/img/admin/blc-logo-header.png}" width='155'/></a></span>
+         </div>
+@@ -21,5 +27,22 @@
+                 <a class="small button radius dark" th:href="@{/adminLogout.htm}" th:text="#{header.logout}" />
+             </li>
+         </ul>
++
++        <div id="lightbox">
++
++            <div id="expire-message" class="modal in">
++                <div id="expire-header" class="brand">
++                <div id="expire-header-message" th:text="#{header.session.expire}"></div>
++                </div>
++                <div id="expire-content">
++                    <a id="stay-logged-in" class="expire-button button medium dark radius" href="#" th:text="#{header.stay.logged.in}"></a>
++                    <a class="expire-button button medium dark radius" th:href="@{/adminLogout.htm}" th:text="#{header.logout}"></a>
++                    <div id="expire-text">
++
++                    </div>
++                </div>
++            </div>
++            <div  class="modal-backdrop"></div>
++        </div>
+     </div>
+ </header>
+\ No newline at end of file
