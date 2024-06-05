@@ -8,7 +8,6 @@ PR,commented_file,point_id,point,code
 2,OwnerController.java,22,禁止在 equals()中使用 NULL 做比较,"if (""test"".equals(null))"
 2,OwnerController.java,15,对对象不必要的 NULL 检查,"if (""test"".equals(null))"
 2,OwnerController.java,2,未使用的临时变量,int unusedVar = 10;
-2,OwnerController.java,1,避免无效的 import,import org.springframework.web.util.UriComponentsBuilder;
 3,PetValidator.java,18,空的 static 初始化,static {
 3,PetValidator.java,20,简单的日期格式容易出错的规则,"private static final SimpleDateFormat dateFormat = new SimpleDateFormat(""yyyy-MM-dd"");"
 3,PetValidator.java,19,日历类用法不当风险,"private static final Calendar calendar = new GregorianCalendar(2020, Calendar.JANUARY, 1);"
@@ -74,10 +73,6 @@ if (ownersResults.isEmpty()) {
   return addPaginationModel(pageNo, paginationModel, lastName, ownersResults);
  }
 }"
-812,OwnerController.java,1,避免无效的 import,"import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-
-Pageable pageable = PageRequest.of(pageNo - 1, pageSize);"
 812,VetController.java,26,代码结构冗余（首批不包括）,"addPaginationModel(@PathVariable(value = ""pageNo"") int pageNo, Vets vets, Model model) findPaginated(int pageNo)"
 812,OwnerController.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,findPaginatedForOwnersLastName
 812,OwnerController.java,26,代码结构冗余（首批不包括）,"addPaginationModel(int pageNo, Model model, String lastName, Page<Owner> ownerResults) findPaginatedForOwnersLastName(int pageNo, String lastname)"
