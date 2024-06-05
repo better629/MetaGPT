@@ -113,7 +113,7 @@ class CodeReviewEvaluation(Action):
             '''
             统计逻辑
             1.判断CR结果是否同时满足"目标文件"和"要点id"和GT数据对应
-            2.将当前条数据打上标(对应上则is_correct设置为1)
+            2.将当前条数据打上标(对应上则score设置为1)
             3.将结果写入对应的"METRIC.csv"
             4.计算召回和准确率并终端打印结果
             5.公式: 
