@@ -18,6 +18,7 @@ from metagpt.utils.cr.schema import Point
 
 CODE_REVIEW_PROMPT_TEMPLATE = """
 ## Patch
+- JAVA语言的代码补丁
 ```
 {patch}
 ```

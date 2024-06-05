@@ -47,14 +47,12 @@ PR,commented_file,point_id,point,code
 356,AdminBasicOperationsController.java,4,避免函数中未使用的形参,"protected void modifyFetchPersistencePackageRequest(PersistencePackageRequest ppr, Map<String, String> pathVars) {
 
     }"
-812,Vet.java,1,避免无效的 import,import java.util.*;
 812,VetRepository.java,6,循环体不能为空，不能有多余的分号,"@Transactional(readOnly = true)
  @Cacheable(""vets"")
  Page<Vet> findAll(Pageable pageable) throws DataAccessException;
 
  ;"
 812,VetController.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,"private String addPaginationModel(@PathVariable(value = ""pageNo"") int pageNo, Vets vets, Model model)"
-812,Vet.java,1,避免无效的 import,import javax.persistence.*;
 812,OwnerController.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,addPaginationModel
 812,OwnerController.java,2,避免未使用的临时变量,"String lastName;
 
