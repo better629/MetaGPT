@@ -90,7 +90,7 @@ class CodeReview(Action):
             for p in points:
                 if int(cmt.get("point_id", -1)) == p.id:
                     code_start_line = cmt.get("code_start_line")
-                    code_end_line  = cmt.get("code_end_line")
+                    code_end_line = cmt.get("code_end_line")
                     code = get_code_block_from_patch(patch, code_start_line, code_end_line)
                     pattern = r'^[ \t\n\r(){}[\];,]*$'
                     if re.match(pattern, code):
@@ -133,7 +133,7 @@ class CodeReview(Action):
         comments = []
         points_str = "\n".join([f"{p.id} {p.text}" for p in points])
         for patched_file in patch:
-            if len(str(patched_file)) >= 80:
+            if len(str(patched_file).splitlines()) >= 80:
                 cr_by_segment_points_comments = await self.cr_by_segment_points(patched_file=patched_file, points=points)
                 comments += cr_by_segment_points_comments
                 continue
