@@ -120,6 +120,7 @@ if (ownersResults.isEmpty()) {
     throw new UnsupportedOperationException(""No execution active, no variables can be set"");
   }
 "
+1000,VariableScopeImpl.java,27,不能有多余的分号,variables.putAll(transientVariabes);;
 1090,SolrSearchServiceImpl.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,StringBuilder sb = new StringBuilder();
 1090,SolrSearchServiceImpl.java,22,禁止在 equals()中使用 NULL或者null 做比较,"if (!rangeValues[1].equals(""null""))"
 2723,TaskRuntimeHelper.java,15,避免对象进行不必要的 NULL或者null 检查,if (authenticatedUserId != null && !authenticatedUserId.isEmpty() && userGroupManager!=null)

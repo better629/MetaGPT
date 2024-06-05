@@ -74,24 +74,24 @@ class CodeReviewEvaluation(Action):
         df = pd.DataFrame(columns=columns)
         return df
 
-    def get_metric_df_row(self, recall_num: int = 0, recall: float = 0, precision_num: int = 0, precision: float = 0):
+    def get_metric_df_row(self, gt_num: int = 0, recall_num: int = 0,  recall: float = 0, precision_num: int = 0, precision: float = 0):
         metric_count_row_name = {
-            "PR": "召回数",
-            "commented_file": "召回率",
-            "code": "准确数",
-            "code_start_line": "准确率",
-            "code_end_line": "",
+            "PR": "GT要点数",
+            "commented_file": "召回数",
+            "code": "召回率",
+            "code_start_line": "准确数",
+            "code_end_line": "准确率",
             "comment": "",
             "point_id": "",
             "point": "",
             "score": ""
         }
         metric_count_row_value = {
-            "PR": recall_num,
-            "commented_file": recall,
-            "code": precision_num,
-            "code_start_line": precision,
-            "code_end_line": "",
+            "PR": gt_num,
+            "commented_file": recall_num,
+            "code": recall,
+            "code_start_line": precision_num,
+            "code_end_line": precision,
             "comment": "",
             "point_id": "",
             "point": "",
@@ -163,6 +163,11 @@ class CodeReviewEvaluation(Action):
         else:
             evaluation_result_df = self.init_metric_null_df()
 
+        metric_count_row_name, metric_count_row_value = self.get_metric_df_row(gt_num=gt_num, recall_num=recall_num, recall=recall, precision_num=precision_num, precision=precision)
+
+        evaluation_result_df.insert(0, 'PR', evaluation_result_df.pop('PR'))
+        evaluation_result_df.loc[len(evaluation_result_df)] = metric_count_row_name
+        evaluation_result_df.loc[len(evaluation_result_df)] = metric_count_row_value
         evaluation_result_df.to_csv(f'{metric_name}-metric.csv', index=False, encoding='utf-8')
 
         print(f"召回数是{recall_num}，召回率是{recall}\n准确数是{precision_num}，准确率是{precision}\n")
@@ -185,7 +190,7 @@ class CodeReviewEvaluation(Action):
         # result中diff的部分，是我们关注的，另外如果mode为1（忽略要点中24 25 26这3个不可精确描述的问题）
         results_diff = []
         for result in cr_result:
-            if result['code'].startswith('+'):
+            if '+' in result['code']:
                 if self.mode == 0 or (self.mode == 1 and result['point_id'] not in ignore_points):
                     results_diff.append(result)
 
