@@ -9,9 +9,9 @@ PR,commented_file,point_id,point,code
 2,OwnerController.java,15,对对象不必要的 NULL 检查,"if (""test"".equals(null))"
 2,OwnerController.java,2,未使用的临时变量,int unusedVar = 10;
 3,PetValidator.java,18,空的 static 初始化,static {
-3,PetValidator.java,20,简单的日期格式容易出错的规则,"private static final SimpleDateFormat dateFormat = new SimpleDateFormat(""yyyy-MM-dd"");"
+3,PetValidator.java,28,非线程安全的 SimpleDateFormat 使用，必须在函数或代码块级别使用synchronized,"private static final SimpleDateFormat dateFormat = new SimpleDateFormat(""yyyy-MM-dd"");"
 3,PetValidator.java,19,日历类用法不当风险,"private static final Calendar calendar = new GregorianCalendar(2020, Calendar.JANUARY, 1);"
-4,Owner.java,16,while 语句块不能为空,while (true) {
+4,Owner.java,6,循环体不能为空,while (true) {
 4,Owner.java,9,不必要的永真/永假判断,while (true) {
 4,Owner.java,8,catch 语句块不能为空,catch (Exception e) {
 4,Owner.java,14,try 语句块不能为空,try {
@@ -23,7 +23,7 @@ PR,commented_file,point_id,point,code
 5,Pet.java,13,finally 语句块不能为空,finally {
 5,Pet.java,3,不要使用 System.out.println 去打印,"System.out.println(""Inside try block"");"
 6,PetController.java,11,未使用 equals()函数对 String 作比较,if (existingPet != null && existingPet.getName() == petName)
-6,PetController.java,20,避免简单的日期格式容易出错的规则,"public void formatDate(Date date) {
+6,PetController.java,28,非线程安全的 SimpleDateFormat 使用，必须在函数或代码块级别使用synchronized,"public void formatDate(Date date) {
   SimpleDateFormat sdf = new SimpleDateFormat(""yyyy-MM-dd"");
   System.out.println(""Formatted date: "" + sdf.format(date));
  }"

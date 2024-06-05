@@ -88,8 +88,8 @@ class CodeReview(Action):
         for cmt in comments:
             for p in points:
                 if int(cmt.get("point_id", -1)) == p.id:
-                    code_start_line = cmt.get("code_start_line")
-                    code_end_line = cmt.get("code_end_line")
+                    code_start_line = str(max(1, int(cmt.get("code_start_line")) - 3))
+                    code_end_line = str(int(cmt.get("code_end_line")) + 3)
                     code = get_code_block_from_patch(patch, code_start_line, code_end_line)
                     new_comments.append(
                         {
