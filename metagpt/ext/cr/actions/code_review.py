@@ -17,16 +17,6 @@ from metagpt.utils.cr.cleaner import (
 from metagpt.utils.cr.schema import Point
 
 CODE_REVIEW_PROMPT_TEMPLATE = """
-With the given pull-request(PR) Patch, and referenced Points(Code Standards), you should compare each point with the code one-by-one.
-
-The Patch code has added line no at the first character each line for reading, but the review should focus on new added code inside the `Patch` (lines starting with line no and '+').
-Each point is start with a line no and follows with the point description.
-
-一定要注意：
-1.如果同一个代码错误出现多次，不能省略，需要把所有的地方都找出来
-2.Patch的每一行代码都需要认真检查，不能省略偷懒，需要把所有的地方都找出来
-3.如果代码没有违反Point所描述的规(代码是正确的)，切记不要强行判定违法了Point所描述的规范，直接输出[]
-
 ## Patch
 ```
 {patch}
@@ -48,13 +38,24 @@ Each point is start with a line no and follows with the point description.
 ]
 ```
 
-CodeReview guidelines:
-- Generate code `comment` that do not meet the point description.
-- Each `comment` should be restricted inside the `commented_file`.
-- Don't suggest to add docstring unless it's necessary indeed.
-- Be sure to provide accurate comments.
+## 你的任务
+1.对于给定的JAVA语言的Patch补丁代码和参考点Points（代码标准），您应该逐一将每个点与代码进行比较。
+2.修补程序代码在每行读取的第一个字符处添加了行号，但审查应重点关注“修补程序”内新添加的代码（以行号和“+”开头的行）。
+3.每个点都以一条线编号开始，然后是点描述。
 
-Just print the PR Patch comments in json format like **Output Format**.
+## 需严格遵守
+1.如果同一个代码错误出现多次，不能省略，需要把所有的地方都找出来
+2.Patch的每一行代码都需要认真检查，不能省略偷懒，需要把所有的地方都找出来
+3.如果代码没有违反Point所描述的规(代码是正确的)，切记不要强行判定违法了Point所描述的规范，直接输出[]
+
+## CodeReview指南
+1.生成不符合要点描述的代码“注释”。
+2.每个“注释”都应限制在“注释文件”中。
+3.除非确实有必要，否则不要建议添加docstring。
+4.请务必提供准确的评论。
+
+## 输出要求
+只需以json格式打印PR Patch注释，如**Output Format**。
 """
 
 CODE_REVIEW_COMFIRM_SYSTEM_PROMPT = """

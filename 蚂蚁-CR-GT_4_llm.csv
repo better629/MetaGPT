@@ -1,4 +1,4 @@
-PR,commented_file,point_id,point,keyword
+PR,commented_file,point_id,point,code
 1,OwnerController.java,8,catch 语句块不能为空,catch (Exception e) {
 1,OwnerController.java,3,不要使用 System.out.println 去打印,"System.out.println(""Initializing new owner form."");"
 1,OwnerController.java,2,未使用的临时变量,"String unusedVar = ""This variable is not used"";"
@@ -91,7 +91,7 @@ Pageable pageable = PageRequest.of(pageNo - 1, pageSize);"
 1000,NoExecutionVariableScope.java,26,避免重复代码,"throw new UnsupportedOperationException(""No execution active, no variables can be removed"");"
 1000,TaskResource.java,26,避免重复代码,if (actionRequest.getTransientVariables() != null)
 1000,TaskResource.java,11,未使用equals()函数对 String 作比较,if (var.getName() == null)
-1000,ProcessInstanceCreateRequest.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,public boolean isTenantSet() 
+1000,ProcessInstanceCreateRequest.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,public boolean isTenantSet()
 1000,ExecutionResource.java,25,判断逻辑应简洁，不能重复或者无意义,"if (actionRequest.getTransientVariables() != null && actionRequest.getVariables() != null) {
         runtimeService.trigger(execution.getId(), getVariablesToSet(actionRequest.getVariables()), getVariablesToSet(actionRequest.getTransientVariables()));
       } else if (actionRequest.getVariables() != null) {

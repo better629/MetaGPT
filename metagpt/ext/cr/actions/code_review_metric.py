@@ -11,22 +11,16 @@ from metagpt.utils.common import parse_json_code_block
 
 CODE_REVIEW_EVALUATION_PROMPT_TEMPLATE = """
 ## GT要点信息表
+- 此表的内容是Code Review的正确结果记录，可以把它定位成"标准答案"
 ```
 {gt_df}
 ```
 
 ## CR结果表
+- 此表是对**GT要点信息表**所关联的Patch代码而进行的一次Code Review的结果，这个结果不确定正确与否，所以需要对此表数据进行评估打分
 ```
 {results_diff}
 ```
-
-## 你的任务
-根据给你的GT要点信息，对CR结果进行打分
-
-## 打分规则
-1.以GT要点信息表作为答案对CR结果表逐条进行评估打分，如果CR结果表对应的行是对的，则打分结果为：1，否则为：0
-2.输出在CR结果表的基础上加上一列"score"来记录打分结果，以Output Format的形式输出
-3.注意：不要漏掉CR结果表的任何一条
 
 ## Output Format
 ```json
@@ -44,6 +38,20 @@ CODE_REVIEW_EVALUATION_PROMPT_TEMPLATE = """
     }}
 ]
 ```
+
+## 你的任务
+1.根据给你的**GT要点信息表**，对**CR结果表**中的每1条记录进行评估打分
+2.评估规则
+- 遍历**CR结果表**
+    - 首先根据**CR结果表**当前行的'point_id' 从 **GT要点信息表**中过滤出'point_id'一样的行
+    - 然后遍历 从**GT要点信息表**中过滤出'point_id'一样的行，然后逐行找出'commented_file'、'code'2个字段和遍历**CR结果表**当前行的'commented_file'、'code'有比较高的匹配度
+    - 如果'commented_file'、'code'匹配度高，则判定为**CR结果表**当前行是正确的，正确打分结果为：1，否则为：0
+    - 如果判定**CR结果表**当前行是正确的，那么将与之对应的**GT要点信息表**的数据从表中删除
+
+## 需严格遵守
+1.根据提供给你的**GT要点信息表**作为"标准答案"对**CR结果表**的每1条记录逐条的进行评估打分，如果**CR结果表**对应的行是正确的，则打分结果为：1，否则为：0
+2.在**CR结果表**的基础上加上一列"score"来记录打分结果，以**Output Format**的形式输出
+3.不要漏掉**CR结果表**的任何一条记录
 
 """
 
@@ -164,7 +172,7 @@ class CodeReviewEvaluation(Action):
         if len(cr_result) == 0:
             print("CR结果为空，指标全为0")
             return
-        gt_csv_path = '蚂蚁-CR-GT.csv'
+        gt_csv_path = '蚂蚁-CR-GT_4_llm.csv'
         gt_df = pd.read_csv(gt_csv_path)
 
         # 获取GT要点中当前PR的GT要点数据
