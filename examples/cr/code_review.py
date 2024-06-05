@@ -18,8 +18,8 @@ from metagpt.ext.cr.roles.code_reviewer import CodeReviewer, PatchPoints
 from metagpt.schema import Message
 from metagpt.tools.libs.cr import PointManager
 
-patch_list = ['1090']
-# patch_list = ['1', '2', '3', '4', '5', '6', '7', '8', '14', '99', '356', '812', '1000', '1090', '2723']
+# patch_list = ['1090']
+patch_list = ['1', '2', '3', '4', '5', '6', '7', '8', '14', '99', '356', '812', '1000', '1090', '2723']
 
 
 async def main():
@@ -31,10 +31,8 @@ async def main():
         patch: PatchSet = PatchSet(input_patch_file.read_text(encoding='utf-8'))
 
         code_reviewer = CodeReviewer(pr=patch_no, mode=0, calculate_type="")
-        msg = await code_reviewer.run(
-            Message(content="code review on PR patch", instruct_content=PatchPoints(patch=patch, points=points)))
-        return msg
+        await code_reviewer.run(Message(content="code review on PR patch", instruct_content=PatchPoints(patch=patch, points=points)))
 
-
+    print("CR执行完毕，请检查输出文件")
 if __name__ == "__main__":
     asyncio.run(main())
