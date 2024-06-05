@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # @Desc   : code review particular PR
-#    step1, generate PR patch file with `git diff 5483cc6^..d0b00e3 > pr_1193_5483cc6-d0b00e3.patch
+#    step1, generate PR patch file with `git diff 5483cc6^..d0b00e3 > pr_1193_5483cc6-d0b00e3
 #    step2, run the code review script
 
 """
@@ -18,21 +18,22 @@ from metagpt.ext.cr.roles.code_reviewer import CodeReviewer, PatchPoints
 from metagpt.schema import Message
 from metagpt.tools.libs.cr import PointManager
 
-INPUT_PATCH_FILE = EXAMPLE_DATA_PATH / "cr/1090.patch"
-patch_file_name = "1090"
+patch_list = ['1090']
+# patch_list = ['1', '2', '3', '4', '5', '6', '7', '8', '14', '99', '356', '812', '1000', '1090', '2723']
 
 
 async def main():
     # get points from existed result
     p = PointManager()
     points = await p.get_points()
+    for patch_no in patch_list:
+        input_patch_file = EXAMPLE_DATA_PATH / f"cr/{patch_no}.patch"
+        patch: PatchSet = PatchSet(input_patch_file.read_text(encoding='utf-8'))
 
-    patch: PatchSet = PatchSet(INPUT_PATCH_FILE.read_text(encoding='utf-8'))
-
-    code_reviewer = CodeReviewer(pr=patch_file_name, mode=0, calculate_type="")
-    msg = await code_reviewer.run(
-        Message(content="code review on PR patch", instruct_content=PatchPoints(patch=patch, points=points)))
-    return msg
+        code_reviewer = CodeReviewer(pr=patch_no, mode=0, calculate_type="")
+        msg = await code_reviewer.run(
+            Message(content="code review on PR patch", instruct_content=PatchPoints(patch=patch, points=points)))
+        return msg
 
 
 if __name__ == "__main__":
