@@ -38,6 +38,8 @@ class PointTable(Base):
     start_line = Column(Integer, nullable=False, default=0)
     end_line = Column(Integer, nullable=False, default=0)
     detail = Column(String, nullable=False, default="")
+    yes_example = Column(String, nullable=False, default="")
+    no_example = Column(String, nullable=False, default="")
 
 
 async def create_tables():

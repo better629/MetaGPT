@@ -1,0 +1,41 @@
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java b/src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java
+index 848d4f08e2f..ba963e82f82 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/OwnerController.java
+@@ -32,6 +32,7 @@
+ import org.springframework.web.bind.annotation.PostMapping;
+ import org.springframework.web.bind.annotation.RequestParam;
+ import org.springframework.web.servlet.ModelAndView;
++import org.springframework.web.util.UriComponentsBuilder;
+
+ import jakarta.validation.Valid;
+ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+@@ -67,6 +68,7 @@ public Owner findOwner(@PathVariable(name = "ownerId", required = false) Integer
+ 	public String initCreationForm(Map<String, Object> model) {
+ 		Owner owner = new Owner();
+ 		model.put("owner", owner);
++		int unusedVar = 10;
+ 		return VIEWS_OWNER_CREATE_OR_UPDATE_FORM;
+ 	}
+
+@@ -143,6 +145,10 @@ public String processUpdateOwnerForm(@Valid Owner owner, BindingResult result, @
+ 			return VIEWS_OWNER_CREATE_OR_UPDATE_FORM;
+ 		}
+
++		if ("test".equals(null)) {
++			System.out.println("test");
++		}
++
+ 		owner.setId(ownerId);
+ 		this.owners.save(owner);
+ 		redirectAttributes.addFlashAttribute("message", "Owner Values Updated");
+@@ -156,6 +162,9 @@ public String processUpdateOwnerForm(@Valid Owner owner, BindingResult result, @
+ 	 */
+ 	@GetMapping("/owners/{ownerId}")
+ 	public ModelAndView showOwner(@PathVariable("ownerId") int ownerId) {
++		if (true) {
++			System.out.println("This is always true");
++		}
+ 		ModelAndView mav = new ModelAndView("owners/ownerDetails");
+ 		Owner owner = this.owners.findById(ownerId);
+ 		mav.addObject(owner);

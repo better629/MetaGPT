@@ -1,0 +1,31 @@
+diff --git a/src/main/java/org/springframework/samples/petclinic/vet/Vet.java b/src/main/java/org/springframework/samples/petclinic/vet/Vet.java
+index 7a70155c3ea..3ae7ccb6baa 100644
+--- a/src/main/java/org/springframework/samples/petclinic/vet/Vet.java
++++ b/src/main/java/org/springframework/samples/petclinic/vet/Vet.java
+@@ -76,4 +76,26 @@ public void addSpecialty(Specialty specialty) {
+ 		getSpecialtiesInternal().add(specialty);
+ 	}
+
++	public void unusedParamMethod(int unusedParam) {
++		System.out.println("This method has an unused parameter.");
++	}
++
++	public void emptyIfStatement() {
++		if (getSpecialties().isEmpty()) {
++		}
++	}
++
++	public void emptyLoopBody() {
++		for (Specialty specialty : getSpecialties()) {
++		}
++	}
++
++	public void usePrintStackTrace() {
++		try {
++			throw new Exception("Fake exception");
++		} catch (Exception e) {
++			e.printStackTrace();
++		}
++	}
++
+ }

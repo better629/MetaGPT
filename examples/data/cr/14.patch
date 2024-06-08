@@ -1,0 +1,27 @@
+diff --git a/api/src/main/java/org/openmrs/Visit.java b/api/src/main/java/org/openmrs/Visit.java
+index b462c12d9072..328b2f880438 100644
+--- a/api/src/main/java/org/openmrs/Visit.java
++++ b/api/src/main/java/org/openmrs/Visit.java
+@@ -14,6 +14,7 @@
+ package org.openmrs;
+
+ import java.util.Date;
++import java.util.HashSet;
+ import java.util.Set;
+
+ import org.openmrs.customdatatype.Customizable;
+@@ -209,4 +210,14 @@ public void setEncounters(Set<Encounter> encounters) {
+ 		this.encounters = encounters;
+ 	}
+
++	public void addEncounter(Encounter encounter) {
++		if (encounters == null) {
++			encounters = new HashSet<Encounter>();
++		}
++
++		if (encounter != null) {
++			encounter.setVisit(this);
++			encounters.add(encounter);
++		}
++	}
+ }

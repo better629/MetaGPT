@@ -1,0 +1,25 @@
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/Owner.java b/src/main/java/org/springframework/samples/petclinic/owner/Owner.java
+index 6a3f093d671..df6f6c8c520 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/Owner.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/Owner.java
+@@ -171,4 +171,20 @@ public void addVisit(Integer petId, Visit visit) {
+ 		pet.addVisit(visit);
+ 	}
+
++	public void someMethod() {
++		while (true) {
++		}
++	}
++
++	public String someOtherMethod() {
++		try {
++			// 尝试执行一些操作
++		} catch (Exception e) {
++			// 捕获并处理异常
++		} finally {
++			// 这里包含一个return语句
++			return "This method exits prematurely in the finally block.";
++		}
++	}
++
+ }

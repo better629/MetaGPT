@@ -1,0 +1,146 @@
+PR,commented_file,point_id,point,code
+1,OwnerController.java,8,catch 语句块不能为空,catch (Exception e) {
+1,OwnerController.java,3,不要使用 System.out.println 去打印,"System.out.println(""Initializing new owner form."");"
+1,OwnerController.java,2,未使用的临时变量,"String unusedVar = ""This variable is not used"";"
+2,OwnerController.java,3,不要使用 System.out.println 去打印,"System.out.println(""This is always true"");"
+2,OwnerController.java,9,不必要的永真/永假判断,if (true)
+2,OwnerController.java,3,不要使用 System.out.println 去打印,"System.out.println(""test"");"
+2,OwnerController.java,22,禁止在 equals()中使用 NULL 做比较,"if (""test"".equals(null))"
+2,OwnerController.java,15,对对象不必要的 NULL 检查,"if (""test"".equals(null))"
+2,OwnerController.java,2,未使用的临时变量,int unusedVar = 10;
+3,PetValidator.java,18,空的 static 初始化,static {
+3,PetValidator.java,28,非线程安全的 SimpleDateFormat 使用，必须在函数或代码块级别使用synchronized,"private static final SimpleDateFormat dateFormat = new SimpleDateFormat(""yyyy-MM-dd"");"
+3,PetValidator.java,19,日历类用法不当风险,"private static final Calendar calendar = new GregorianCalendar(2020, Calendar.JANUARY, 1);"
+4,Owner.java,6,循环体不能为空,while (true) {
+4,Owner.java,9,不必要的永真/永假判断,while (true) {
+4,Owner.java,8,catch 语句块不能为空,catch (Exception e) {
+4,Owner.java,14,try 语句块不能为空,try {
+4,Owner.java,17,避免 finally 块中出现 return,finally {
+5,Pet.java,15,对对象不必要的 NULL 检查,if (this.type != null && this.type.getName() != null)
+5,Pet.java,3,不要使用 System.out.println 去打印,"System.out.println(""Type name is not null"");"
+5,Pet.java,14,try 语句块不能为空,try {
+5,Pet.java,3,不要使用 System.out.println 去打印,"System.out.println(""Inside finally block"");"
+5,Pet.java,13,finally 语句块不能为空,finally {
+5,Pet.java,3,不要使用 System.out.println 去打印,"System.out.println(""Inside try block"");"
+6,PetController.java,11,未使用 equals()函数对 String 作比较,if (existingPet != null && existingPet.getName() == petName)
+6,PetController.java,28,非线程安全的 SimpleDateFormat 使用，必须在函数或代码块级别使用synchronized,"public void formatDate(Date date) {
+  SimpleDateFormat sdf = new SimpleDateFormat(""yyyy-MM-dd"");
+  System.out.println(""Formatted date: "" + sdf.format(date));
+ }"
+6,PetController.java,10,switch 中 default 必须放在最后,switch (number) {
+6,PetController.java,3,不要使用 System.out.println 去打印,"System.out.println(""This is the default block, which is incorrectly placed here."");"
+6,PetController.java,3,不要使用 System.out.println 去打印,"System.out.println(""Number one"");"
+6,PetController.java,3,不要使用 System.out.println 去打印,"System.out.println(""Number two"");"
+6,PetController.java,3,不要使用 System.out.println 去打印,"System.out.println(""Formatted date: "" + sdf.format(date));"
+7,Vet.java,3,不要使用 System.out.println 去打印,"System.out.println(""This method has an unused parameter."");"
+7,Vet.java,5,if 语句块不能为空,if (getSpecialties().isEmpty()) {
+7,Vet.java,7,避免使用 printStackTrace()，应该使,e.printStackTrace();
+7,Vet.java,6,循环体不能为空，或者检查是否有多余的分号,for (Specialty specialty : getSpecialties()) {
+7,Vet.java,4,函数中未使用的形参,public void unusedParamMethod(int unusedParam) {
+8,OwnerController.java,24,命名含义需优化,Owner o = new Owner();
+8,OwnerController.java,24,命名含义需优化,List<Owner> a = paginated.getContent();
+99,BpmnJsonConverter.java,12,禁止日志中直接使用 String 输出异常,"LOGGER.info(""Listeners node can not be read"", e);"
+99,BaseBpmnJsonConverter.java,12,禁止日志中直接使用 String 输出异常,"LOGGER.info(""Form properties values node can not be read"", e);"
+99,BaseBpmnJsonConverter.java,12,禁止日志中直接使用 String 输出异常,"LOGGER.info(""Form properties node can not be read"", e);"
+99,BpmnJsonConverter.java,26,避免重复代码,private List<ActivitiListener> convertJsonToListeners(JsonNode listenersNode)
+356,AdminBasicOperationsController.java,4,避免函数中未使用的形参,"protected void modifyFetchPersistencePackageRequest(PersistencePackageRequest ppr, Map<String, String> pathVars) {
+
+    }"
+812,VetRepository.java,27,不能有多余的分号,"@Transactional(readOnly = true)
+ @Cacheable(""vets"")
+ Page<Vet> findAll(Pageable pageable) throws DataAccessException;
+
+ ;"
+812,VetController.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,"private String addPaginationModel(@PathVariable(value = ""pageNo"") int pageNo, Vets vets, Model model)"
+812,OwnerController.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,addPaginationModel
+812,OwnerController.java,2,避免未使用的临时变量,"String lastName;
+
+lastName = owner.getLastName();
+if (ownersResults.isEmpty()) {
+  // no owners found
+  result.rejectValue(""lastName"", ""notFound"", ""not found"");
+  return ""owners/findOwners"";
+ }
+ else if (ownersResults.getTotalElements() == 1) {
+  // 1 owner found
+  owner = results.iterator().next();
+  owner = ownersResults.iterator().next();
+  return ""redirect:/owners/"" + owner.getId();
+ }
+ else {
+  // multiple owners found
+  lastName = owner.getLastName();
+  return addPaginationModel(pageNo, paginationModel, lastName, ownersResults);
+ }
+}"
+812,VetController.java,26,代码结构冗余（首批不包括）,"addPaginationModel(@PathVariable(value = ""pageNo"") int pageNo, Vets vets, Model model) findPaginated(int pageNo)"
+812,OwnerController.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,findPaginatedForOwnersLastName
+812,OwnerController.java,26,代码结构冗余（首批不包括）,"addPaginationModel(int pageNo, Model model, String lastName, Page<Owner> ownerResults) findPaginatedForOwnersLastName(int pageNo, String lastname)"
+812,OwnerRepository.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,Page<Owner> findAll(Pageable pageable);
+1000,NoExecutionVariableScope.java,4,避免函数中未使用的形参,"public void setTransientVariablesLocal(Map<String, Object> transientVariables) {
+    throw new UnsupportedOperationException(""No execution active, no variables can be set"");
+  }
+"
+1000,NoExecutionVariableScope.java,26,避免重复代码,"throw new UnsupportedOperationException(""No execution active, no variables can be removed"");"
+1000,TaskResource.java,26,避免重复代码,if (actionRequest.getTransientVariables() != null)
+1000,TaskResource.java,11,未使用equals()函数对 String 作比较,if (var.getName() == null)
+1000,ProcessInstanceCreateRequest.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,public boolean isTenantSet()
+1000,ExecutionResource.java,25,判断逻辑应简洁，不能重复或者无意义,"if (actionRequest.getTransientVariables() != null && actionRequest.getVariables() != null) {
+        runtimeService.trigger(execution.getId(), getVariablesToSet(actionRequest.getVariables()), getVariablesToSet(actionRequest.getTransientVariables()));
+      } else if (actionRequest.getVariables() != null) {
+        runtimeService.trigger(execution.getId(), getVariablesToSet(actionRequest.getVariables()));
+      } else {
+        runtimeService.trigger(execution.getId());
+      }"
+1000,ExecutionResource.java,26,避免重复代码,"if (ExecutionActionRequest.ACTION_SIGNAL.equals(actionRequest.getAction())
+        || ExecutionActionRequest.ACTION_TRIGGER.equals(actionRequest.getAction())) {
+      if (actionRequest.getTransientVariables() != null && actionRequest.getVariables() != null) {
+        runtimeService.trigger(execution.getId(), getVariablesToSet(actionRequest.getVariables()), getVariablesToSet(actionRequest.getTransientVariables()));
+      } else if (actionRequest.getVariables() != null) {
+        runtimeService.trigger(execution.getId(), getVariablesToSet(actionRequest.getVariables()));
+      } else {
+        runtimeService.trigger(execution.getId());
+      }"
+1000,ProcessInstanceBuilderImpl.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,public ProcessInstanceBuilder name(String processInstanceName)
+1000,ProcessInstanceBuilderImpl.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,protected String messageName;
+1000,VariableScopeImpl.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,"protected Map<String, VariableInstance> transientVariabes;"
+1000,TriggerCmd.java,26,避免重复代码," public TriggerCmd(String executionId, Map<String, Object> processVariables, Map<String, Object> transientVariables) {
+    this(executionId, processVariables);
+    this.transientVariables = transientVariables;
+  }
+"
+1000,NoExecutionVariableScope.java,26,避免重复代码,"public void setTransientVariablesLocal(Map<String, Object> transientVariables) {
+    throw new UnsupportedOperationException(""No execution active, no variables can be set"");
+  }
+"
+1000,CompleteTaskCmd.java,26,避免重复代码,"this(taskId, variables);"
+1000,RuntimeServiceImpl.java,25,判断逻辑应简洁，不能重复或者无意义,if (processInstanceBuilder.getProcessDefinitionId() != null || processInstanceBuilder.getProcessDefinitionKey() != null)
+1000,RuntimeServiceImpl.java,26,避免重复代码,"public void trigger(String executionId, Map<String, Object> processVariables, Map<String, Object> transientVariables)"
+1000,NoExecutionVariableScope.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,"public void setTransientVariablesLocal(Map<String, Object> transientVariables) {
+    throw new UnsupportedOperationException(""No execution active, no variables can be set"");
+  }
+"
+1000,VariableScopeImpl.java,27,不能有多余的分号,variables.putAll(transientVariabes);;
+1090,SolrSearchServiceImpl.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,StringBuilder sb = new StringBuilder();
+1090,SolrSearchServiceImpl.java,22,禁止在 equals()中使用 NULL或者null 做比较,"if (!rangeValues[1].equals(""null""))"
+2723,TaskRuntimeHelper.java,15,避免对象进行不必要的 NULL或者null 检查,if (authenticatedUserId != null && !authenticatedUserId.isEmpty() && userGroupManager!=null)
+2723,TaskRuntimeHelper.java,2,避免未使用的临时变量,"Integer ok = 0;,"
+2723,TaskRuntimeHelper.java,25,判断逻辑应简洁，不能有重复或者无意义的判断,"if (task == null) {
+                task = taskService.createTaskQuery().taskId(taskId).singleResult();
+                //Check this only for tasks from processInstance
+                if (task != null) {
+                    Integer ok = 0;
+                    if (task.getProcessInstanceId() != null) {
+                      //Check maybe no candidates for task is set at all
+                      List<IdentityLink> identityLinks = taskService.getIdentityLinksForTask(taskId);
+                      if (identityLinks == null || identityLinks.isEmpty()) {
+                           //We may set here default security policy
+                           ok=1;
+                      }
+                    }
+                    if (ok == 0) {
+                        task = null;
+                    }
+                }
+            }"
+2723,TaskRuntimeHelper.java,24,命名含义需优化,Integer ok = 0;

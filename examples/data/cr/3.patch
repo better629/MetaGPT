@@ -1,0 +1,22 @@
+diff --git a/src/main/java/org/springframework/samples/petclinic/owner/PetValidator.java b/src/main/java/org/springframework/samples/petclinic/owner/PetValidator.java
+index 6422aa8db80..e821e95f66b 100644
+--- a/src/main/java/org/springframework/samples/petclinic/owner/PetValidator.java
++++ b/src/main/java/org/springframework/samples/petclinic/owner/PetValidator.java
+@@ -30,9 +30,17 @@
+  * @author Juergen Hoeller
+  */
+ public class PetValidator implements Validator {
++	static {
++
++	}
+
+ 	private static final String REQUIRED = "required";
+
++	private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
++
++	private static final Calendar calendar = new GregorianCalendar(2020, Calendar.JANUARY, 1);
++
++
+ 	@Override
+ 	public void validate(Object obj, Errors errors) {
+ 		Pet pet = (Pet) obj;

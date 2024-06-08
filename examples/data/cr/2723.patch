@@ -1,0 +1,228 @@
+diff --git a/activiti-api-impl/activiti-api-task-runtime-impl/src/main/java/org/activiti/runtime/api/impl/TaskRuntimeHelper.java b/activiti-api-impl/activiti-api-task-runtime-impl/src/main/java/org/activiti/runtime/api/impl/TaskRuntimeHelper.java
+index 3e26da59af9..633268251e9 100644
+--- a/activiti-api-impl/activiti-api-task-runtime-impl/src/main/java/org/activiti/runtime/api/impl/TaskRuntimeHelper.java
++++ b/activiti-api-impl/activiti-api-task-runtime-impl/src/main/java/org/activiti/runtime/api/impl/TaskRuntimeHelper.java
+@@ -13,6 +13,7 @@
+ import org.activiti.api.task.model.payloads.UpdateTaskVariablePayload;
+ import org.activiti.engine.TaskService;
+ import org.activiti.engine.impl.persistence.entity.VariableInstance;
++import org.activiti.engine.task.IdentityLink;
+ import org.activiti.runtime.api.model.impl.APITaskConverter;
+
+ public class TaskRuntimeHelper {
+@@ -180,6 +181,51 @@ public org.activiti.engine.task.Task getInternalTaskWithChecks(String taskId) {
+         }
+         throw new IllegalStateException("There is no authenticated user, we need a user authenticated to find tasks");
+     }
++
++    public org.activiti.engine.task.Task getInternalTaskWithChecksForClaimAndView(String taskId) {
++        String authenticatedUserId = getAuthenticatedUser();
++
++        if (authenticatedUserId != null && !authenticatedUserId.isEmpty() && userGroupManager!=null) {
++
++            List<String> userRoles = userGroupManager.getUserRoles(authenticatedUserId);
++            List<String> userGroups = userGroupManager.getUserGroups(authenticatedUserId);
++
++            org.activiti.engine.task.Task task = taskService.createTaskQuery()
++                    .or()
++                    .taskCandidateOrAssigned(authenticatedUserId,
++                                             userGroups)
++                    .taskOwner(authenticatedUserId)
++                    .endOr()
++                    .taskId(taskId)
++                    .singleResult();
++
++            if (task == null) {
++                task = taskService.createTaskQuery().taskId(taskId).singleResult();
++                //Check this only for tasks from processInstance
++                if (task != null) {
++                    Integer ok = 0;
++                    if (task.getProcessInstanceId() != null) {
++                      //Check maybe no candidates for task is set at all
++                      List<IdentityLink> identityLinks = taskService.getIdentityLinksForTask(taskId);
++                      if (identityLinks == null || identityLinks.isEmpty()) {
++                           //We may set here default security policy
++                           ok=1;
++                      }
++                    }
++                    if (ok == 0) {
++                        task = null;
++                    }
++                }
++            }
++
++            if (task == null) {
++                throw new NotFoundException("Unable to find task for the given id: " + taskId + " for user: " + authenticatedUserId + " (with groups: " + userGroups + " & with roles: " + userRoles + ")");
++            }
++
++            return task;
++        }
++        throw new IllegalStateException("There is no authenticated user, we need a user authenticated to find tasks");
++    }
+
+     public void assertHasAccessToTask(String taskId) {
+         getInternalTaskWithChecks(taskId);
+diff --git a/activiti-api-impl/activiti-api-task-runtime-impl/src/main/java/org/activiti/runtime/api/impl/TaskRuntimeImpl.java b/activiti-api-impl/activiti-api-task-runtime-impl/src/main/java/org/activiti/runtime/api/impl/TaskRuntimeImpl.java
+index 59bf8e73095..99db2cc5a23 100644
+--- a/activiti-api-impl/activiti-api-task-runtime-impl/src/main/java/org/activiti/runtime/api/impl/TaskRuntimeImpl.java
++++ b/activiti-api-impl/activiti-api-task-runtime-impl/src/main/java/org/activiti/runtime/api/impl/TaskRuntimeImpl.java
+@@ -172,7 +172,7 @@ public Task claim(ClaimTaskPayload claimTaskPayload) {
+         // Validate that the task is visible by the currently authorized user
+         Task task;
+         try {
+-            task = task(claimTaskPayload.getTaskId());
++            task = taskConverter.from(taskRuntimeHelper.getInternalTaskWithChecksForClaimAndView(claimTaskPayload.getTaskId()));
+         } catch (IllegalStateException ex) {
+             throw new IllegalStateException("The authenticated user cannot claim task" + claimTaskPayload.getTaskId() + " due it is not a candidate for it");
+         }
+@@ -208,8 +208,8 @@ public Task release(ReleaseTaskPayload releaseTaskPayload) {
+             throw new IllegalStateException("You cannot release a task where you are not the assignee");
+         }
+
+-        taskService.unclaim(releaseTaskPayload.getTaskId());
+-        return task(releaseTaskPayload.getTaskId());
++        taskService.unclaim(releaseTaskPayload.getTaskId());
++        return taskConverter.from(taskRuntimeHelper.getInternalTask(releaseTaskPayload.getTaskId()));
+     }
+
+     @Override
+diff --git a/activiti-spring-boot-starter/src/test/java/org/activiti/spring/boot/tasks/TaskRuntimeClaimReleaseTest.java b/activiti-spring-boot-starter/src/test/java/org/activiti/spring/boot/tasks/TaskRuntimeClaimReleaseTest.java
+index ddc0e630d49..a55e0988c53 100644
+--- a/activiti-spring-boot-starter/src/test/java/org/activiti/spring/boot/tasks/TaskRuntimeClaimReleaseTest.java
++++ b/activiti-spring-boot-starter/src/test/java/org/activiti/spring/boot/tasks/TaskRuntimeClaimReleaseTest.java
+@@ -123,5 +123,61 @@ public void createStandaloneTaskAndClaimAndReleaseUnAuthorized() {
+         assertThat(throwable)
+                 .isInstanceOf(NotFoundException.class);
+     }
++
++
++    @Test
++    public void createStandaloneTaskWithoutCandidatesAndClaimAndReleaseAndClaim() {
++
++        securityUtil.logInAs("garth");
++
++        taskRuntime.create(TaskPayloadBuilder.create()
++                .withName("task without candidates")
++                .build());
++
++        // the owner should be able to see the created task
++        Page<Task> tasks = taskRuntime.tasks(Pageable.of(0,
++                50));
++
++        assertThat(tasks.getContent()).hasSize(1);
++
++        Task task = tasks.getContent().get(0);
++        String taskId = task.getId();
++        assertThat(task.getAssignee()).isNull();
++        assertThat(task.getStatus()).isEqualTo(Task.TaskStatus.CREATED);
++
++        taskRuntime.claim(TaskPayloadBuilder.claim().withTaskId(taskId).build());
++
++        task = taskRuntime.task(taskId);
++        assertThat(task.getAssignee()).isEqualTo("garth");
++        assertThat(task.getStatus()).isEqualTo(Task.TaskStatus.ASSIGNED);
++
++        taskRuntime.release(TaskPayloadBuilder.release().withTaskId(taskId).build());
++        task = taskRuntime.task(taskId);
++        assertThat(task.getAssignee()).isNull();
++        assertThat(task.getStatus()).isEqualTo(Task.TaskStatus.CREATED);
++
++        //Check that only task creator may claim the task now
++        securityUtil.logInAs("salaboy");
++
++        Throwable throwable = catchThrowable(() ->
++                taskRuntime.claim(TaskPayloadBuilder.claim().withTaskId(taskId).build()));
++
++        assertThat(throwable)
++                .isInstanceOf(NotFoundException.class);
++
++        securityUtil.logInAs("garth");
++
++        taskRuntime.claim(TaskPayloadBuilder.claim().withTaskId(taskId).build());
++        task = taskRuntime.task(taskId);
++        assertThat(task.getAssignee()).isEqualTo("garth");
++        assertThat(task.getStatus()).isEqualTo(Task.TaskStatus.ASSIGNED);
++
++
++        taskRuntime.delete(TaskPayloadBuilder
++                              .delete()
++                              .withTaskId(task.getId())
++                              .withReason("test clean up")
++                              .build());
++    }
+
+ }
+diff --git a/activiti-spring-boot-starter/src/test/java/org/activiti/spring/boot/tasks/TaskRuntimeClaimTaskFromProcessTest.java b/activiti-spring-boot-starter/src/test/java/org/activiti/spring/boot/tasks/TaskRuntimeClaimTaskFromProcessTest.java
+index 64cfb80aeec..48f68f646c5 100644
+--- a/activiti-spring-boot-starter/src/test/java/org/activiti/spring/boot/tasks/TaskRuntimeClaimTaskFromProcessTest.java
++++ b/activiti-spring-boot-starter/src/test/java/org/activiti/spring/boot/tasks/TaskRuntimeClaimTaskFromProcessTest.java
+@@ -1,5 +1,7 @@
+ package org.activiti.spring.boot.tasks;
+
++import static org.assertj.core.api.Assertions.assertThat;
++
+ import org.activiti.api.process.model.ProcessInstance;
+ import org.activiti.api.process.model.builders.ProcessPayloadBuilder;
+ import org.activiti.api.process.runtime.ProcessRuntime;
+@@ -16,8 +18,6 @@
+ import org.springframework.boot.test.context.SpringBootTest;
+ import org.springframework.test.context.junit4.SpringRunner;
+
+-import static org.assertj.core.api.Assertions.assertThat;
+-
+ @RunWith(SpringRunner.class)
+ @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+ public class TaskRuntimeClaimTaskFromProcessTest {
+@@ -32,7 +32,8 @@ public class TaskRuntimeClaimTaskFromProcessTest {
+     private SecurityUtil securityUtil;
+
+     private static final String TWOTASK_PROCESS = "twoTaskProcess";
+-
++    private static final String ONETASK_PROCESS = "SingleTaskProcess";
++
+
+     @Autowired
+     private ProcessCleanUpUtil processCleanUpUtil;
+@@ -67,6 +68,42 @@ public void claimTaskWithoutGroup() {
+
+     }
+
++    @Test
++    public void claimTaskWithoutCandidatesAfterTaskRelease() {
++
++        securityUtil.logInAs("salaboy");
++
++        //when
++        ProcessInstance processInstance = processRuntime.start(ProcessPayloadBuilder.start()
++                .withProcessDefinitionKey(ONETASK_PROCESS)
++                .build());
++
++        securityUtil.logInAs("garth");
++
++        Task task = taskRuntime.tasks(Pageable.of(0, 10),TaskPayloadBuilder.tasks().build()).getContent().get(0);
++        String taskId = task.getId();
++
++        assertThat(task.getAssignee()).isEqualTo("garth");
++        assertThat(task.getStatus()).isEqualTo(Task.TaskStatus.ASSIGNED);
++
++        Task releasedTask = taskRuntime.release(TaskPayloadBuilder.release().withTaskId(taskId).build());
++
++        assertThat(releasedTask.getAssignee()).isNull();
++        assertThat(releasedTask.getStatus()).isEqualTo(Task.TaskStatus.CREATED);
++
++        //This should not happen
++        taskRuntime.claim(TaskPayloadBuilder.claim().withTaskId(taskId).build());
++
++        task = taskRuntime.task(taskId);
++        assertThat(task).isNotNull();
++        assertThat(task.getAssignee()).isEqualTo("garth");
++        assertThat(task.getStatus()).isEqualTo(Task.TaskStatus.ASSIGNED);
++
++        taskRuntime.complete(TaskPayloadBuilder.complete().withTaskId(task.getId()).build());
++
++    }
++
++
+
+
+
