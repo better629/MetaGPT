@@ -8,7 +8,7 @@ PR,commented_file,point_id,point,code
 2,OwnerController.java,22,禁止在 equals()中使用 NULL 做比较,"if (""test"".equals(null))"
 2,OwnerController.java,15,对对象不必要的 NULL 检查,"if (""test"".equals(null))"
 2,OwnerController.java,2,未使用的临时变量,int unusedVar = 10;
-3,PetValidator.java,18,空的 static 初始化,static {
+3,PetValidator.java,18,空的 static 初始化,static { }
 3,PetValidator.java,28,非线程安全的 SimpleDateFormat 使用，必须在函数或代码块级别使用synchronized,"private static final SimpleDateFormat dateFormat = new SimpleDateFormat(""yyyy-MM-dd"");"
 3,PetValidator.java,19,日历类用法不当风险,"private static final Calendar calendar = new GregorianCalendar(2020, Calendar.JANUARY, 1);"
 4,Owner.java,6,循环体不能为空,while (true) {
@@ -113,8 +113,7 @@ if (ownersResults.isEmpty()) {
     throw new UnsupportedOperationException(""No execution active, no variables can be set"");
   }
 "
-1000,CompleteTaskCmd.java,26,避免重复代码,"this(taskId, variables);"
-1000,RuntimeServiceImpl.java,25,判断逻辑应简洁，不能重复或者无意义,if (processInstanceBuilder.getProcessDefinitionId() != null || processInstanceBuilder.getProcessDefinitionKey() != null)
+1000,TaskResource.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,for (RestVariable var : restVariables) {
 1000,RuntimeServiceImpl.java,26,避免重复代码,"public void trigger(String executionId, Map<String, Object> processVariables, Map<String, Object> transientVariables)"
 1000,NoExecutionVariableScope.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,"public void setTransientVariablesLocal(Map<String, Object> transientVariables) {
     throw new UnsupportedOperationException(""No execution active, no variables can be set"");
@@ -122,9 +121,28 @@ if (ownersResults.isEmpty()) {
 "
 1000,VariableScopeImpl.java,27,不能有多余的分号,variables.putAll(transientVariabes);;
 1090,SolrSearchServiceImpl.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,StringBuilder sb = new StringBuilder();
-1090,SolrSearchServiceImpl.java,22,禁止在 equals()中使用 NULL或者null 做比较,"if (!rangeValues[1].equals(""null""))"
+1090,SolrSearchServiceImpl.java,26,代码结构冗余，避免重复代码,"protected String getSolrFieldTag(String tagField, String tag, SearchFacetRange range) {
+        StringBuilder sb = new StringBuilder();
+        if (StringUtils.isNotBlank(tag)) {
+            sb.append(""{!"").append(tag).append(""="").append(tagField).append(""}"");
+            sb.append(""{!"").append(tag).append(""="").append(tagField);
+
+            if (range != null) {
+                sb.append(""["").append(range.getMinValue().toPlainString()).append("":"");
+                if (range.getMaxValue() != null)
+                    sb.append(range.getMaxValue().toPlainString());
+                else
+                    sb.append(""*"");
+                sb.append(""]"");
+
+                sb.append("" ""+getSolrRangeFunctionString(range.getMinValue(), range.getMaxValue()));
+            }
+
+            sb.append(""}"");
+        }
+        return sb.toString();
+    }"
 2723,TaskRuntimeHelper.java,15,避免对象进行不必要的 NULL或者null 检查,if (authenticatedUserId != null && !authenticatedUserId.isEmpty() && userGroupManager!=null)
-2723,TaskRuntimeHelper.java,2,避免未使用的临时变量,"Integer ok = 0;,"
 2723,TaskRuntimeHelper.java,25,判断逻辑应简洁，不能有重复或者无意义的判断,"if (task == null) {
                 task = taskService.createTaskQuery().taskId(taskId).singleResult();
                 //Check this only for tasks from processInstance

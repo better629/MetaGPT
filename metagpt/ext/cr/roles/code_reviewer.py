@@ -39,7 +39,7 @@ class CodeReviewer(Role):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
-        self.set_actions([GenPatchPoints, CodeReview, CodeReviewEvaluation(pr=self.pr, mode=self.mode, calculate_type=self.calculate_type)])
+        self.set_actions([GenPatchPoints, CodeReview(mode=self.mode), CodeReviewEvaluation(pr=self.pr, mode=self.mode, calculate_type=self.calculate_type)])
         self._set_react_mode(RoleReactMode.BY_ORDER)
 
     async def _act(self) -> Message:

@@ -1,8 +1,17 @@
+import datetime
+import itertools
+import os
+import re
+
 from unidiff import PatchSet
 
 from metagpt.actions.action import Action
-from metagpt.logs import logger
-from metagpt.utils.cr.cleaner import add_line_num_on_patch, rm_patch_useless_part
+from metagpt.utils.cr.cleaner import add_line_num_on_patch, rm_patch_useless_part, get_code_block_from_patch
+from metagpt.const import DEFAULT_WORKSPACE_ROOT
+
+SYSTEM_MSGS_PROMPT = """
+You're an adaptive software developer who excels at refining code based on user inputs. You're proficient in creating Git patches to represent code modifications.
+"""
 
 MODIFY_CODE_PROMPT = """
 NOTICE
@@ -23,8 +32,8 @@ The Patch code has added line no at the first character each line for reading, b
 
 
 Code Modification guidelines:
-- Look at `comment` and `point_detail`, modify the code by `comment` and `point_detail`, use `code_start_line` and `code_end_line` to locate the problematic code, fix the problematic code by `comment` in Comments.
-- Create a Patch that satifies the git patch standard, but do not change the hunk header.
+- Look at `point_detail`, modify the code by `point_detail`, use `code_start_line` and `code_end_line` to locate the problematic code, fix the problematic code by `point_detail` in Comments.Strictly,must handle the fix plan given by `point_detail` in every comment.
+- Create a patch that satifies the git patch standard and your fixes need to be marked with '+' and '-',but notice:don't change the hunk header!
 - Do not print line no in the new patch code.
 
 Just print the Patch in the format like **Output Format**.
@@ -33,16 +42,53 @@ Just print the Patch in the format like **Output Format**.
 
 class ModifyCode(Action):
     name: str = "Modify Code"
+    pr: str
 
     async def run(self, patch: PatchSet, comments: list[dict]) -> str:
         patch: PatchSet = rm_patch_useless_part(patch)
         patch: PatchSet = add_line_num_on_patch(patch)
-        logger.debug(f"patch with line no\n{str(patch)}")
 
-        resp = await self.llm.aask(
-            MODIFY_CODE_PROMPT.format(patch=patch, comments=comments),
-            system_msgs=[
-                "You're an adaptive software developer who excels at refining code based on user inputs. You're proficient in creating Git patches to represent code modifications."
-            ],
-        )
+        #
+        for comment in comments:
+            code_start_line = comment.get('code_start_line')
+            code_end_line = comment.get('code_end_line')
+            # 如果代码位置为空的话，那么就将这条记录丢弃掉
+            if code_start_line and code_end_line:
+                code = get_code_block_from_patch(patch, str(max(1, int(code_start_line) - 3)), str(int(code_end_line) + 3))
+                pattern = r'^[ \t\n\r(){}[\];,]*$'
+                if re.match(pattern, code):
+                    code = get_code_block_from_patch(patch, str(max(1, int(code_start_line) - 5)), str(int(code_end_line) + 5))
+                # 代码增加上下文，提升代码修复的准确率
+                comment['code'] = code
+            if comment['point_id'] in [24, 25, 26]:
+                comment['point_detail'] = comment['point_detail'] + "\n" + comment['comment']
+            # 去掉CR时LLM给的comment的影响，应该使用既定的修复方案
+            comment.pop('comment')
+
+        # 按照 commented_file 字段进行分组
+        comments.sort(key=lambda x: x['commented_file'])
+        grouped_comments = {key: list(group) for key, group in itertools.groupby(comments, key=lambda x: x['commented_file'])}
+
+        for patched_file in patch:
+            patch_target_file_name = str(patched_file.target_file).split("/")[-1]
+            if patch_target_file_name not in grouped_comments:
+                continue
+            comments_prompt = ""
+            index = 1
+            for grouped_comment in grouped_comments[patch_target_file_name]:
+                comments_prompt += f"""
+                    <comment{index}>
+                    {grouped_comment}
+                    </comment{index}>\n
+                """
+            prompt = MODIFY_CODE_PROMPT.format(patch=patched_file, comments=comments_prompt)
+            resp = await self.llm.aask(
+                msg=prompt,
+                system_msgs=[SYSTEM_MSGS_PROMPT]
+            )
+            workspace_dir = DEFAULT_WORKSPACE_ROOT / "modify_code" / str(datetime.date.today()) / self.pr
+            if not os.path.exists(workspace_dir):
+                os.makedirs(workspace_dir)
+            with open(workspace_dir / f'{patch_target_file_name}.patch', 'w', encoding='utf-8') as file:
+                file.writelines(resp)
         return resp
