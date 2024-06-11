@@ -1,0 +1,52 @@
+[
+  {
+    "commented_file": "Owner.java",
+    "code": "+\t\twhile (true) {\n+\t\t}",
+    "code_start_line": "5",
+    "code_end_line": "6",
+    "comment": "循环体不能为空，应该添加一些有意义的逻辑或者退出条件。",
+    "point_id": 6,
+    "point": "循环体不能为空",
+    "point_detail": "缺陷类型：循环体不能为空；对应Fixer：EmptyStatementNotInLoopFixer；修复方案：删除在非 while、for、foreach 循 环语句中的空语句"
+  },
+  {
+    "commented_file": "Owner.java",
+    "code": "+\t\twhile (true) {\n+\t\t}",
+    "code_start_line": "5",
+    "code_end_line": "6",
+    "comment": "避免不必要的永真/永假判断，这里的while(true)会导致无限循环，应该添加适当的退出条件。",
+    "point_id": 9,
+    "point": "避免不必要的永真/永假判断",
+    "point_detail": "缺陷类型：避免不必要的永真/永假判断；对应Fixer：UnconditionalIfStatement Fixer；修复方案：删除永真/永假判断逻辑"
+  },
+  {
+    "commented_file": "Owner.java",
+    "code": "+\t\t} catch (Exception e) {\n+\t\t\t// 捕获并处理异常",
+    "code_start_line": "12",
+    "code_end_line": "13",
+    "comment": "catch 语句块不能为空，应该添加异常的处理逻辑或者至少记录日志。",
+    "point_id": 8,
+    "point": "catch 语句块不能为空",
+    "point_detail": "缺陷类型：catch 语句块不能为空；对应Fixer：EmptyCatchBlockFixer；修复方案：在catch里面添加注释"
+  },
+  {
+    "commented_file": "Owner.java",
+    "code": "+\t\ttry {\n+\t\t\t// 尝试执行一些操作",
+    "code_start_line": "10",
+    "code_end_line": "11",
+    "comment": "try 语句块不能为空，应该包含一些可能抛出异常的代码。",
+    "point_id": 14,
+    "point": "try 语句块不能为空",
+    "point_detail": "缺陷类型：try 语句块不能为空；对应Fixer：EmptyTryBlockFixer；修复方案：删除整个 try 语句"
+  },
+  {
+    "commented_file": "Owner.java",
+    "code": "+\t\t\t// 这里包含一个return语句\n+\t\t\treturn \"This method exits prematurely in the finally block.\";",
+    "code_start_line": "15",
+    "code_end_line": "16",
+    "comment": "finally 语句块中不应该包含 return 语句，这可能会掩盖 catch 块中的异常。",
+    "point_id": 17,
+    "point": "避免 finally 块中出现 return",
+    "point_detail": "缺陷类型：避免 finally 块中出现 return；修复方案：无需修复"
+  }
+]

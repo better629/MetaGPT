@@ -1,0 +1,42 @@
+[
+  {
+    "commented_file": "OwnerController.java",
+    "code": "+\t\tlastName = owner.getLastName();\n+\t\tif (ownersResults.isEmpty()) {\n \t\t\t// no owners found\n \t\t\tresult.rejectValue(\"lastName\", \"notFound\", \"not found\");\n \t\t\treturn \"owners/findOwners\";\n \t\t}\n-\t\telse if (results.size() == 1) {\n+\t\telse if (ownersResults.getTotalElements() == 1) {\n \t\t\t// 1 owner found\n-\t\t\towner = results.iterator().next();\n+\t\t\towner = ownersResults.iterator().next();\n \t\t\treturn \"redirect:/owners/\" + owner.getId();\n \t\t}\n \t\telse {\n \t\t\t// multiple owners found\n-\t\t\tmodel.put(\"selections\", results);\n-\t\t\treturn \"owners/ownersList\";\n+\t\t\tlastName = owner.getLastName();",
+    "code_start_line": "78",
+    "code_end_line": "95",
+    "comment": "代码中存在重复的逻辑判断，'lastName = owner.getLastName();' 在 if 和 else 分支中都出现了，建议将其提前到判断之前，以简化代码结构。",
+    "point_id": 25,
+    "point": "判断逻辑应简洁，不能有重复或者无意义的判断",
+    "point_detail": "缺陷类型：判断逻辑应简洁，不能有重复或者无意义的判断；修复方案：简化或删除一些重复的，无意义的判断逻辑"
+  },
+  {
+    "commented_file": "OwnerController.java",
+    "code": "+\t\tlastName = owner.getLastName();\n+\t\tif (ownersResults.isEmpty()) {\n \t\t\t// no owners found\n \t\t\tresult.rejectValue(\"lastName\", \"notFound\", \"not found\");\n \t\t\treturn \"owners/findOwners\";\n \t\t}\n-\t\telse if (results.size() == 1) {\n+\t\telse if (ownersResults.getTotalElements() == 1) {\n \t\t\t// 1 owner found\n-\t\t\towner = results.iterator().next();\n+\t\t\towner = ownersResults.iterator().next();\n \t\t\treturn \"redirect:/owners/\" + owner.getId();\n \t\t}\n \t\telse {\n \t\t\t// multiple owners found\n-\t\t\tmodel.put(\"selections\", results);\n-\t\t\treturn \"owners/ownersList\";\n+\t\t\tlastName = owner.getLastName();",
+    "code_start_line": "78",
+    "code_end_line": "95",
+    "comment": "代码中临时变量lastName未被直接使用，而在下面的else语句块中重新获取了值，属于未使用的临时变量。",
+    "point_id": 2,
+    "point": "避免未使用的临时变量",
+    "point_detail": "缺陷类型：避免未使用的临时变量；对应Fixer：UnusedLocalVariableFixer；修复方案：删除未使用的临时变量"
+  },
+  {
+    "commented_file": "VetController.java",
+    "code": "+\tprivate String addPaginationModel(@PathVariable(value = \"pageNo\") int pageNo, Vets vets, Model model) {\n+\t\tPage<Vet> page = findPaginated(pageNo);\n+\t\tList<Vet> listVets = page.getContent();\n+\t\tmodel.addAttribute(\"currentPage\", pageNo);\n+\t\tmodel.addAttribute(\"totalPages\", page.getTotalPages());\n+\t\tmodel.addAttribute(\"totalItems\", page.getTotalElements());\n+\t\tmodel.addAttribute(\"listVets\", listVets);\n \t\treturn \"vets/vetList\";",
+    "code_start_line": "313",
+    "code_end_line": "320",
+    "comment": "变量/方法/类命名，要有效清晰表示对应的实际含义。方法名`addPaginationModel`可能不够直观地表明其功能是添加分页并返回视图名称，建议改为`addPaginationToModelAndReturnView`或其他更具描述性的名称。",
+    "point_id": 24,
+    "point": "变量/方法/类 命名，要有效清晰表示对应的实际含义",
+    "point_detail": "缺陷类型：变量/方法/类 命名，要有效清晰表示对应的实际含义；修复方案：修改成合适的变量/方法/类名，有效表示对应的实体含义"
+  },
+  {
+    "commented_file": "VetRepository.java",
+    "code": "+\t;",
+    "code_start_line": "362",
+    "code_end_line": "362",
+    "comment": "避免多余的分号。",
+    "point_id": 27,
+    "point": "不能有多余的分号",
+    "point_detail": "缺陷类型：多余的分号；修复方案：删除多余的分号"
+  }
+]

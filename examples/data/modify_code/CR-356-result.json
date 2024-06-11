@@ -1,0 +1,12 @@
+[
+  {
+    "commented_file": "AdminBasicOperationsController.java",
+    "code": "      *\n-192,6 +206,6 @@ public String showSelectCollectionItem(HttpServletRequest request, HttpServletRe\n      * @param pathVars\n      */\n     protected void modifyFetchPersistencePackageRequest(PersistencePackageRequest ppr, Map<String, String> pathVars) {\n-\n+\n     }\n }\n",
+    "code_start_line": "108",
+    "code_end_line": "117",
+    "comment": "避免函数中未使用的形参，例如 modifyFetchPersistencePackageRequest 函数中的 pathVars 形参未被使用",
+    "point_id": 4,
+    "point": "避免函数中未使用的形参",
+    "point_detail": "缺陷类型：避免函数中未使用的形参；修复方案：忽略"
+  }
+]

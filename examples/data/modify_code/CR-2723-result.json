@@ -1,0 +1,22 @@
+[
+  {
+    "commented_file": "TaskRuntimeHelper.java",
+    "code": "+                    Integer ok = 0;",
+    "code_start_line": "33",
+    "code_end_line": "33",
+    "comment": "变量名 'ok' 不清晰，建议使用更具描述性的名称，如 'isDefaultSecurityPolicySet'。",
+    "point_id": 24,
+    "point": "变量/方法/类 命名，要有效清晰表示对应的实际含义",
+    "point_detail": "缺陷类型：变量/方法/类 命名，要有效清晰表示对应的实际含义；修复方案：使用合适的变量/方法/类名，有效表示对应的实体含义"
+  },
+  {
+    "commented_file": "TaskRuntimeHelper.java",
+    "code": "+            if (task == null) {\n+                task = taskService.createTaskQuery().taskId(taskId).singleResult();\n+                //Check this only for tasks from processInstance\n+                if (task != null) {\n+                    Integer ok = 0;\n+                    if (task.getProcessInstanceId() != null) {\n+                      //Check maybe no candidates for task is set at all\n+                      List<IdentityLink> identityLinks = taskService.getIdentityLinksForTask(taskId);\n+                      if (identityLinks == null || identityLinks.isEmpty()) {\n+                           //We may set here default security policy\n+                           ok=1;\n+                      }\n+                    }\n+                    if (ok == 0) {\n+                        task = null;\n+                    }\n+                }\n+            }\n+\n+            if (task == null) {",
+    "code_start_line": "29",
+    "code_end_line": "48",
+    "comment": "逻辑判断 'if (task == null)' 在代码中重复出现，建议将其优化以避免重复。",
+    "point_id": 25,
+    "point": "判断逻辑应简洁，不能有重复或者无意义的判断",
+    "point_detail": "缺陷类型：判断逻辑应简洁，不能有重复或者无意义的判断；修复方案：简化或删除一些重复的，无意义的判断逻辑"
+  }
+]

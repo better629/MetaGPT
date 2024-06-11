@@ -1,0 +1,32 @@
+[
+  {
+    "commented_file": "PetValidator.java",
+    "code": "  * @author Juergen Hoeller\n  */\n public class PetValidator implements Validator {\n+\tstatic {\n+\n+\t}\n \n \tprivate static final String REQUIRED = \"required\";\n ",
+    "code_start_line": "4",
+    "code_end_line": "6",
+    "comment": "避免空的 static 初始化块，如果没有代码执行，应该移除此块。",
+    "point_id": 18,
+    "point": "避免空的 static 初始化",
+    "point_detail": "缺陷类型：避免空的 static 初始化；对应Fixer：EmptyInitializerFixer；修复方案：删除整个空初始化块"
+  },
+  {
+    "commented_file": "PetValidator.java",
+    "code": " \n \tprivate static final String REQUIRED = \"required\";\n \n+\tprivate static final SimpleDateFormat dateFormat = new SimpleDateFormat(\"yyyy-MM-dd\");\n+\n+\tprivate static final Calendar calendar = new GregorianCalendar(2020, Calendar.JANUARY, 1);\n+",
+    "code_start_line": "10",
+    "code_end_line": "10",
+    "comment": "非线程安全的 SimpleDateFormat 使用，必须在函数或代码块级别使用synchronized，以避免多线程环境下的问题。",
+    "point_id": 28,
+    "point": "非线程安全的 SimpleDateFormat 使用，必须在函数或代码块级别使用synchronized",
+    "point_detail": "缺陷类型：非线程安全的 SimpleDateFormat 使用；修复方案：在函数或代码块级别加上synchronized修饰"
+  },
+  {
+    "commented_file": "PetValidator.java",
+    "code": " \n+\tprivate static final SimpleDateFormat dateFormat = new SimpleDateFormat(\"yyyy-MM-dd\");\n+\n+\tprivate static final Calendar calendar = new GregorianCalendar(2020, Calendar.JANUARY, 1);\n+\n+\n \t@Override",
+    "code_start_line": "12",
+    "code_end_line": "12",
+    "comment": "避免日历类用法不当风险，应该避免使用硬编码的日期，特别是在创建 Calendar 实例时。",
+    "point_id": 19,
+    "point": "避免日历类用法不当风险",
+    "point_detail": "缺陷类型：避免日历类用法不当风险；修复方案：使用Java 8 及以上版本中的 java.time 包的LocalDate"
+  }
+]

@@ -1,0 +1,22 @@
+[
+  {
+    "commented_file": "OwnerController.java",
+    "code": " \tpublic String initCreationForm(Map<String, Object> model) {\n-\t\tOwner owner = new Owner();\n-\t\tmodel.put(\"owner\", owner);\n+\t\tOwner o = new Owner();\n+\t\tmodel.put(\"owner\", o);\n \t\treturn VIEWS_OWNER_CREATE_OR_UPDATE_FORM;\n \t}\n ",
+    "code_start_line": "14",
+    "code_end_line": "15",
+    "comment": "变量命名应该清晰表达其意义，变量名 'o' 不够明确，建议使用更具描述性的名称，如 'newOwner'。",
+    "point_id": 24,
+    "point": "变量/方法/类 命名，要有效清晰表示对应的实际含义",
+    "point_detail": "缺陷类型：变量/方法/类 命名，要有效清晰表示对应的实际含义；修复方案：使用合适的变量/方法/类名，有效表示对应的实体含义"
+  },
+  {
+    "commented_file": "OwnerController.java",
+    "code": "+\n \tprivate String addPaginationModel(int page, Model model, Page<Owner> paginated) {\n-\t\tList<Owner> listOwners = paginated.getContent();\n+\t\tList<Owner> a = paginated.getContent();\n \t\tmodel.addAttribute(\"currentPage\", page);\n \t\tmodel.addAttribute(\"totalPages\", paginated.getTotalPages());\n \t\tmodel.addAttribute(\"totalItems\", paginated.getTotalElements());\n-\t\tmodel.addAttribute(\"listOwners\", listOwners);\n+\t\tmodel.addAttribute(\"listOwners\", a);\n \t\treturn \"owners/ownersList\";\n \t}\n ",
+    "code_start_line": "29",
+    "code_end_line": "34",
+    "comment": "变量命名应该清晰表达其意义，变量名 'a' 不够明确，建议使用更具描述性的名称，如 'ownersList'。",
+    "point_id": 24,
+    "point": "变量/方法/类 命名，要有效清晰表示对应的实际含义",
+    "point_detail": "缺陷类型：变量/方法/类 命名，要有效清晰表示对应的实际含义；修复方案：使用合适的变量/方法/类名，有效表示对应的实体含义"
+  }
+]

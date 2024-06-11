@@ -1,0 +1,42 @@
+[
+  {
+    "commented_file": "BaseBpmnJsonConverter.java",
+    "code": "+          LOGGER.info(\"Form properties node can not be read\", e);",
+    "code_start_line": "29",
+    "code_end_line": "29",
+    "comment": "避免使用 LOGGER.info 直接输出异常，应使用占位符传递异常对象。",
+    "point_id": 12,
+    "point": "禁止在日志中直接使用字符串输出异常，请使用占位符传递异常对象",
+    "point_detail": "缺陷类型：禁止在日志中直接使用字符串输出异常，请使用占位符传递异常对象；对应Fixer：ConcatExceptionFixer；修复方案：将对应代码修改成占位符传递异常对象"
+  },
+  {
+    "commented_file": "BaseBpmnJsonConverter.java",
+    "code": "+                  LOGGER.info(\"Form properties values node can not be read\", e);",
+    "code_start_line": "58",
+    "code_end_line": "58",
+    "comment": "避免使用 LOGGER.info 直接输出异常，应使用占位符传递异常对象。",
+    "point_id": 12,
+    "point": "禁止在日志中直接使用字符串输出异常，请使用占位符传递异常对象",
+    "point_detail": "缺陷类型：禁止在日志中直接使用字符串输出异常，请使用占位符传递异常对象；对应Fixer：ConcatExceptionFixer；修复方案：将对应代码修改成占位符传递异常对象"
+  },
+  {
+    "commented_file": "BpmnJsonConverter.java",
+    "code": "+      LOGGER.info(\"Listeners node can not be read\", e);",
+    "code_start_line": "112",
+    "code_end_line": "112",
+    "comment": "请使用占位符传递异常对象，而不是直接将异常对象转换为字符串输出。",
+    "point_id": 12,
+    "point": "禁止在日志中直接使用字符串输出异常，请使用占位符传递异常对象",
+    "point_detail": "缺陷类型：禁止在日志中直接使用字符串输出异常，请使用占位符传递异常对象；对应Fixer：ConcatExceptionFixer；修复方案：将对应代码修改成占位符传递异常对象"
+  },
+  {
+    "commented_file": "BpmnJsonConverter.java",
+    "code": "+          if (StringUtils.isNotEmpty(itemNode.get(PROPERTY_EXECUTION_LISTENER_CLASS).asText())) {\n+            listener.setImplementationType(ImplementationType.IMPLEMENTATION_TYPE_CLASS);\n+            listener.setImplementation(itemNode.get(PROPERTY_EXECUTION_LISTENER_CLASS).asText());\n+          } else if (StringUtils.isNotEmpty(itemNode.get(PROPERTY_EXECUTION_LISTENER_EXPRESSION).asText())) {\n+            listener.setImplementationType(ImplementationType.IMPLEMENTATION_TYPE_EXPRESSION);\n+            listener.setImplementation(itemNode.get(PROPERTY_EXECUTION_LISTENER_EXPRESSION).asText());\n+          } else if (StringUtils.isNotEmpty(itemNode.get(PROPERTY_EXECUTION_LISTENER_DELEGATEEXPRESSION).asText())) {\n+            listener.setImplementationType(ImplementationType.IMPLEMENTATION_TYPE_DELEGATEEXPRESSION);\n+            listener.setImplementation(itemNode.get(PROPERTY_EXECUTION_LISTENER_DELEGATEEXPRESSION).asText());",
+    "code_start_line": "123",
+    "code_end_line": "131",
+    "comment": "此处的代码结构存在冗余，`StringUtils.isNotEmpty`被多次重复使用。可以考虑创建一个辅助方法来处理这些重复的逻辑，以减少代码冗余。",
+    "point_id": 26,
+    "point": "代码结构冗余，避免重复代码",
+    "point_detail": "缺陷类型：代码结构冗余，避免重复代码；修复方案：忽略"
+  }
+]
