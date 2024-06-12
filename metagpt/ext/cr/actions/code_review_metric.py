@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # @Desc   :
+import datetime
 import io
 import json
-from datetime import datetime
+import os
 
 import pandas as pd
 from metagpt.actions.action import Action
+from metagpt.const import DEFAULT_WORKSPACE_ROOT
 from metagpt.utils.common import parse_json_code_block
 
 CODE_REVIEW_EVALUATION_PROMPT_TEMPLATE = """
@@ -34,6 +36,7 @@ CODE_REVIEW_EVALUATION_PROMPT_TEMPLATE = """
         "comment": "comment",
         "point_id": "point_id",
         "point": "point",
+        "point_detail": "point_detail",
         "score": "分数",
     }}
 ]
@@ -63,11 +66,12 @@ class CodeReviewEvaluation(Action):
     calculate_type: str = ""
 
     async def run(self, cr_result: list = []):
-        cr_output_name = f'CR-{self.pr}-{datetime.timestamp(datetime.now())}'
-        with open(f'{cr_output_name}-result.json', 'w', encoding='utf-8') as file:
+        cr_output_name = DEFAULT_WORKSPACE_ROOT / "cr" / str(datetime.date.today()) / f'CR-{self.pr}'
+        cr_output_name.mkdir(parents=True, exist_ok=True)
+        with open(cr_output_name / f'CR-{self.pr}-result.json', 'w', encoding='utf-8') as file:
             file.writelines(json.dumps(cr_result, ensure_ascii=False))
         await self.metric(cr_result=cr_result, metric_name=cr_output_name)
-        return f'自动化评估结果已经写入{cr_output_name}-metric.csv'
+        return f'自动化评估结果已经写入{cr_output_name}/CR-{self.pr}-metric.csv'
 
     def init_metric_null_df(self):
         columns = ["PR", "commented_file", "code", "code_start_line", "code_end_line", "comment", "point_id", "point", "score"]
@@ -84,6 +88,7 @@ class CodeReviewEvaluation(Action):
             "comment": "",
             "point_id": "",
             "point": "",
+            "point_detail": "",
             "score": ""
         }
         metric_count_row_value = {
@@ -95,6 +100,7 @@ class CodeReviewEvaluation(Action):
             "comment": "",
             "point_id": "",
             "point": "",
+            "point_detail": "",
             "score": ""
         }
         return metric_count_row_name, metric_count_row_value
@@ -168,7 +174,7 @@ class CodeReviewEvaluation(Action):
         evaluation_result_df.insert(0, 'PR', evaluation_result_df.pop('PR'))
         evaluation_result_df.loc[len(evaluation_result_df)] = metric_count_row_name
         evaluation_result_df.loc[len(evaluation_result_df)] = metric_count_row_value
-        evaluation_result_df.to_csv(f'{metric_name}-metric.csv', index=False, encoding='utf-8')
+        evaluation_result_df.to_csv(metric_name / f'CR-{self.pr}-metric.csv', index=False, encoding='utf-8')
 
         print(f"召回数是{recall_num}，召回率是{recall}\n准确数是{precision_num}，准确率是{precision}\n")
         print(f"详细信息如下表\n{evaluation_result_df}")
@@ -190,7 +196,7 @@ class CodeReviewEvaluation(Action):
         # result中diff的部分，是我们关注的，另外如果mode为1（忽略要点中24 25 26这3个不可精确描述的问题）
         results_diff = []
         for result in cr_result:
-            if '+' in result['code']:
+            if result['code'].startswith('+'):
                 if self.mode == 0 or (self.mode == 1 and result['point_id'] not in ignore_points):
                     results_diff.append(result)
 

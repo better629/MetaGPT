@@ -1,0 +1,52 @@
+[
+  {
+    "commented_file": "Pet.java",
+    "code": "+\t\t\t// 空的finally块，没有任何语句，这是一个缺陷\n+\t\t}",
+    "code_start_line": "8",
+    "code_end_line": "9",
+    "comment": "finally 语句块不能为空，建议在finally块中添加适当的清理代码或日志记录。",
+    "point_id": 13,
+    "point": "finally 语句块不能为空",
+    "point_detail": "缺陷类型：finally 语句块不能为空；对应Fixer：EmptyFinallyBlockFixer；修复方案：删除空 finally 语句块"
+  },
+  {
+    "commented_file": "Pet.java",
+    "code": "+\t\t\t// 空的try块，没有包含任何语句，这是一个缺陷",
+    "code_start_line": "14",
+    "code_end_line": "14",
+    "comment": "try 语句块不能为空，应包含至少一条执行语句。",
+    "point_id": 14,
+    "point": "try 语句块不能为空",
+    "point_detail": "缺陷类型：try 语句块不能为空；对应Fixer：EmptyTryBlockFixer；修复方案：删除整个 try 语句"
+  },
+  {
+    "commented_file": "Pet.java",
+    "code": "+\t\t\tSystem.out.println(\"Inside try block\");",
+    "code_start_line": "6",
+    "code_end_line": "6",
+    "comment": "不要使用 System.out.println 去打印，应使用日志框架来记录信息。",
+    "point_id": 3,
+    "point": "不要使用 System.out.println 去打印",
+    "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+  },
+  {
+    "commented_file": "Pet.java",
+    "code": "+\t\t\tSystem.out.println(\"Inside finally block\");",
+    "code_start_line": "16",
+    "code_end_line": "16",
+    "comment": "不要使用 System.out.println 去打印，应使用日志框架来记录信息。",
+    "point_id": 3,
+    "point": "不要使用 System.out.println 去打印",
+    "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+  },
+  {
+    "commented_file": "Pet.java",
+    "code": "+\t\tif (this.type != null && this.type.getName() != null) {\n+\t\t\t// 对象type已经检查过非null，再次检查getName()是否为null是不必要的\n+\t\t\tSystem.out.println(\"Type name is not null\");",
+    "code_start_line": "21",
+    "code_end_line": "23",
+    "comment": "判断逻辑应简洁，不能有重复或者无意义的判断，此处对type.getName()的null检查是不必要的。",
+    "point_id": 15,
+    "point": "避免对象不必要的 NULL 检查",
+    "point_detail": "缺陷类型：避免对象进行不必要的 NULL或者null 检查；对应Fixer：LogicalOpNpeFixer；修复方案：删除对对象不必要的 NULL 检查的逻辑"
+  }
+]

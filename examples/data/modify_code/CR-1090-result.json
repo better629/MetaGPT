@@ -1,0 +1,22 @@
+[
+  {
+    "commented_file": "SolrSearchServiceImpl.java",
+    "code": "+\t\tStringBuilder sb = new StringBuilder();",
+    "code_start_line": "132",
+    "code_end_line": "132",
+    "comment": "变量命名 'sb' 不清晰，应更具描述性。",
+    "point_id": 24,
+    "point": "变量/方法/类 命名，要有效清晰表示对应的实际含义",
+    "point_detail": "缺陷类型：变量/方法/类 命名，要有效清晰表示对应的实际含义；修复方案：修改成合适的变量/方法/类名，有效表示对应的实体含义"
+  },
+  {
+    "commented_file": "SolrSearchServiceImpl.java",
+    "code": "+            if (range != null) {\n+                sb.append(\"[\").append(range.getMinValue().toPlainString()).append(\":\");\n+                if (range.getMaxValue() != null)\n+                    sb.append(range.getMaxValue().toPlainString());\n+                else\n+                    sb.append(\"*\");\n+                sb.append(\"]\");\n+\n+                sb.append(\" \"+getSolrRangeFunctionString(range.getMinValue(), range.getMaxValue()));\n+            }",
+    "code_start_line": "110",
+    "code_end_line": "119",
+    "comment": "在 `getSolrFieldTag` 方法中，构建字符串的过程中存在重复代码，特别是在处理范围字符串时。可以考虑将这部分逻辑抽象成一个单独的方法来减少冗余。",
+    "point_id": 26,
+    "point": "代码结构冗余，避免重复代码",
+    "point_detail": "缺陷类型：代码结构冗余，避免重复代码；修复方案：抽象成公共类或者函数进行优化"
+  }
+]

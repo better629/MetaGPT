@@ -1,0 +1,52 @@
+[
+  {
+    "commented_file": "Vet.java",
+    "code": " \t\tgetSpecialtiesInternal().add(specialty);\n \t}\n \n+\tpublic void unusedParamMethod(int unusedParam) {\n+\t\tSystem.out.println(\"This method has an unused parameter.\");\n+\t}\n+\n+\tpublic void emptyIfStatement() {\n+\t\tif (getSpecialties().isEmpty()) {",
+    "code_start_line": "4",
+    "code_end_line": "6",
+    "comment": "方法中存在未使用的形参`unusedParam`，建议移除或使用该参数。",
+    "point_id": 4,
+    "point": "避免函数中未使用的形参",
+    "point_detail": "缺陷类型：避免函数中未使用的形参；修复方案：忽略"
+  },
+  {
+    "commented_file": "Vet.java",
+    "code": " \t}\n \n+\tpublic void unusedParamMethod(int unusedParam) {\n+\t\tSystem.out.println(\"This method has an unused parameter.\");\n+\t}\n+\n+\tpublic void emptyIfStatement() {",
+    "code_start_line": "5",
+    "code_end_line": "5",
+    "comment": "避免使用System.out.println进行输出，应使用日志框架。",
+    "point_id": 3,
+    "point": "不要使用 System.out.println 去打印",
+    "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+  },
+  {
+    "commented_file": "Vet.java",
+    "code": "+\t}\n+\n+\tpublic void emptyIfStatement() {\n+\t\tif (getSpecialties().isEmpty()) {\n+\t\t}\n+\t}\n+\n+\tpublic void emptyLoopBody() {",
+    "code_start_line": "9",
+    "code_end_line": "10",
+    "comment": "if语句块不能为空，应添加适当的逻辑处理或注释说明为何为空。",
+    "point_id": 5,
+    "point": "if语句块不能为空",
+    "point_detail": "缺陷类型：if 语句块不能为空；对应Fixer：EmptyIfStmtFixer；修复方案：删除if语句块 或 适当的逻辑处理 或 注释说明为何为空"
+  },
+  {
+    "commented_file": "Vet.java",
+    "code": "+\t}\n+\n+\tpublic void emptyLoopBody() {\n+\t\tfor (Specialty specialty : getSpecialties()) {\n+\t\t}\n+\t}\n+\n+\tpublic void usePrintStackTrace() {",
+    "code_start_line": "14",
+    "code_end_line": "15",
+    "comment": "循环体不能为空，应添加适当的逻辑处理或注释说明为何为空。",
+    "point_id": 6,
+    "point": "循环体不能为空",
+    "point_detail": "缺陷类型：循环体不能为空；对应Fixer：EmptyStatementNotInLoopFixer；修复方案：删除对应while、for、foreach 循环体 或 添加适当的逻辑处理或者注释说明为何为空"
+  },
+  {
+    "commented_file": "Vet.java",
+    "code": "+\t\ttry {\n+\t\t\tthrow new Exception(\"Fake exception\");\n+\t\t} catch (Exception e) {\n+\t\t\te.printStackTrace();\n+\t\t}\n+\t}\n+",
+    "code_start_line": "22",
+    "code_end_line": "22",
+    "comment": "避免使用e.printStackTrace()打印异常，应使用日志框架记录异常。",
+    "point_id": 7,
+    "point": "避免使用 printStackTrace()，应该使用日志的方式去记录",
+    "point_detail": "缺陷类型：避免使用 printStackTrace()，应该使 用日志的方式去记录；修复方案：用日志的方式去记录"
+  }
+]

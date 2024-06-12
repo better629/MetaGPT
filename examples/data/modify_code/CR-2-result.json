@@ -1,0 +1,52 @@
+[
+  {
+    "commented_file": "OwnerController.java",
+    "code": " \tpublic String initCreationForm(Map<String, Object> model) {\n \t\tOwner owner = new Owner();\n \t\tmodel.put(\"owner\", owner);\n+\t\tint unusedVar = 10;\n \t\treturn VIEWS_OWNER_CREATE_OR_UPDATE_FORM;\n \t}\n ",
+    "code_start_line": "11",
+    "code_end_line": "11",
+    "comment": "避免未使用的临时变量。变量 'unusedVar' 在此方法中被声明但未被使用，应该移除。",
+    "point_id": 2,
+    "point": "避免未使用的临时变量",
+    "point_detail": "缺陷类型：避免未使用的临时变量；对应Fixer：UnusedLocalVariableFixer；修复方案：删除未使用的临时变量"
+  },
+  {
+    "commented_file": "OwnerController.java",
+    "code": " \t\t}\n \n+\t\tif (\"test\".equals(null)) {\n+\t\t\tSystem.out.println(\"test\");\n+\t\t}\n+\n \t\towner.setId(ownerId);",
+    "code_start_line": "19",
+    "code_end_line": "19",
+    "comment": "不要使用 System.out.println 去打印。应该使用日志框架来记录信息。",
+    "point_id": 3,
+    "point": "不要使用 System.out.println 去打印",
+    "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+  },
+  {
+    "commented_file": "OwnerController.java",
+    "code": " \t@GetMapping(\"/owners/{ownerId}\")\n \tpublic ModelAndView showOwner(@PathVariable(\"ownerId\") int ownerId) {\n+\t\tif (true) {\n+\t\t\tSystem.out.println(\"This is always true\");\n+\t\t}\n \t\tModelAndView mav = new ModelAndView(\"owners/ownerDetails\");\n \t\tOwner owner = this.owners.findById(ownerId);",
+    "code_start_line": "29",
+    "code_end_line": "29",
+    "comment": "不要使用 System.out.println 去打印。应该使用日志框架来记录信息。",
+    "point_id": 3,
+    "point": "不要使用 System.out.println 去打印",
+    "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+  },
+  {
+    "commented_file": "OwnerController.java",
+    "code": " \t */\n \t@GetMapping(\"/owners/{ownerId}\")\n \tpublic ModelAndView showOwner(@PathVariable(\"ownerId\") int ownerId) {\n+\t\tif (true) {\n+\t\t\tSystem.out.println(\"This is always true\");\n+\t\t}\n \t\tModelAndView mav = new ModelAndView(\"owners/ownerDetails\");\n \t\tOwner owner = this.owners.findById(ownerId);\n \t\tmav.addObject(owner);",
+    "code_start_line": "28",
+    "code_end_line": "30",
+    "comment": "避免不必要的永真/永假判断。此处的 if 条件 'true' 永远为真，这个判断是多余的。",
+    "point_id": 9,
+    "point": "避免不必要的永真/永假判断",
+    "point_detail": "缺陷类型：避免不必要的永真/永假判断；对应Fixer：UnconditionalIfStatement Fixer；修复方案：删除永真/永假判断逻辑"
+  },
+  {
+    "commented_file": "OwnerController.java",
+    "code": " \t\t\treturn VIEWS_OWNER_CREATE_OR_UPDATE_FORM;\n \t\t}\n \n+\t\tif (\"test\".equals(null)) {\n+\t\t\tSystem.out.println(\"test\");\n+\t\t}\n+\n \t\towner.setId(ownerId);\n \t\tthis.owners.save(owner);",
+    "code_start_line": "18",
+    "code_end_line": "20",
+    "comment": "避免对象进行不必要的 NULL或者null 检查。在此处使用 '\"test\".equals(null)' 是不必要的，因为常量字符串不可能为 null。",
+    "point_id": 15,
+    "point": "避免对象进行不必要的 NULL或者null 检查",
+    "point_detail": "缺陷类型：避免对象进行不必要的 NULL或者null 检查；对应Fixer：LogicalOpNpeFixer；修复方案：删除对对象不必要的 NULL 检查的逻辑"
+  }
+]

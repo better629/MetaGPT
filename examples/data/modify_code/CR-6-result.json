@@ -1,0 +1,72 @@
+[
+  {
+    "commented_file": "PetController.java",
+    "code": "+\tpublic void switchDefaultOrder() {\n+\t\tint number = 3;\n+\t\tswitch (number) {\n+\t\t\tdefault:\n+\t\t\t\tSystem.out.println(\"This is the default block, which is incorrectly placed here.\");\n+\t\t\t\tbreak;\n+\t\t\tcase 1:\n+\t\t\t\tSystem.out.println(\"Number one\");\n+\t\t\t\tbreak;",
+    "code_start_line": "13",
+    "code_end_line": "21",
+    "comment": "switch 中 default 必须放在最后，建议将 default 语句块移动到 switch 语句的最后位置。",
+    "point_id": 10,
+    "point": "switch 中 default 必须放在最后",
+    "point_detail": "缺陷类型：switch 中 default 必须放在最后；对应Fixer：DefaultLabelNotLastInSwitchStmtFixer；修复方案：switch 中 default 放在最后"
+  },
+  {
+    "commented_file": "PetController.java",
+    "code": "+\t\tint number = 3;\n+\t\tswitch (number) {\n+\t\t\tdefault:\n+\t\t\t\tSystem.out.println(\"This is the default block, which is incorrectly placed here.\");\n+\t\t\t\tbreak;\n+\t\t\tcase 1:\n+\t\t\t\tSystem.out.println(\"Number one\");",
+    "code_start_line": "14",
+    "code_end_line": "20",
+    "comment": "不要使用 System.out.println 去打印，应该使用日志的方式去记录。",
+    "point_id": 3,
+    "point": "不要使用 System.out.println 去打印",
+    "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+  },
+  {
+    "commented_file": "PetController.java",
+    "code": "+\t\t\t\tSystem.out.println(\"This is the default block, which is incorrectly placed here.\");\n+\t\t\t\tbreak;\n+\t\t\tcase 1:\n+\t\t\t\tSystem.out.println(\"Number one\");\n+\t\t\t\tbreak;\n+\t\t\tcase 2:\n+\t\t\t\tSystem.out.println(\"Number two\");",
+    "code_start_line": "17",
+    "code_end_line": "23",
+    "comment": "不要使用 System.out.println 去打印，应该使用日志的方式去记录。",
+    "point_id": 3,
+    "point": "不要使用 System.out.println 去打印",
+    "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+  },
+  {
+    "commented_file": "PetController.java",
+    "code": "+\t\t\t\tSystem.out.println(\"Number one\");\n+\t\t\t\tbreak;\n+\t\t\tcase 2:\n+\t\t\t\tSystem.out.println(\"Number two\");\n+\t\t\t\tbreak;\n+\t\t}\n+\t}",
+    "code_start_line": "20",
+    "code_end_line": "26",
+    "comment": "不要使用 System.out.println 去打印，应该使用日志的方式去记录。",
+    "point_id": 3,
+    "point": "不要使用 System.out.println 去打印",
+    "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+  },
+  {
+    "commented_file": "PetController.java",
+    "code": "+\n+\tif (StringUtils.hasText(petName)) {\n+\t\tPet existingPet = owner.getPet(petName.toLowerCase(), false);\n+\t\tif (existingPet != null && existingPet.getName() == petName) {\n+\t\t\tresult.rejectValue(\"name\", \"duplicate\", \"already exists\");\n+\t\t}\n+\t}",
+    "code_start_line": "27",
+    "code_end_line": "33",
+    "comment": "未使用equals()函数对 String 作比较，应使用 equals() 方法比较字符串内容。",
+    "point_id": 11,
+    "point": "未使用equals()函数对 String 作比较",
+    "point_detail": "缺陷类型：未使用equals()函数对 String 作比较；对应Fixer：UnSynStaticDateFormatter Fixer；修复方案：使用equals()函数对 String 作比较"
+  },
+  {
+    "commented_file": "PetController.java",
+    "code": "+\t}\n+\n+\tpublic void formatDate(Date date) {\n+\t\tSimpleDateFormat sdf = new SimpleDateFormat(\"yyyy-MM-dd\");\n+\t\tSystem.out.println(\"Formatted date: \" + sdf.format(date));\n+\t}\n+\n }",
+    "code_start_line": "33",
+    "code_end_line": "40",
+    "comment": "非线程安全的 SimpleDateFormat 使用，必须在函数或代码块级别使用synchronized。",
+    "point_id": 28,
+    "point": "非线程安全的 SimpleDateFormat 使用，必须在函数或代码块级别使用synchronized",
+    "point_detail": "缺陷类型：非线程安全的 SimpleDateFormat 使用；修复方案：在函数或代码块级别加上synchronized修饰"
+  },
+  {
+    "commented_file": "PetController.java",
+    "code": "+\n+\tpublic void formatDate(Date date) {\n+\t\tSimpleDateFormat sdf = new SimpleDateFormat(\"yyyy-MM-dd\");\n+\t\tSystem.out.println(\"Formatted date: \" + sdf.format(date));\n+\t}\n+\n }",
+    "code_start_line": "34",
+    "code_end_line": "40",
+    "comment": "不要使用 System.out.println 去打印，应该使用日志的方式去记录。",
+    "point_id": 3,
+    "point": "不要使用 System.out.println 去打印",
+    "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+  }
+]

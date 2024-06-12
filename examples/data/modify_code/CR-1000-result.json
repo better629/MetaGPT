@@ -1,0 +1,72 @@
+[
+  {
+    "commented_file": "VariableScopeImpl.java",
+    "code": "   // The cache is used when fetching/setting specific variables\n   protected Map<String, VariableInstanceEntity> usedVariablesCache = new HashMap<String, VariableInstanceEntity>();\n \n+  protected Map<String, VariableInstance> transientVariabes;\n+\n   protected ELContext cachedElContext;\n ",
+    "code_start_line": "979",
+    "code_end_line": "985",
+    "comment": "变量命名应当清晰明了。变量 `transientVariabes` 可能存在拼写错误，通常应为 `transientVariables`，建议更正以提高代码的可读性。",
+    "point_id": 24,
+    "point": "变量/方法/类 命名，要有效清晰表示对应的实际含义",
+    "point_detail": "缺陷类型：变量/方法/类 命名，要有效清晰表示对应的实际含义；修复方案：使用合适的变量/方法/类名，有效表示对应的实体含义"
+  },
+  {
+    "commented_file": "VariableScopeImpl.java",
+    "code": "       variables.put(variableName, usedVariablesCache.get(variableName));\n     }\n+    if (transientVariabes != null) {\n+      variables.putAll(transientVariabes);;\n+    }\n     return variables;\n   }",
+    "code_start_line": "1227",
+    "code_end_line": "1233",
+    "comment": "避免使用多余的分号。在代码中存在多余的分号，例如 `variables.putAll(transientVariabes);;` 应该去掉一个分号。",
+    "point_id": 27,
+    "point": "不能有多余的分号",
+    "point_detail": "缺陷类型：多余的分号；修复方案：删除多余的分号"
+  },
+  {
+    "commented_file": "ProcessInstanceCreateRequest.java",
+    "code": "+  }\n \n   @JsonIgnore\n-  public boolean isCustomTenantSet() {\n+  public boolean isTenantSet() {\n     return tenantId != null && !StringUtils.isEmpty(tenantId);\n   }\n \n",
+    "code_start_line": "2004",
+    "code_end_line": "2012",
+    "comment": "变量/方法/类命名要有效清晰表示对应的实际含义，建议将isTenantSet更名为isCustomTenantSet以清晰表示其功能。",
+    "point_id": 24,
+    "point": "变量/方法/类 命名，要有效清晰表示对应的实际含义",
+    "point_detail": "缺陷类型：变量/方法/类 命名，要有效清晰表示对应的实际含义；修复方案：使用合适的变量/方法/类名，有效表示对应的实体含义"
+  },
+  {
+    "commented_file": "TaskResource.java",
+    "code": "+\n     if (actionRequest.getVariables() != null) {\n-      Map<String, Object> variablesToSet = new HashMap<String, Object>();\n+      variablesToSet = new HashMap<String, Object>();\n       for (RestVariable var : actionRequest.getVariables()) {\n         if (var.getName() == null) {\n           throw new ActivitiIllegalArgumentException(\"Variable name is required\");\n-123,12 +126,21 @@ protected void completeTask(Task task, TaskActionRequest actionRequest) {\n         Object actualVariableValue = restResponseFactory.getVariableValue(var);\n         variablesToSet.put(var.getName(), actualVariableValue);\n       }\n-\n-      taskService.complete(task.getId(), variablesToSet);\n-    } else {\n-      taskService.complete(task.getId());\n     }\n+\n+    if (actionRequest.getTransientVariables() != null) {\n+      transientVariablesToSet = new HashMap<String, Object>();\n+      for (RestVariable var : actionRequest.getTransientVariables()) {\n+        if (var.getName() == null) {\n+          throw new ActivitiIllegalArgumentException(\"Transient variable name is required\");\n+        }\n \n+        Object actualVariableValue = restResponseFactory.getVariableValue(var);\n+        transientVariablesToSet.put(var.getName(), actualVariableValue);\n+      }\n+    }\n+\n+    taskService.complete(task.getId(), variablesToSet, transientVariablesToSet);",
+    "code_start_line": "2039",
+    "code_end_line": "2067",
+    "comment": "避免重复代码。处理变量的代码块在处理常规变量和瞬态变量时非常相似，可以考虑重构以减少重复。",
+    "point_id": 26,
+    "point": "避免重复代码",
+    "point_detail": "缺陷类型：代码结构冗余，避免重复代码；修复方案：忽略"
+  },
+  {
+    "commented_file": "TaskResource.java",
+    "code": "     if (actionRequest.getVariables() != null) {\n-      Map<String, Object> variablesToSet = new HashMap<String, Object>();\n+      variablesToSet = new HashMap<String, Object>();\n       for (RestVariable var : actionRequest.getVariables()) {\n         if (var.getName() == null) {\n           throw new ActivitiIllegalArgumentException(\"Variable name is required\");\n-123,12 +126,21 @@ protected void completeTask(Task task, TaskActionRequest actionRequest) {\n         Object actualVariableValue = restResponseFactory.getVariableValue(var);",
+    "code_start_line": "2040",
+    "code_end_line": "2046",
+    "comment": "变量命名应清晰表示其实际含义。变量`var`可以命名得更具体一些，以便更好地描述其代表的是什么。",
+    "point_id": 24,
+    "point": "变量/方法/类 命名，要有效清晰表示对应的实际含义",
+    "point_detail": "缺陷类型：变量/方法/类 命名，要有效清晰表示对应的实际含义；修复方案：使用合适的变量/方法/类名，有效表示对应的实体含义"
+  },
+  {
+    "commented_file": "NoExecutionVariableScope.java",
+    "code": "   }\n+\n+  public void setTransientVariablesLocal(Map<String, Object> transientVariables) {\n+    throw new UnsupportedOperationException(\"No execution active, no variables can be set\");\n+  }\n+\n+  public void setTransientVariableLocal(String variableName, Object variableValue) {\n+    throw new UnsupportedOperationException(\"No execution active, no variables can be set\");\n+  }\n+\n+  public void setTransientVariables(Map<String, Object> transientVariables) {\n+    throw new UnsupportedOperationException(\"No execution active, no variables can be set\");\n+  }\n+\n+  public void setTransientVariable(String variableName, Object variableValue) {\n+    throw new UnsupportedOperationException(\"No execution active, no variables can be set\");\n+  }\n+\n+  public Object getTransientVariableLocal(String variableName) {\n+    return null;\n+  }\n+\n+  public Map<String, Object> getTransientVariablesLocal() {\n+    return null;\n+  }\n+\n+  public Object getTransientVariable(String variableName) {\n+    return null;\n+  }\n+\n+  public Map<String, Object> getTransientVariables() {\n+    return null;\n+  }\n+\n+  public void removeTransientVariableLocal(String variableName) {\n+    throw new UnsupportedOperationException(\"No execution active, no variables can be removed\");\n+  }\n+\n+  public void removeTransientVariablesLocal() {\n+    throw new UnsupportedOperationException(\"No execution active, no variables can be removed\");\n+  }\n+\n+  public void removeTransientVariable(String variableName) {\n+    throw new UnsupportedOperationException(\"No execution active, no variables can be removed\");\n+  }\n+\n+  public void removeTransientVariables() {\n+    throw new UnsupportedOperationException(\"No execution active, no variables can be removed\");\n+  }\n }\n",
+    "code_start_line": "2096",
+    "code_end_line": "2146",
+    "comment": "避免重复代码。这里的多个方法抛出了相同的异常，可以考虑重构以减少代码重复。",
+    "point_id": 26,
+    "point": "避免重复代码",
+    "point_detail": "缺陷类型：代码结构冗余，避免重复代码；修复方案：忽略"
+  },
+  {
+    "commented_file": "NoExecutionVariableScope.java",
+    "code": "     throw new UnsupportedOperationException(\"No execution active, no variables can be removed\");\n   }\n+\n+  public void setTransientVariablesLocal(Map<String, Object> transientVariables) {\n+    throw new UnsupportedOperationException(\"No execution active, no variables can be set\");\n+  }\n+\n+  public void setTransientVariableLocal(String variableName, Object variableValue) {\n+    throw new UnsupportedOperationException(\"No execution active, no variables can be set\");",
+    "code_start_line": "2095",
+    "code_end_line": "2103",
+    "comment": "避免函数中未使用的形参。参数 'transientVariables', 'variableName', 和 'variableValue' 在方法中没有被实际使用。",
+    "point_id": 4,
+    "point": "避免函数中未使用的形参",
+    "point_detail": "缺陷类型：避免函数中未使用的形参；修复方案：忽略"
+  }
+]
