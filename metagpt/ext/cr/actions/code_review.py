@@ -50,7 +50,7 @@ CodeReview guidelines:
 - Each `comment` should be restricted inside the `commented_file`
 - Try to provide diverse and insightful comments across different `commented_file`.
 - Don't suggest to add docstring unless it's necessary indeed.
-- If the same code error occurs multiple times, it cannot be omitted, and all places need to be identified.But Don't' duplicate at the same place with the same comment!
+- If the same code error occurs multiple times, it cannot be omitted, and all places need to be identified.But Don't duplicate at the same place with the same comment!
 - Every line of code in the patch needs to be carefully checked, and laziness cannot be omitted. It is necessary to find out all the places.
 
 Just print the PR Patch comments in json format like **Output Format**.

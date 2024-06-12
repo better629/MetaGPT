@@ -67,8 +67,7 @@ class CodeReviewEvaluation(Action):
 
     async def run(self, cr_result: list = []):
         cr_output_name = DEFAULT_WORKSPACE_ROOT / "cr" / str(datetime.date.today()) / f'CR-{self.pr}'
-        if not os.path.exists(cr_output_name):
-            os.makedirs(cr_output_name)
+        cr_output_name.mkdir(parents=True, exist_ok=True)
         with open(cr_output_name / f'CR-{self.pr}-result.json', 'w', encoding='utf-8') as file:
             file.writelines(json.dumps(cr_result, ensure_ascii=False))
         await self.metric(cr_result=cr_result, metric_name=cr_output_name)
