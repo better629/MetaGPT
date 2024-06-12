@@ -19,7 +19,7 @@ async def main():
         patch = PatchSet(input_patch_file.read_text(encoding='utf-8'))
 
         modify_coder = ModifyCoder(pr=patch_no)
-        await modify_coder.run(Message(content="code review on PR patch", instruct_content=PatchComments(patch=patch, comments=comments)))
+        await modify_coder.run(Message(content="fix code on PR patch", instruct_content=PatchComments(patch=patch, comments=comments)))
 
 if __name__ == "__main__":
     asyncio.run(main())
