@@ -3,7 +3,7 @@ import json
 
 from unidiff import PatchSet
 
-from metagpt.const import EXAMPLE_DATA_PATH, METAGPT_ROOT
+from metagpt.const import EXAMPLE_DATA_PATH
 from metagpt.ext.cr.roles.modify_code import ModifyCoder, PatchComments
 from metagpt.schema import Message
 
