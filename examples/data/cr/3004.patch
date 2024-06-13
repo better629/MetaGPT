@@ -1,0 +1,1340 @@
+diff --git a/client-hc/src/test/java/com/graphhopper/api/GraphHopperWebTest.java b/client-hc/src/test/java/com/graphhopper/api/GraphHopperWebTest.java
+index 83ba11b9d31..14da63ccec8 100644
+--- a/client-hc/src/test/java/com/graphhopper/api/GraphHopperWebTest.java
++++ b/client-hc/src/test/java/com/graphhopper/api/GraphHopperWebTest.java
+@@ -19,8 +19,8 @@
+
+ import java.util.Arrays;
+ import java.util.HashMap;
+-import java.util.LinkedHashMap;
+
++import static com.graphhopper.json.Statement.If;
+ import static org.junit.jupiter.api.Assertions.*;
+
+ /**
+@@ -92,9 +92,9 @@ public void customModel() throws JsonProcessingException {
+                 new GeometryFactory().createPolygon(area_2_coordinates),
+                 new HashMap<>()));
+         CustomModel customModel = new CustomModel()
+-                .addToSpeed(Statement.If("road_class == MOTORWAY", Statement.Op.LIMIT, "80"))
+-                .addToPriority(Statement.If("surface == DIRT", Statement.Op.MULTIPLY, "0.7"))
+-                .addToPriority(Statement.If("surface == SAND", Statement.Op.MULTIPLY, "0.6"))
++                .addToSpeed(If("road_class == MOTORWAY", Statement.Op.LIMIT, "80"))
++                .addToPriority(If("surface == DIRT", Statement.Op.MULTIPLY, "0.7"))
++                .addToPriority(If("surface == SAND", Statement.Op.MULTIPLY, "0.6"))
+                 .setDistanceInfluence(69d)
+                 .setHeadingPenalty(22)
+                 .setAreas(areas);
+@@ -109,7 +109,7 @@ public void customModel() throws JsonProcessingException {
+         JsonNode customModelJson = postRequest.get("custom_model");
+         ObjectMapper objectMapper = Jackson.newObjectMapper();
+         JsonNode expected = objectMapper.readTree("{\"distance_influence\":69.0,\"heading_penalty\":22.0,\"internal\":false,\"areas\":{" +
+-                "\"type\":\"FeatureCollection\",\"features\":["+
++                "\"type\":\"FeatureCollection\",\"features\":[" +
+                 "{\"id\":\"area_1\",\"type\":\"Feature\",\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[48.019324184801185,11.28021240234375],[48.019324184801185,11.53564453125],[48.11843396091691,11.53564453125],[48.11843396091691,11.28021240234375],[48.019324184801185,11.28021240234375]]]},\"properties\":{}}," +
+                 "{\"id\":\"area_2\",\"type\":\"Feature\",\"geometry\":{\"type\":\"Polygon\",\"coordinates\":[[[48.15509285476017,11.53289794921875],[48.15509285476017,11.8212890625],[48.281365151571755,11.8212890625],[48.281365151571755,11.53289794921875],[48.15509285476017,11.53289794921875]]]},\"properties\":{}}]}," +
+                 "\"speed\":[{\"if\":\"road_class == MOTORWAY\",\"limit_to\":\"80\"}]," +
+diff --git a/core/src/main/java/com/graphhopper/routing/TestProfiles.java b/core/src/main/java/com/graphhopper/routing/TestProfiles.java
+index 7fa8b7a1958..9a94ae31c7b 100644
+--- a/core/src/main/java/com/graphhopper/routing/TestProfiles.java
++++ b/core/src/main/java/com/graphhopper/routing/TestProfiles.java
+@@ -35,7 +35,7 @@ public static Profile constantSpeed(String name) {
+     public static Profile constantSpeed(String name, double speed) {
+         Profile profile = new Profile(name);
+         CustomModel customModel = new CustomModel();
+-        customModel.addToSpeed(Statement.If("true", Statement.Op.LIMIT, String.valueOf(speed)));
++        customModel.addToSpeed(If("true", Statement.Op.LIMIT, String.valueOf(speed)));
+         profile.setCustomModel(customModel);
+         return profile;
+     }
+diff --git a/core/src/main/java/com/graphhopper/routing/weighting/custom/CustomModelParser.java b/core/src/main/java/com/graphhopper/routing/weighting/custom/CustomModelParser.java
+index 7c77d622bb0..df7ee926f3d 100644
+--- a/core/src/main/java/com/graphhopper/routing/weighting/custom/CustomModelParser.java
++++ b/core/src/main/java/com/graphhopper/routing/weighting/custom/CustomModelParser.java
+@@ -19,7 +19,6 @@
+
+ import com.graphhopper.json.Statement;
+ import com.graphhopper.routing.ev.*;
+-import com.graphhopper.routing.util.EncodingManager;
+ import com.graphhopper.routing.weighting.TurnCostProvider;
+ import com.graphhopper.util.*;
+ import com.graphhopper.util.shapes.BBox;
+@@ -71,7 +70,7 @@ private CustomModelParser() {
+     /**
+      * This method creates a weighting from a CustomModel that must limit the speed. Either as an
+      * unconditional statement <code>{ "if": "true", "limit_to": "car_average_speed" }<code/> or as
+-     * an if-else block.
++     * an if-elseif-else group.
+      */
+     public static CustomWeighting createWeighting(EncodedValueLookup lookup, TurnCostProvider turnCostProvider, CustomModel customModel) {
+         if (customModel == null)
+@@ -142,15 +141,15 @@ private static Class<?> createClazz(CustomModel customModel, EncodedValueLookup
+             if (customModel.getSpeed().isEmpty())
+                 throw new IllegalArgumentException("At least one initial statement under 'speed' is required.");
+
+-            List<Statement> firstBlock = splitIntoBlocks(customModel.getSpeed()).get(0);
+-            if (firstBlock.size() > 1) {
+-                Statement lastSt = firstBlock.get(firstBlock.size() - 1);
+-                if (lastSt.getOperation() != Statement.Op.LIMIT || lastSt.getKeyword() != Statement.Keyword.ELSE)
+-                    throw new IllegalArgumentException("The first block needs to end with an 'else' (or contain a single unconditional 'if' statement).");
++            List<Statement> firstGroup = splitIntoGroup(customModel.getSpeed()).get(0);
++            if (firstGroup.size() > 1) {
++                Statement lastSt = firstGroup.get(firstGroup.size() - 1);
++                if (lastSt.operation() != Statement.Op.LIMIT || lastSt.keyword() != Statement.Keyword.ELSE)
++                    throw new IllegalArgumentException("The first group needs to end with an 'else' (or contain a single unconditional 'if' statement).");
+             } else {
+-                Statement firstSt = firstBlock.get(0);
+-                if (!"true".equals(firstSt.getCondition()) || firstSt.getOperation() != Statement.Op.LIMIT || firstSt.getKeyword() != Statement.Keyword.IF)
+-                    throw new IllegalArgumentException("The first block needs to contain a single unconditional 'if' statement (or end with an 'else').");
++                Statement firstSt = firstGroup.get(0);
++                if (!"true".equals(firstSt.condition()) || firstSt.operation() != Statement.Op.LIMIT || firstSt.keyword() != Statement.Keyword.IF)
++                    throw new IllegalArgumentException("The first group needs to contain a single unconditional 'if' statement (or end with an 'else').");
+             }
+
+             Set<String> speedVariables = ValueExpressionVisitor.findVariables(customModel.getSpeed(), lookup);
+@@ -191,27 +190,32 @@ public static List<String> findVariablesForEncodedValuesString(CustomModel model
+     }
+
+     private static void findVariablesForEncodedValuesString(List<Statement> statements, NameValidator nameValidator, ClassHelper classHelper) {
+-        List<List<Statement>> blocks = CustomModelParser.splitIntoBlocks(statements);
+-        for (List<Statement> block : blocks) {
+-            for (Statement statement : block) {
+-                // ignore potential problems; collect only variables in this step
+-                ConditionalExpressionVisitor.parse(statement.getCondition(), nameValidator, classHelper);
+-                ValueExpressionVisitor.parse(statement.getValue(), nameValidator);
++        List<List<Statement>> groups = CustomModelParser.splitIntoGroup(statements);
++        for (List<Statement> group : groups) {
++            for (Statement statement : group) {
++                if (statement.isBlock()) {
++                    findVariablesForEncodedValuesString(statement.doBlock(), nameValidator, classHelper);
++                } else {
++                    // ignore potential problems; collect only variables in this step
++                    ConditionalExpressionVisitor.parse(statement.condition(), nameValidator, classHelper);
++                    ValueExpressionVisitor.parse(statement.value(), nameValidator);
++                }
+             }
+         }
+     }
+
+     /**
+-     * Splits the specified list into several list of statements starting with if
++     * Splits the specified list into several lists of statements starting with if.
++     * I.e. a group consists of one 'if' and zero or more 'else_if' and 'else' statements.
+      */
+-    static List<List<Statement>> splitIntoBlocks(List<Statement> statements) {
++    static List<List<Statement>> splitIntoGroup(List<Statement> statements) {
+         List<List<Statement>> result = new ArrayList<>();
+-        List<Statement> block = null;
++        List<Statement> group = null;
+         for (Statement st : statements) {
+-            if (IF.equals(st.getKeyword())) result.add(block = new ArrayList<>());
+-            if (block == null)
+-                throw new IllegalArgumentException("Every block must start with an if-statement");
+-            block.add(st);
++            if (IF.equals(st.keyword())) result.add(group = new ArrayList<>());
++            if (group == null)
++                throw new IllegalArgumentException("Every group must start with an if-statement");
++            group.add(st);
+         }
+         return result;
+     }
+@@ -406,36 +410,52 @@ private static List<Java.BlockStatement> verifyExpressions(StringBuilder express
+                 || name.startsWith(BACKWARD_PREFIX) && lookup.hasEncodedValue(name.substring(BACKWARD_PREFIX.length()));
+         ClassHelper helper = key -> getReturnType(lookup.getEncodedValue(key, EncodedValue.class));
+
+-        parseExpressions(expressions, nameInConditionValidator, info, createObjects, list, helper);
++        parseExpressions(expressions, nameInConditionValidator, info, createObjects, list, helper, "");
++        expressions.append("return value;\n");
+         return new Parser(new org.codehaus.janino.Scanner(info, new StringReader(expressions.toString()))).
+                 parseBlockStatements();
+     }
+
+     static void parseExpressions(StringBuilder expressions, NameValidator nameInConditionValidator,
+                                  String exceptionInfo, Set<String> createObjects, List<Statement> list,
+-                                 ClassHelper classHelper) {
++                                 ClassHelper classHelper, String indentation) {
+
+         for (Statement statement : list) {
+             // avoid parsing the RHS value expression again as we just did it to get the maximum values in createClazz
+-            if (statement.getKeyword() == Statement.Keyword.ELSE) {
+-                if (!Helper.isEmpty(statement.getCondition()))
+-                    throw new IllegalArgumentException("condition must be empty but was " + statement.getCondition());
+-
+-                expressions.append("else {").append(statement.getOperation().build(statement.getValue())).append("; }\n");
+-            } else if (statement.getKeyword() == Statement.Keyword.ELSEIF || statement.getKeyword() == Statement.Keyword.IF) {
+-                ParseResult parseResult = ConditionalExpressionVisitor.parse(statement.getCondition(), nameInConditionValidator, classHelper);
++            if (statement.keyword() == Statement.Keyword.ELSE) {
++                if (!Helper.isEmpty(statement.condition()))
++                    throw new IllegalArgumentException("condition must be empty but was " + statement.condition());
++
++                expressions.append(indentation);
++                if (statement.isBlock()) {
++                    expressions.append("else {");
++                    parseExpressions(expressions, nameInConditionValidator, exceptionInfo, createObjects, statement.doBlock(), classHelper, indentation + "  ");
++                    expressions.append(indentation).append("}\n");
++                } else {
++                    expressions.append("else {").append(statement.operation().build(statement.value())).append("; }\n");
++                }
++            } else if (statement.keyword() == Statement.Keyword.ELSEIF || statement.keyword() == Statement.Keyword.IF) {
++                ParseResult parseResult = ConditionalExpressionVisitor.parse(statement.condition(), nameInConditionValidator, classHelper);
+                 if (!parseResult.ok)
+-                    throw new IllegalArgumentException(exceptionInfo + " invalid condition \"" + statement.getCondition() + "\"" +
++                    throw new IllegalArgumentException(exceptionInfo + " invalid condition \"" + statement.condition() + "\"" +
+                             (parseResult.invalidMessage == null ? "" : ": " + parseResult.invalidMessage));
+                 createObjects.addAll(parseResult.guessedVariables);
+-                if (statement.getKeyword() == Statement.Keyword.ELSEIF)
+-                    expressions.append("else ");
+-                expressions.append("if (").append(parseResult.converted).append(") {").append(statement.getOperation().build(statement.getValue())).append(";}\n");
++                if (statement.keyword() == Statement.Keyword.ELSEIF)
++                    expressions.append(indentation).append("else ");
++
++                expressions.append(indentation);
++                if (statement.isBlock()) {
++                    expressions.append("if (").append(parseResult.converted).append(") {\n");
++                    parseExpressions(expressions, nameInConditionValidator, exceptionInfo, createObjects, statement.doBlock(), classHelper, indentation + "  ");
++                    expressions.append(indentation).append("}\n");
++                } else {
++                    expressions.append("if (").append(parseResult.converted).append(") {").
++                            append(statement.operation().build(statement.value())).append(";}\n");
++                }
+             } else {
+                 throw new IllegalArgumentException("The statement must be either 'if', 'else_if' or 'else'");
+             }
+         }
+-        expressions.append("return value;\n");
+     }
+
+     /**
+diff --git a/core/src/main/java/com/graphhopper/routing/weighting/custom/CustomWeightingHelper.java b/core/src/main/java/com/graphhopper/routing/weighting/custom/CustomWeightingHelper.java
+index 4388d470546..a047d0db726 100644
+--- a/core/src/main/java/com/graphhopper/routing/weighting/custom/CustomWeightingHelper.java
++++ b/core/src/main/java/com/graphhopper/routing/weighting/custom/CustomWeightingHelper.java
+@@ -19,7 +19,6 @@
+
+ import com.graphhopper.json.MinMax;
+ import com.graphhopper.json.Statement;
+-import com.graphhopper.routing.ev.DecimalEncodedValue;
+ import com.graphhopper.routing.ev.EncodedValueLookup;
+ import com.graphhopper.util.*;
+ import com.graphhopper.util.shapes.BBox;
+@@ -79,8 +78,8 @@ public final double calcMaxSpeed() {
+     public final double calcMaxPriority() {
+         MinMax minMaxPriority = new MinMax(0, GLOBAL_PRIORITY);
+         List<Statement> statements = customModel.getPriority();
+-        if (!statements.isEmpty() && "true".equals(statements.get(0).getCondition())) {
+-            String value = statements.get(0).getValue();
++        if (!statements.isEmpty() && "true".equals(statements.get(0).condition())) {
++            String value = statements.get(0).value();
+             if (lookup.hasEncodedValue(value))
+                 minMaxPriority.max = lookup.getDecimalEncodedValue(value).getMaxOrMaxStorableDecimal();
+         }
+diff --git a/core/src/main/java/com/graphhopper/routing/weighting/custom/FindMinMax.java b/core/src/main/java/com/graphhopper/routing/weighting/custom/FindMinMax.java
+index eab4791cf35..06b8245ba0a 100644
+--- a/core/src/main/java/com/graphhopper/routing/weighting/custom/FindMinMax.java
++++ b/core/src/main/java/com/graphhopper/routing/weighting/custom/FindMinMax.java
+@@ -1,3 +1,20 @@
++/*
++ *  Licensed to GraphHopper GmbH under one or more contributor
++ *  license agreements. See the NOTICE file distributed with this work for
++ *  additional information regarding copyright ownership.
++ *
++ *  GraphHopper GmbH licenses this file to you under the Apache License,
++ *  Version 2.0 (the "License"); you may not use this file except in
++ *  compliance with the License. You may obtain a copy of the License at
++ *
++ *       http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS,
++ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ */
+ package com.graphhopper.routing.weighting.custom;
+
+ import com.graphhopper.json.MinMax;
+@@ -33,12 +50,12 @@ public static void checkLMConstraints(CustomModel baseModel, CustomModel queryMo
+
+     private static void checkMultiplyValue(List<Statement> list, EncodedValueLookup lookup) {
+         for (Statement statement : list) {
+-            if (statement.getOperation() == Statement.Op.MULTIPLY) {
+-                MinMax minMax = ValueExpressionVisitor.findMinMax(statement.getValue(), lookup);
++            if (statement.operation() == Statement.Op.MULTIPLY) {
++                MinMax minMax = ValueExpressionVisitor.findMinMax(statement.value(), lookup);
+                 if (minMax.max > 1)
+-                    throw new IllegalArgumentException("maximum of value '" + statement.getValue() + "' cannot be larger than 1, but was: " + minMax.max);
++                    throw new IllegalArgumentException("maximum of value '" + statement.value() + "' cannot be larger than 1, but was: " + minMax.max);
+                 else if (minMax.min < 0)
+-                    throw new IllegalArgumentException("minimum of value '" + statement.getValue() + "' cannot be smaller than 0, but was: " + minMax.min);
++                    throw new IllegalArgumentException("minimum of value '" + statement.value() + "' cannot be smaller than 0, but was: " + minMax.min);
+             }
+         }
+     }
+@@ -48,41 +65,52 @@ else if (minMax.min < 0)
+      * exceeded by any edge in max.
+      */
+     static MinMax findMinMax(MinMax minMax, List<Statement> statements, EncodedValueLookup lookup) {
+-        // 'blocks' of the statements are applied one after the other. A block consists of one (if) or more statements (elseif+else)
+-        List<List<Statement>> blocks = CustomModelParser.splitIntoBlocks(statements);
+-        for (List<Statement> block : blocks) findMinMaxForBlock(minMax, block, lookup);
++        List<List<Statement>> groups = CustomModelParser.splitIntoGroup(statements);
++        for (List<Statement> group : groups) findMinMaxForGroup(minMax, group, lookup);
+         return minMax;
+     }
+
+-    private static void findMinMaxForBlock(final MinMax minMax, List<Statement> block, EncodedValueLookup lookup) {
+-        if (block.isEmpty() || !IF.equals(block.get(0).getKeyword()))
+-            throw new IllegalArgumentException("Every block must start with an if-statement");
++    private static void findMinMaxForGroup(final MinMax minMax, List<Statement> group, EncodedValueLookup lookup) {
++        if (group.isEmpty() || !IF.equals(group.get(0).keyword()))
++            throw new IllegalArgumentException("Every group must start with an if-statement");
+
+-        MinMax minMaxBlock;
+-        if (block.get(0).getCondition().trim().equals("true")) {
+-            minMaxBlock = block.get(0).getOperation().apply(minMax, ValueExpressionVisitor.findMinMax(block.get(0).getValue(), lookup));
+-            if (minMaxBlock.max < 0)
+-                throw new IllegalArgumentException("statement resulted in negative value: " + block.get(0));
++        MinMax minMaxGroup;
++        Statement first = group.get(0);
++        if (first.condition().trim().equals("true")) {
++            if(first.isBlock()) {
++                for (List<Statement> subGroup : CustomModelParser.splitIntoGroup(first.doBlock())) findMinMaxForGroup(minMax, subGroup, lookup);
++                return;
++            } else {
++                minMaxGroup = first.operation().apply(minMax, ValueExpressionVisitor.findMinMax(first.value(), lookup));
++                if (minMaxGroup.max < 0)
++                    throw new IllegalArgumentException("statement resulted in negative value: " + first);
++            }
+         } else {
+-            minMaxBlock = new MinMax(Double.MAX_VALUE, 0);
++            minMaxGroup = new MinMax(Double.MAX_VALUE, 0);
+             boolean foundElse = false;
+-            for (Statement s : block) {
+-                if (s.getKeyword() == ELSE) foundElse = true;
+-                MinMax tmp = s.getOperation().apply(minMax, ValueExpressionVisitor.findMinMax(s.getValue(), lookup));
+-                if (tmp.max < 0)
+-                    throw new IllegalArgumentException("statement resulted in negative value: " + s);
+-                minMaxBlock.min = Math.min(minMaxBlock.min, tmp.min);
+-                minMaxBlock.max = Math.max(minMaxBlock.max, tmp.max);
++            for (Statement s : group) {
++                if (s.keyword() == ELSE) foundElse = true;
++                MinMax tmp;
++                if(s.isBlock()) {
++                    tmp = new MinMax(minMax.min, minMax.max);
++                    for (List<Statement> subGroup : CustomModelParser.splitIntoGroup(first.doBlock())) findMinMaxForGroup(tmp, subGroup, lookup);
++                } else {
++                    tmp = s.operation().apply(minMax, ValueExpressionVisitor.findMinMax(s.value(), lookup));
++                    if (tmp.max < 0)
++                        throw new IllegalArgumentException("statement resulted in negative value: " + s);
++                }
++                minMaxGroup.min = Math.min(minMaxGroup.min, tmp.min);
++                minMaxGroup.max = Math.max(minMaxGroup.max, tmp.max);
+             }
+
+             // if there is no 'else' statement it's like there is a 'neutral' branch that leaves the initial value as is
+             if (!foundElse) {
+-                minMaxBlock.min = Math.min(minMaxBlock.min, minMax.min);
+-                minMaxBlock.max = Math.max(minMaxBlock.max, minMax.max);
++                minMaxGroup.min = Math.min(minMaxGroup.min, minMax.min);
++                minMaxGroup.max = Math.max(minMaxGroup.max, minMax.max);
+             }
+         }
+
+-        minMax.min = minMaxBlock.min;
+-        minMax.max = minMaxBlock.max;
++        minMax.min = minMaxGroup.min;
++        minMax.max = minMaxGroup.max;
+     }
+ }
+diff --git a/core/src/main/java/com/graphhopper/routing/weighting/custom/ValueExpressionVisitor.java b/core/src/main/java/com/graphhopper/routing/weighting/custom/ValueExpressionVisitor.java
+index e7a33365188..a7f89662a84 100644
+--- a/core/src/main/java/com/graphhopper/routing/weighting/custom/ValueExpressionVisitor.java
++++ b/core/src/main/java/com/graphhopper/routing/weighting/custom/ValueExpressionVisitor.java
+@@ -1,3 +1,20 @@
++/*
++ *  Licensed to GraphHopper GmbH under one or more contributor
++ *  license agreements. See the NOTICE file distributed with this work for
++ *  additional information regarding copyright ownership.
++ *
++ *  GraphHopper GmbH licenses this file to you under the Apache License,
++ *  Version 2.0 (the "License"); you may not use this file except in
++ *  compliance with the License. You may obtain a copy of the License at
++ *
++ *       http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS,
++ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ */
+ package com.graphhopper.routing.weighting.custom;
+
+ import com.graphhopper.json.MinMax;
+@@ -137,21 +154,32 @@ static ParseResult parse(String expression, NameValidator variableValidator) {
+     }
+
+     static Set<String> findVariables(List<Statement> statements, EncodedValueLookup lookup) {
+-        List<List<Statement>> blocks = CustomModelParser.splitIntoBlocks(statements);
++        List<List<Statement>> groups = CustomModelParser.splitIntoGroup(statements);
+         Set<String> variables = new LinkedHashSet<>();
+-        for (List<Statement> block : blocks) findVariablesForBlock(variables, block, lookup);
++        for (List<Statement> group : groups) findVariablesForGroup(variables, group, lookup);
+         return variables;
+     }
+
+-    private static void findVariablesForBlock(Set<String> createdObjects, List<Statement> block, EncodedValueLookup lookup) {
+-        if (block.isEmpty() || !IF.equals(block.get(0).getKeyword()))
+-            throw new IllegalArgumentException("Every block must start with an if-statement");
++    private static void findVariablesForGroup(Set<String> createdObjects, List<Statement> group, EncodedValueLookup lookup) {
++        if (group.isEmpty() || !IF.equals(group.get(0).keyword()))
++            throw new IllegalArgumentException("Every group of statements must start with an if-statement");
+
+-        if (block.get(0).getCondition().trim().equals("true")) {
+-            createdObjects.addAll(ValueExpressionVisitor.findVariables(block.get(0).getValue(), lookup));
++        Statement first = group.get(0);
++        if (first.condition().trim().equals("true")) {
++            if(first.isBlock()) {
++                List<List<Statement>> groups = CustomModelParser.splitIntoGroup(first.doBlock());
++                for (List<Statement> subGroup : groups) findVariablesForGroup(createdObjects, subGroup, lookup);
++            } else {
++                createdObjects.addAll(ValueExpressionVisitor.findVariables(first.value(), lookup));
++            }
+         } else {
+-            for (Statement s : block) {
+-                createdObjects.addAll(ValueExpressionVisitor.findVariables(s.getValue(), lookup));
++            for (Statement st : group) {
++                if(st.isBlock()) {
++                    List<List<Statement>> groups = CustomModelParser.splitIntoGroup(st.doBlock());
++                    for (List<Statement> subGroup : groups) findVariablesForGroup(createdObjects, subGroup, lookup);
++                } else {
++                    createdObjects.addAll(ValueExpressionVisitor.findVariables(st.value(), lookup));
++                }
+             }
+         }
+     }
+diff --git a/core/src/test/java/com/graphhopper/isochrone/algorithm/ShortestPathTreeTest.java b/core/src/test/java/com/graphhopper/isochrone/algorithm/ShortestPathTreeTest.java
+index 91c872dc88e..a1d7a3cdfcd 100644
+--- a/core/src/test/java/com/graphhopper/isochrone/algorithm/ShortestPathTreeTest.java
++++ b/core/src/test/java/com/graphhopper/isochrone/algorithm/ShortestPathTreeTest.java
+@@ -14,7 +14,10 @@
+ import com.graphhopper.routing.weighting.custom.CustomWeighting;
+ import com.graphhopper.storage.BaseGraph;
+ import com.graphhopper.storage.Graph;
+-import com.graphhopper.util.*;
++import com.graphhopper.util.CustomModel;
++import com.graphhopper.util.EdgeIterator;
++import com.graphhopper.util.EdgeIteratorState;
++import com.graphhopper.util.GHUtility;
+ import org.junit.jupiter.api.AfterEach;
+ import org.junit.jupiter.api.BeforeEach;
+ import org.junit.jupiter.api.Test;
+@@ -81,8 +84,8 @@ private Weighting createWeighting(TurnCostProvider turnCostProvider) {
+
+     private CustomModel createBaseCustomModel() {
+         CustomModel customModel = new CustomModel();
+-        customModel.addToPriority(Statement.If("!" + accessEnc.getName(), Statement.Op.MULTIPLY, "0"));
+-        customModel.addToSpeed(Statement.If("true", Statement.Op.LIMIT, speedEnc.getName()));
++        customModel.addToPriority(If("!" + accessEnc.getName(), Statement.Op.MULTIPLY, "0"));
++        customModel.addToSpeed(If("true", Statement.Op.LIMIT, speedEnc.getName()));
+         return customModel;
+     }
+
+diff --git a/core/src/test/java/com/graphhopper/routing/CustomizableConditionalRestrictionsTest.java b/core/src/test/java/com/graphhopper/routing/CustomizableConditionalRestrictionsTest.java
+index dfd70879e1c..999b4a5515c 100644
+--- a/core/src/test/java/com/graphhopper/routing/CustomizableConditionalRestrictionsTest.java
++++ b/core/src/test/java/com/graphhopper/routing/CustomizableConditionalRestrictionsTest.java
+@@ -17,6 +17,7 @@
+ import java.util.Arrays;
+ import java.util.List;
+
++import static com.graphhopper.json.Statement.If;
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+ import static org.junit.jupiter.api.Assertions.assertFalse;
+
+@@ -58,7 +59,7 @@ public void testConditionalAccess() {
+
+         rsp = hopper.route(new GHRequest(50.909136, 14.213924, 50.90918, 14.213549).
+                 setProfile("foot").
+-                setCustomModel(new CustomModel().addToPriority(Statement.If("foot_temporal_access == NO", Statement.Op.MULTIPLY, "0"))).
++                setCustomModel(new CustomModel().addToPriority(If("foot_temporal_access == NO", Statement.Op.MULTIPLY, "0"))).
+                 setPathDetails(Arrays.asList(PD_KEY)));
+         assertFalse(rsp.hasErrors(), rsp.getErrors().toString());
+         assertEquals(16, rsp.getBest().getDistance(), 1);
+diff --git a/core/src/test/java/com/graphhopper/routing/PriorityRoutingTest.java b/core/src/test/java/com/graphhopper/routing/PriorityRoutingTest.java
+index ff8907f01fe..94556e78069 100644
+--- a/core/src/test/java/com/graphhopper/routing/PriorityRoutingTest.java
++++ b/core/src/test/java/com/graphhopper/routing/PriorityRoutingTest.java
+@@ -34,6 +34,7 @@
+ import com.graphhopper.util.EdgeIteratorState;
+ import org.junit.jupiter.api.Test;
+
++import static com.graphhopper.json.Statement.If;
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+
+ public class PriorityRoutingTest {
+@@ -73,8 +74,8 @@ void testMaxPriority() {
+         // A* and Dijkstra should yield the same path (the max priority must be taken into account by weighting.getMinWeight)
+         {
+             CustomModel customModel = new CustomModel();
+-            customModel.addToPriority(Statement.If("true", Statement.Op.MULTIPLY, priorityEnc.getName()));
+-            customModel.addToSpeed(Statement.If("true", Statement.Op.LIMIT, speedEnc.getName()));
++            customModel.addToPriority(If("true", Statement.Op.MULTIPLY, priorityEnc.getName()));
++            customModel.addToSpeed(If("true", Statement.Op.LIMIT, speedEnc.getName()));
+
+             CustomWeighting weighting = CustomModelParser.createWeighting(em, TurnCostProvider.NO_TURN_COST_PROVIDER, customModel);
+             Path pathDijkstra = new Dijkstra(graph, weighting, TraversalMode.NODE_BASED).calcPath(0, 3);
+@@ -86,9 +87,9 @@ void testMaxPriority() {
+         {
+             CustomModel customModel = new CustomModel();
+             // now we even increase the priority in the custom model, which also needs to be accounted for in weighting.getMinWeight
+-            customModel.addToPriority(Statement.If("true", Statement.Op.MULTIPLY, priorityEnc.getName()));
+-            customModel.addToPriority(Statement.If("road_class == MOTORWAY", Statement.Op.MULTIPLY, "3"));
+-            customModel.addToSpeed(Statement.If("true", Statement.Op.LIMIT, speedEnc.getName()));
++            customModel.addToPriority(If("true", Statement.Op.MULTIPLY, priorityEnc.getName()));
++            customModel.addToPriority(If("road_class == MOTORWAY", Statement.Op.MULTIPLY, "3"));
++            customModel.addToSpeed(If("true", Statement.Op.LIMIT, speedEnc.getName()));
+             CustomWeighting weighting = CustomModelParser.createWeighting(em, TurnCostProvider.NO_TURN_COST_PROVIDER, customModel);
+             Path pathDijkstra = new Dijkstra(graph, weighting, TraversalMode.NODE_BASED).calcPath(0, 3);
+             Path pathAStar = new AStar(graph, weighting, TraversalMode.NODE_BASED).calcPath(0, 3);
+diff --git a/core/src/test/java/com/graphhopper/routing/TrafficChangeWithNodeOrderingReusingTest.java b/core/src/test/java/com/graphhopper/routing/TrafficChangeWithNodeOrderingReusingTest.java
+index 0c74844ad6d..e62f5bb5639 100644
+--- a/core/src/test/java/com/graphhopper/routing/TrafficChangeWithNodeOrderingReusingTest.java
++++ b/core/src/test/java/com/graphhopper/routing/TrafficChangeWithNodeOrderingReusingTest.java
+@@ -36,6 +36,7 @@
+ import java.util.Random;
+ import java.util.stream.Stream;
+
++import static com.graphhopper.json.Statement.If;
+ import static java.lang.System.nanoTime;
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+
+@@ -67,8 +68,8 @@ public Fixture(int maxDeviationPercentage) {
+                     .addWayTagParser(carParser);
+             baseCHConfig = CHConfig.nodeBased("base", CustomModelParser.createWeighting(em, TurnCostProvider.NO_TURN_COST_PROVIDER,
+                     new CustomModel()
+-                            .addToPriority(Statement.If("!car_access", Statement.Op.MULTIPLY, "0"))
+-                            .addToSpeed(Statement.If("true", Statement.Op.LIMIT, "car_average_speed")
++                            .addToPriority(If("!car_access", Statement.Op.MULTIPLY, "0"))
++                            .addToSpeed(If("true", Statement.Op.LIMIT, "car_average_speed")
+                     )
+             ));
+             trafficCHConfig = CHConfig.nodeBased("traffic", new RandomDeviationWeighting(baseCHConfig.getWeighting(), accessEnc, speedEnc, maxDeviationPercentage));
+diff --git a/core/src/test/java/com/graphhopper/routing/weighting/custom/CustomModelParserTest.java b/core/src/test/java/com/graphhopper/routing/weighting/custom/CustomModelParserTest.java
+index fa1bc62ee24..60094ac10d5 100644
+--- a/core/src/test/java/com/graphhopper/routing/weighting/custom/CustomModelParserTest.java
++++ b/core/src/test/java/com/graphhopper/routing/weighting/custom/CustomModelParserTest.java
+@@ -259,6 +259,23 @@ public void parseValue() {
+         assertEquals(66.0, speedMapping.get(maxLower, false), 0.01);
+     }
+
++    @Test
++    public void parseBlock() {
++        DecimalEncodedValue maxSpeedEnc = encodingManager.getDecimalEncodedValue(MaxSpeed.KEY);
++        EdgeIteratorState edge60 = graph.edge(0, 1).setDistance(10).
++                set(maxSpeedEnc, 60).set(avgSpeedEnc, 70).set(accessEnc, true, true);
++        EdgeIteratorState edge70 = graph.edge(1, 2).setDistance(10).
++                set(maxSpeedEnc, 70).set(avgSpeedEnc, 70).set(accessEnc, true, true);
++
++        CustomModel customModel = new CustomModel();
++        customModel.addToSpeed(If("true", LIMIT, "200"));
++        customModel.addToSpeed(If("max_speed > 65", List.of(If("true", LIMIT, "65"))));
++        CustomWeighting.EdgeToDoubleMapping speedMapping = CustomModelParser.createWeightingParameters(customModel, encodingManager).
++                getEdgeToSpeedMapping();
++        assertEquals(65.0, speedMapping.get(edge70, false), 0.01);
++        assertEquals(200.0, speedMapping.get(edge60, false), 0.01);
++    }
++
+     @Test
+     public void parseValueWithError() {
+         CustomModel customModel1 = new CustomModel();
+@@ -285,7 +302,7 @@ public void parseConditionWithError() {
+         IllegalArgumentException ret = assertThrows(IllegalArgumentException.class,
+                 () -> parseExpressions(new StringBuilder(),
+                         validVariable, "[HERE]", new HashSet<>(),
+-                        Arrays.asList(If("max_weight > 10", MULTIPLY, "0")), s -> "")
++                        Arrays.asList(If("max_weight > 10", MULTIPLY, "0")), s -> "", "")
+         );
+         assertTrue(ret.getMessage().startsWith("[HERE] invalid condition \"max_weight > 10\": 'max_weight' not available"), ret.getMessage());
+
+@@ -293,14 +310,14 @@ public void parseConditionWithError() {
+         ret = assertThrows(IllegalArgumentException.class,
+                 () -> parseExpressions(new StringBuilder(),
+                         validVariable, "[HERE]", new HashSet<>(),
+-                        Arrays.asList(If("country == GERMANY", MULTIPLY, "0")), s -> ""));
++                        Arrays.asList(If("country == GERMANY", MULTIPLY, "0")), s -> "", ""));
+         assertTrue(ret.getMessage().startsWith("[HERE] invalid condition \"country == GERMANY\": 'GERMANY' not available"), ret.getMessage());
+
+         // not whitelisted method
+         ret = assertThrows(IllegalArgumentException.class,
+                 () -> parseExpressions(new StringBuilder(),
+                         validVariable, "[HERE]", new HashSet<>(),
+-                        Arrays.asList(If("edge.fetchWayGeometry().size() > 2", MULTIPLY, "0")), s -> ""));
++                        Arrays.asList(If("edge.fetchWayGeometry().size() > 2", MULTIPLY, "0")), s -> "", ""));
+         assertTrue(ret.getMessage().startsWith("[HERE] invalid condition \"edge.fetchWayGeometry().size() > 2\": size is an illegal method"), ret.getMessage());
+     }
+
+diff --git a/core/src/test/java/com/graphhopper/routing/weighting/custom/CustomWeightingTest.java b/core/src/test/java/com/graphhopper/routing/weighting/custom/CustomWeightingTest.java
+index 69e7b7226bc..242ceec825b 100644
+--- a/core/src/test/java/com/graphhopper/routing/weighting/custom/CustomWeightingTest.java
++++ b/core/src/test/java/com/graphhopper/routing/weighting/custom/CustomWeightingTest.java
+@@ -7,7 +7,8 @@
+ import com.graphhopper.routing.ev.*;
+ import com.graphhopper.routing.querygraph.VirtualEdgeIteratorState;
+ import com.graphhopper.routing.util.EncodingManager;
+-import com.graphhopper.routing.weighting.*;
++import com.graphhopper.routing.weighting.DefaultTurnCostProvider;
++import com.graphhopper.routing.weighting.Weighting;
+ import com.graphhopper.storage.BaseGraph;
+ import com.graphhopper.storage.Graph;
+ import com.graphhopper.util.*;
+@@ -128,8 +129,8 @@ public void testSpeedFactorBooleanEV() {
+         assertEquals(3.1, weighting.calcEdgeWeight(edge, false), 0.01);
+         // here we increase weight for edges that are road class links
+         weighting = createWeighting(createSpeedCustomModel(avSpeedEnc)
+-                        .setDistanceInfluence(70d)
+-                        .addToPriority(If(RoadClassLink.KEY, MULTIPLY, "0.5")));
++                .setDistanceInfluence(70d)
++                .addToPriority(If(RoadClassLink.KEY, MULTIPLY, "0.5")));
+         BooleanEncodedValue rcLinkEnc = encodingManager.getBooleanEncodedValue(RoadClassLink.KEY);
+         assertEquals(3.1, weighting.calcEdgeWeight(edge.set(rcLinkEnc, false), false), 0.01);
+         assertEquals(5.5, weighting.calcEdgeWeight(edge.set(rcLinkEnc, true), false), 0.01);
+@@ -147,9 +148,9 @@ public void testBoolean() {
+         Weighting weighting = createWeighting(createSpeedCustomModel(avSpeedEnc).setDistanceInfluence(70d));
+         assertEquals(3.1, weighting.calcEdgeWeight(edge, false), 0.01);
+         weighting = createWeighting(createSpeedCustomModel(avSpeedEnc)
+-                        .setDistanceInfluence(70d)
+-                        .addToPriority(If("special == true", MULTIPLY, "0.8"))
+-                        .addToPriority(If("special == false", MULTIPLY, "0.4")));
++                .setDistanceInfluence(70d)
++                .addToPriority(If("special == true", MULTIPLY, "0.8"))
++                .addToPriority(If("special == false", MULTIPLY, "0.4")));
+         assertEquals(6.7, weighting.calcEdgeWeight(edge, false), 0.01);
+         assertEquals(3.7, weighting.calcEdgeWeight(edge, true), 0.01);
+     }
+@@ -330,8 +331,8 @@ public void maxSpeedViolated_bug_2307() {
+                 set(roadClassEnc, MOTORWAY).set(avSpeedEnc, 80);
+         CustomModel customModel = createSpeedCustomModel(avSpeedEnc)
+                 .setDistanceInfluence(70d)
+-                .addToSpeed(Statement.If("road_class == MOTORWAY", Statement.Op.MULTIPLY, "0.7"))
+-                .addToSpeed(Statement.Else(LIMIT, "30"));
++                .addToSpeed(If("road_class == MOTORWAY", Statement.Op.MULTIPLY, "0.7"))
++                .addToSpeed(Else(LIMIT, "30"));
+         Weighting weighting = createWeighting(customModel);
+         assertEquals(1.3429, weighting.calcEdgeWeight(motorway, false), 1e-4);
+         assertEquals(10 / (80 * 0.7 / 3.6) * 1000, weighting.calcEdgeMillis(motorway, false), 1);
+@@ -342,7 +343,7 @@ public void bugWithNaNForBarrierEdges() {
+         EdgeIteratorState motorway = graph.edge(0, 1).setDistance(0).
+                 set(roadClassEnc, MOTORWAY).set(avSpeedEnc, 80);
+         CustomModel customModel = createSpeedCustomModel(avSpeedEnc)
+-                .addToPriority(Statement.If("road_class == MOTORWAY", Statement.Op.MULTIPLY, "0"));
++                .addToPriority(If("road_class == MOTORWAY", Statement.Op.MULTIPLY, "0"));
+         Weighting weighting = createWeighting(customModel);
+         assertFalse(Double.isNaN(weighting.calcEdgeWeight(motorway, false)));
+         assertTrue(Double.isInfinite(weighting.calcEdgeWeight(motorway, false)));
+diff --git a/core/src/test/java/com/graphhopper/routing/weighting/custom/FindMinMaxTest.java b/core/src/test/java/com/graphhopper/routing/weighting/custom/FindMinMaxTest.java
+index 16ca32eb019..4bcdc1fe50b 100644
+--- a/core/src/test/java/com/graphhopper/routing/weighting/custom/FindMinMaxTest.java
++++ b/core/src/test/java/com/graphhopper/routing/weighting/custom/FindMinMaxTest.java
+@@ -99,6 +99,13 @@ public void findMax_multipleBlocks() {
+         assertEquals(80, findMinMax(new MinMax(0, 100), statements, lookup).max);
+         assertEquals(60, findMinMax(new MinMax(0, 60), statements, lookup).max);
+
++        statements = Arrays.asList(
++                If("road_environment == TUNNEL", LIMIT, "130"),
++                ElseIf("road_environment == BRIDGE", LIMIT, "50"),
++                Else(MULTIPLY, "0.8")
++        );
++        assertEquals(130, findMinMax(new MinMax(0, 150), statements, lookup).max);
++
+         statements = Arrays.asList(
+                 If("road_class == TERTIARY", MULTIPLY, "0.2"),
+                 ElseIf("road_class == SECONDARY", LIMIT, "25"),
+@@ -109,4 +116,25 @@ public void findMax_multipleBlocks() {
+         assertEquals(40, findMinMax(new MinMax(0, 150), statements, lookup).max);
+         assertEquals(40, findMinMax(new MinMax(0, 40), statements, lookup).max);
+     }
++
++    @Test
++    public void testBlock() {
++        List<Statement> statements = Arrays.asList(
++                If("road_class == TERTIARY",
++                        List.of(If("max_speed > 100", LIMIT, "100"),
++                                Else(LIMIT, "30"))),
++                ElseIf("road_class == SECONDARY", LIMIT, "25"),
++                Else(MULTIPLY, "0.8")
++        );
++        assertEquals(100, findMinMax(new MinMax(0, 120), statements, lookup).max);
++
++        statements = Arrays.asList(
++                If("road_class == TERTIARY",
++                        List.of(If("max_speed > 100", LIMIT, "90"),
++                                Else(LIMIT, "30"))),
++                ElseIf("road_class == SECONDARY", LIMIT, "25"),
++                Else(MULTIPLY, "0.8")
++        );
++        assertEquals(96, findMinMax(new MinMax(0, 120), statements, lookup).max);
++    }
+ }
+diff --git a/core/src/test/java/com/graphhopper/util/InstructionListTest.java b/core/src/test/java/com/graphhopper/util/InstructionListTest.java
+index 755a2359e4b..3c103d737eb 100644
+--- a/core/src/test/java/com/graphhopper/util/InstructionListTest.java
++++ b/core/src/test/java/com/graphhopper/util/InstructionListTest.java
+@@ -37,6 +37,7 @@
+
+ import java.util.*;
+
++import static com.graphhopper.json.Statement.If;
+ import static com.graphhopper.search.KVStorage.KValue;
+ import static com.graphhopper.util.Parameters.Details.STREET_NAME;
+ import static org.junit.jupiter.api.Assertions.*;
+@@ -453,8 +454,8 @@ public void testInstructionWithHighlyCustomProfileWithRoadsBase() {
+         g.edge(2, 5).setDistance(10).set(roadsSpeedEnc, 10, 10).set(roadsAccessEnc, true, true).set(rcEV, RoadClass.PEDESTRIAN);
+
+         CustomModel customModel = new CustomModel();
+-        customModel.addToSpeed(Statement.If("true", Statement.Op.LIMIT, "speed"));
+-        customModel.addToPriority(Statement.If("road_class == PEDESTRIAN", Statement.Op.MULTIPLY, "0"));
++        customModel.addToSpeed(If("true", Statement.Op.LIMIT, "speed"));
++        customModel.addToPriority(If("road_class == PEDESTRIAN", Statement.Op.MULTIPLY, "0"));
+         Weighting weighting = CustomModelParser.createWeighting(tmpEM, TurnCostProvider.NO_TURN_COST_PROVIDER, customModel);
+         Path p = new Dijkstra(g, weighting, tMode).calcPath(3, 4);
+         assertEquals(IntArrayList.from(3, 2, 4), p.calcNodes());
+@@ -555,7 +556,7 @@ public void testSplitWays() {
+         assertEquals(Arrays.asList("continue onto main", "arrive at destination"), tmpList);
+
+         // Other roads should not influence instructions. Example: https://www.openstreetmap.org/node/392106581
+-        na.setNode(5, 43.625666,-79.714048);
++        na.setNode(5, 43.625666, -79.714048);
+         g.edge(2, 5).setDistance(80).set(roadsSpeedEnc, 50, 50).set(lanesEnc, 5);
+
+         p = new Dijkstra(g, weighting, tMode).calcPath(1, 4);
+diff --git a/docs/core/custom-models.md b/docs/core/custom-models.md
+index 9d153f8dde1..ccf20acc12a 100644
+--- a/docs/core/custom-models.md
++++ b/docs/core/custom-models.md
+@@ -176,10 +176,11 @@ statements that come later in the list are applied to the resulting value of pre
+ executed if the corresponding condition applies for the current edge. This will become more clear in the following
+ examples.
+
+-Currently the custom model language supports two operators:
++The custom model language supports three operators:
+
+ - `multiply_by` multiplies the speed value with a given number or expression
+ - `limit_to` limits the speed value to a given number or expression
++- `do` lists sub-statements that are executed
+
+ #### `if` statements and the `multiply_by` operation
+
+@@ -335,6 +336,51 @@ A common use-case for the `limit_to` operation is the following pattern:
+ which means that the speed is limited to `90km/h` for all road segments regardless of its properties. The condition
+ `true` is always fulfilled.
+
++#### The `do` operation
++
++The `do` operation allows nesting statements. E.g. for `if` it can be used like:
++
++```json
++{
++  "if": "country == DEU",
++  "do": [
++    { "if": "road_class == PRIMARY", "multiply_by": "0.8" },
++    { "if": "road_class == SECONDARY", "multiply_by": "0.7" }
++  ]
++}
++```
++
++And then the following statements are only executed if the expression is true.
++
++For `else` the `do` operation can be used like:
++
++```json
++[
++  { "if": "max_speed > 70", "limit": "70" },
++  { "else": "",
++    "do":  [
++      { "if": "road_class == PRIMARY", "multiply_by": "0.8" }
++    ]
++  }
++]
++```
++
++Further nesting is also possible:
++
++```json
++{
++  "if": "country == DEU",
++  "do": [
++    {
++      "if": "road_class == PRIMARY",
++      "do": [
++        { "if": "max_speed > 70", "multiply_by": "0.5" }
++      ]
++    }
++  ]
++}
++```
++
+ #### `else` and `else_if` statements
+
+ The `else` statement allows you to define that some operations should be applied if an edge does **not** match a
+diff --git a/example/src/main/java/com/graphhopper/example/LowLevelAPIExample.java b/example/src/main/java/com/graphhopper/example/LowLevelAPIExample.java
+index d6bf663132b..f4901adbc66 100644
+--- a/example/src/main/java/com/graphhopper/example/LowLevelAPIExample.java
++++ b/example/src/main/java/com/graphhopper/example/LowLevelAPIExample.java
+@@ -1,7 +1,7 @@
+ package com.graphhopper.example;
+
+-import com.graphhopper.routing.EdgeToEdgeRoutingAlgorithm;
+ import com.graphhopper.routing.Dijkstra;
++import com.graphhopper.routing.EdgeToEdgeRoutingAlgorithm;
+ import com.graphhopper.routing.Path;
+ import com.graphhopper.routing.ch.CHRoutingAlgorithmFactory;
+ import com.graphhopper.routing.ch.PrepareContractionHierarchies;
+diff --git a/web-api/src/main/java/com/graphhopper/jackson/StatementDeserializer.java b/web-api/src/main/java/com/graphhopper/jackson/StatementDeserializer.java
+index 5821d16d93f..d1e8d1b4c3a 100644
+--- a/web-api/src/main/java/com/graphhopper/jackson/StatementDeserializer.java
++++ b/web-api/src/main/java/com/graphhopper/jackson/StatementDeserializer.java
+@@ -1,3 +1,20 @@
++/*
++ *  Licensed to GraphHopper GmbH under one or more contributor
++ *  license agreements. See the NOTICE file distributed with this work for
++ *  additional information regarding copyright ownership.
++ *
++ *  GraphHopper GmbH licenses this file to you under the Apache License,
++ *  Version 2.0 (the "License"); you may not use this file except in
++ *  compliance with the License. You may obtain a copy of the License at
++ *
++ *       http://www.apache.org/licenses/LICENSE-2.0
++ *
++ *  Unless required by applicable law or agreed to in writing, software
++ *  distributed under the License is distributed on an "AS IS" BASIS,
++ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ *  See the License for the specific language governing permissions and
++ *  limitations under the License.
++ */
+ package com.graphhopper.jackson;
+
+ import com.fasterxml.jackson.core.JsonParser;
+@@ -7,44 +24,77 @@
+ import com.graphhopper.json.Statement;
+
+ import java.io.IOException;
++import java.util.ArrayList;
+ import java.util.Arrays;
++import java.util.List;
+ import java.util.stream.Collectors;
+
++import static com.graphhopper.json.Statement.*;
+ import static com.graphhopper.json.Statement.Keyword.*;
++import static com.graphhopper.json.Statement.Op.DO;
+
+ class StatementDeserializer extends JsonDeserializer<Statement> {
++
+     @Override
+     public Statement deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+-        JsonNode treeNode = p.readValueAsTree();
+-        Statement.Op jsonOp = null;
+-        String value = null;
+-        if (treeNode.size() != 2)
+-            throw new IllegalArgumentException("Statement expects two entries but was " + treeNode.size() + " for " + treeNode);
+-
+-        for (Statement.Op op : Statement.Op.values()) {
+-            if (treeNode.has(op.getName())) {
+-                if (jsonOp != null)
+-                    throw new IllegalArgumentException("Multiple operations are not allowed. Statement: " + treeNode);
+-                jsonOp = op;
+-                value = treeNode.get(op.getName()).asText();
++        return deserializeStatement(p.readValueAsTree());
++    }
++
++    static Statement deserializeStatement(JsonNode treeNode) {
++        if (treeNode.has(DO.getName())) {
++            if (treeNode.size() != 2)
++                throw new IllegalArgumentException("This block statement expects two entries but was " + treeNode.size() + " for " + treeNode);
++
++            JsonNode doNode = treeNode.get(DO.getName());
++            if (!doNode.isArray())
++                throw new IllegalArgumentException("'do' block must be an array");
++            List<Statement> list = new ArrayList<>();
++            for (JsonNode thenSt : doNode) {
++                list.add(deserializeStatement(thenSt));
+             }
+-        }
+-        if (jsonOp == null)
+-            throw new IllegalArgumentException("Cannot find an operation in " + treeNode + ". Must be one of: " + Arrays.stream(Statement.Op.values()).map(Statement.Op::getName).collect(Collectors.joining(",")));
+-        if (value == null)
+-            throw new IllegalArgumentException("Cannot find a value in " + treeNode);
+-
+-        if (treeNode.has(IF.getName()))
+-            return Statement.If(treeNode.get(IF.getName()).asText(), jsonOp, value);
+-        else if (treeNode.has(ELSEIF.getName()))
+-            return Statement.ElseIf(treeNode.get(ELSEIF.getName()).asText(), jsonOp, value);
+-        else if (treeNode.has(ELSE.getName())) {
+-            JsonNode elseNode = treeNode.get(ELSE.getName());
+-            if (elseNode.isNull() || elseNode.isValueNode() && elseNode.asText().isEmpty())
+-                return Statement.Else(jsonOp, value);
+-            throw new IllegalArgumentException("else cannot have expression but was " + treeNode.get(ELSE.getName()));
+-        }
+
++            if (treeNode.has(IF.getName()))
++                return If(treeNode.get(IF.getName()).asText(), list);
++            else if (treeNode.has(ELSEIF.getName()))
++                return ElseIf(treeNode.get(ELSEIF.getName()).asText(), list);
++            else if (treeNode.has(ELSE.getName())) {
++                JsonNode elseNode = treeNode.get(ELSE.getName());
++                if (elseNode.isNull() || elseNode.isValueNode() && elseNode.asText().isEmpty())
++                    return Else(list);
++                throw new IllegalArgumentException("else cannot have expression but was " + treeNode.get(ELSE.getName()));
++            } else
++                throw new IllegalArgumentException("invalid then block: " + treeNode.toPrettyString());
++
++        } else {
++            if (treeNode.size() != 2)
++                throw new IllegalArgumentException("This statement expects two entries but was " + treeNode.size() + " for " + treeNode);
++            Statement.Op jsonOp = null;
++            String value = null;
++            for (Statement.Op op : Statement.Op.values()) {
++                if (treeNode.has(op.getName())) {
++                    if (jsonOp != null)
++                        throw new IllegalArgumentException("Multiple operations are not allowed. Statement: " + treeNode);
++                    jsonOp = op;
++                    value = treeNode.get(op.getName()).asText();
++                }
++            }
++
++            if (jsonOp == null)
++                throw new IllegalArgumentException("Cannot find an operation in " + treeNode + ". Must be one of: " + Arrays.stream(Statement.Op.values()).map(Statement.Op::getName).collect(Collectors.joining(",")));
++            if (value == null)
++                throw new IllegalArgumentException("Cannot find a value in " + treeNode);
++
++            if (treeNode.has(IF.getName()))
++                return If(treeNode.get(IF.getName()).asText(), jsonOp, value);
++            else if (treeNode.has(ELSEIF.getName()))
++                return ElseIf(treeNode.get(ELSEIF.getName()).asText(), jsonOp, value);
++            else if (treeNode.has(ELSE.getName())) {
++                JsonNode elseNode = treeNode.get(ELSE.getName());
++                if (elseNode.isNull() || elseNode.isValueNode() && elseNode.asText().isEmpty())
++                    return Else(jsonOp, value);
++                throw new IllegalArgumentException("else cannot have expression but was " + treeNode.get(ELSE.getName()));
++            }
++        }
+         throw new IllegalArgumentException("Cannot find if, else_if or else for " + treeNode);
+     }
+ }
+diff --git a/web-api/src/main/java/com/graphhopper/jackson/StatementSerializer.java b/web-api/src/main/java/com/graphhopper/jackson/StatementSerializer.java
+index cb1702ad704..f70c7eac381 100644
+--- a/web-api/src/main/java/com/graphhopper/jackson/StatementSerializer.java
++++ b/web-api/src/main/java/com/graphhopper/jackson/StatementSerializer.java
+@@ -28,8 +28,8 @@ class StatementSerializer extends JsonSerializer<Statement> {
+     @Override
+     public void serialize(Statement statement, JsonGenerator jsonGenerator, SerializerProvider serializerProvider) throws IOException {
+         jsonGenerator.writeStartObject();
+-        jsonGenerator.writeStringField(statement.getKeyword().getName(), statement.getCondition());
+-        jsonGenerator.writeStringField(statement.getOperation().getName(), statement.getValue());
++        jsonGenerator.writeStringField(statement.keyword().getName(), statement.condition());
++        jsonGenerator.writeStringField(statement.operation().getName(), statement.value());
+         jsonGenerator.writeEndObject();
+     }
+ }
+diff --git a/web-api/src/main/java/com/graphhopper/json/Statement.java b/web-api/src/main/java/com/graphhopper/json/Statement.java
+index 42e01b71b88..db424e9412f 100644
+--- a/web-api/src/main/java/com/graphhopper/json/Statement.java
++++ b/web-api/src/main/java/com/graphhopper/json/Statement.java
+@@ -17,39 +17,70 @@
+  */
+ package com.graphhopper.json;
+
+-public class Statement {
+-    private final Keyword keyword;
+-    private final String condition;
+-    private final Op operation;
+-    private final String value;
+-
+-    private Statement(Keyword keyword, String condition, Op operation, String value) {
+-        this.keyword = keyword;
+-        this.condition = condition;
+-        this.value = value;
+-        this.operation = operation;
++import com.graphhopper.util.Helper;
++
++import java.util.List;
++import java.util.Objects;
++import java.util.stream.Collectors;
++
++public record Statement(Keyword keyword, String condition, Op operation, String value,
++                        List<Statement> doBlock) {
++
++    public Statement {
++        if (condition == null)
++            throw new IllegalArgumentException("'condition' cannot be null");
++        if (doBlock != null && operation != Op.DO)
++            throw new IllegalArgumentException("For 'doBlock' you have to use Op.DO");
++        if (doBlock != null && value != null)
++            throw new IllegalArgumentException("'doBlock' or 'value' cannot be both non-null");
++        if (doBlock == null && Helper.isEmpty(value))
++            throw new IllegalArgumentException("a leaf statement must have a non-empty 'value'");
++        if (condition.isEmpty() && keyword != Keyword.ELSE)
++            throw new IllegalArgumentException("All statements (except 'else') have to use a non-empty 'condition'");
++        if (!condition.isEmpty() && keyword == Keyword.ELSE)
++            throw new IllegalArgumentException("For the 'else' statement you have to use an empty 'condition'");
+     }
+
+-    public Keyword getKeyword() {
+-        return keyword;
++    public boolean isBlock() {
++        return doBlock != null;
+     }
+
+-    public String getCondition() {
+-        return condition;
++    @Override
++    public String value() {
++        if (isBlock())
++            throw new UnsupportedOperationException("'value' is not supported for block statement.");
++        return value;
+     }
+
+-    public Op getOperation() {
+-        return operation;
++    @Override
++    public List<Statement> doBlock() {
++        if (!isBlock())
++            throw new UnsupportedOperationException("'doBlock' is not supported for leaf statement.");
++        return doBlock;
+     }
+
+-    public String getValue() {
+-        return value;
++    public String toPrettyString() {
++        if (isBlock())
++            return "{\"" + keyword.getName() + "\": \"" + condition + "\",\n"
++                    + "  \"do\": [\n"
++                    + doBlock.stream().map(Objects::toString).collect(Collectors.joining(",\n  "))
++                    + "  ]\n" +
++                    "}";
++        else return toString();
++    }
++
++    @Override
++    public String toString() {
++        if (isBlock())
++            return "{\"" + keyword.getName() + "\": \"" + condition + "\", \"do\": " + doBlock + " }";
++        else
++            return "{\"" + keyword.getName() + "\": \"" + condition + "\", \"" + operation.getName() + ": \"" + value + "\"}";
+     }
+
+     public enum Keyword {
+         IF("if"), ELSEIF("else_if"), ELSE("else");
+
+-        String name;
++        private final String name;
+
+         Keyword(String name) {
+             this.name = name;
+@@ -61,9 +92,9 @@ public String getName() {
+     }
+
+     public enum Op {
+-        MULTIPLY("multiply_by"), LIMIT("limit_to");
++        MULTIPLY("multiply_by"), LIMIT("limit_to"), DO("do");
+
+-        String name;
++        private final String name;
+
+         Op(String name) {
+             this.name = name;
+@@ -96,24 +127,27 @@ public MinMax apply(MinMax minMax1, MinMax minMax2) {
+         }
+     }
+
+-    @Override
+-    public String toString() {
+-        return "{" + str(keyword.getName()) + ": " + str(condition) + ", " + str(operation.getName()) + ": " + value + "}";
++    public static Statement If(String expression, List<Statement> doBlock) {
++        return new Statement(Keyword.IF, expression, Op.DO, null, doBlock);
+     }
+
+-    private String str(String str) {
+-        return "\"" + str + "\"";
++    public static Statement If(String expression, Op op, String value) {
++        return new Statement(Keyword.IF, expression, op, value, null);
+     }
+
+-    public static Statement If(String expression, Op op, String value) {
+-        return new Statement(Keyword.IF, expression, op, value);
++    public static Statement ElseIf(String expression, List<Statement> doBlock) {
++        return new Statement(Keyword.ELSEIF, expression, Op.DO, null, doBlock);
+     }
+
+     public static Statement ElseIf(String expression, Op op, String value) {
+-        return new Statement(Keyword.ELSEIF, expression, op, value);
++        return new Statement(Keyword.ELSEIF, expression, op, value, null);
++    }
++
++    public static Statement Else(List<Statement> doBlock) {
++        return new Statement(Keyword.ELSE, "", Op.DO, null, doBlock);
+     }
+
+     public static Statement Else(Op op, String value) {
+-        return new Statement(Keyword.ELSE, null, op, value);
++        return new Statement(Keyword.ELSE, "", op, value, null);
+     }
+ }
+diff --git a/web-api/src/test/java/com/graphhopper/jackson/StatementDeserializerTest.java b/web-api/src/test/java/com/graphhopper/jackson/StatementDeserializerTest.java
+index ef930cca70a..48096608b6b 100644
+--- a/web-api/src/test/java/com/graphhopper/jackson/StatementDeserializerTest.java
++++ b/web-api/src/test/java/com/graphhopper/jackson/StatementDeserializerTest.java
+@@ -22,39 +22,54 @@
+ import com.fasterxml.jackson.databind.ObjectMapper;
+ import com.fasterxml.jackson.databind.module.SimpleModule;
+ import com.graphhopper.json.Statement;
++import org.junit.jupiter.api.BeforeEach;
+ import org.junit.jupiter.api.Test;
+
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+-import static org.junit.jupiter.api.Assertions.assertNull;
++import static org.junit.jupiter.api.Assertions.assertTrue;
+
+ class StatementDeserializerTest {
+
+-    @Test
+-    void conditionAsBoolean_expressionAsNumber() throws JsonProcessingException {
++    ObjectMapper mapper;
++
++    @BeforeEach
++    public void setup() {
+         SimpleModule module = new SimpleModule();
+         module.addDeserializer(Statement.class, new StatementDeserializer());
+-        ObjectMapper objectMapper = new ObjectMapper().registerModule(module);
++        mapper = new ObjectMapper().registerModule(module);
++    }
++
++    @Test
++    void conditionAsBoolean_expressionAsNumber() throws JsonProcessingException {
+         // true instead of "true" or 100 instead of "100" also work because they are parsed to strings
+         // We probably need to accept numbers instead of strings for legacy support, but maybe we should reject true/false
+-        Statement statement = objectMapper.readValue("{\"if\":true,\"limit_to\":100}", Statement.class);
+-        assertEquals(Statement.Keyword.IF, statement.getKeyword());
+-        assertEquals("true", statement.getCondition());
+-        assertEquals(Statement.Op.LIMIT, statement.getOperation());
+-        assertEquals("100", statement.getValue());
++        Statement statement = mapper.readValue("{\"if\":true,\"limit_to\":100}", Statement.class);
++        assertEquals(Statement.Keyword.IF, statement.keyword());
++        assertEquals("true", statement.condition());
++        assertEquals(Statement.Op.LIMIT, statement.operation());
++        assertEquals("100", statement.value());
+     }
+
+     @Test
+     void else_null() throws JsonProcessingException {
+-        SimpleModule module = new SimpleModule();
+-        module.addDeserializer(Statement.class, new StatementDeserializer());
+-        ObjectMapper objectMapper = new ObjectMapper().registerModule(module);
+         // There is no error for `"else": null` currently, even though there is no real reason to support this.
+         // The value will actually be null, but the way we use it at the moment this is not a problem.
+-        Statement statement = objectMapper.readValue("{\"else\":null,\"limit_to\":\"abc\"}", Statement.class);
+-        assertEquals(Statement.Keyword.ELSE, statement.getKeyword());
+-        assertNull(statement.getCondition());
+-        assertEquals(Statement.Op.LIMIT, statement.getOperation());
+-        assertEquals("abc", statement.getValue());
++        Statement statement = mapper.readValue("{\"else\":null,\"limit_to\":\"abc\"}", Statement.class);
++        assertEquals(Statement.Keyword.ELSE, statement.keyword());
++        assertTrue(statement.condition().isEmpty());
++        assertEquals(Statement.Op.LIMIT, statement.operation());
++        assertEquals("abc", statement.value());
+     }
+
+-}
+\ No newline at end of file
++    @Test
++    void block() throws JsonProcessingException {
++        Statement statement = mapper.readValue("{\"if\":\"country == DEU\"," +
++                "\"do\": [{ \"if\":\"road_class == PRIMARY\", \"limit_to\": \"123\" }] }", Statement.class);
++        assertEquals(Statement.Keyword.IF, statement.keyword());
++        assertEquals(Statement.Op.DO, statement.operation());
++        assertEquals("country == DEU", statement.condition());
++        assertTrue(statement.isBlock());
++        assertEquals(1, statement.doBlock().size());
++        assertEquals("road_class == PRIMARY", statement.doBlock().get(0).condition());
++    }
++}
+diff --git a/web-api/src/test/java/com/graphhopper/util/CustomModelTest.java b/web-api/src/test/java/com/graphhopper/util/CustomModelTest.java
+index 89269202821..a5786a069c6 100644
+--- a/web-api/src/test/java/com/graphhopper/util/CustomModelTest.java
++++ b/web-api/src/test/java/com/graphhopper/util/CustomModelTest.java
+@@ -23,8 +23,7 @@
+
+ import java.util.Iterator;
+
+-import static com.graphhopper.json.Statement.ElseIf;
+-import static com.graphhopper.json.Statement.If;
++import static com.graphhopper.json.Statement.*;
+ import static com.graphhopper.json.Statement.Op.MULTIPLY;
+ import static org.junit.jupiter.api.Assertions.assertEquals;
+
+@@ -65,11 +64,11 @@ public void testMergeEmptyModel() {
+         car.addToPriority(ElseIf("road_class==tertiary", MULTIPLY, "0.8"));
+
+         Iterator<Statement> iter = CustomModel.merge(emptyCar, car).getPriority().iterator();
+-        assertEquals("0.5", iter.next().getValue());
+-        assertEquals("0.8", iter.next().getValue());
++        assertEquals("0.5", iter.next().value());
++        assertEquals("0.8", iter.next().value());
+
+         iter = CustomModel.merge(car, emptyCar).getPriority().iterator();
+-        assertEquals("0.5", iter.next().getValue());
+-        assertEquals("0.8", iter.next().getValue());
++        assertEquals("0.5", iter.next().value());
++        assertEquals("0.8", iter.next().value());
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/web-bundle/src/main/java/com/graphhopper/resources/PtIsochroneResource.java b/web-bundle/src/main/java/com/graphhopper/resources/PtIsochroneResource.java
+index fdb5dfdfb75..22dde801019 100644
+--- a/web-bundle/src/main/java/com/graphhopper/resources/PtIsochroneResource.java
++++ b/web-bundle/src/main/java/com/graphhopper/resources/PtIsochroneResource.java
+@@ -25,9 +25,10 @@
+ import com.graphhopper.http.OffsetDateTimeParam;
+ import com.graphhopper.isochrone.algorithm.ContourBuilder;
+ import com.graphhopper.isochrone.algorithm.ReadableTriangulation;
+-import com.graphhopper.jackson.ResponsePathSerializer;
+ import com.graphhopper.json.Statement;
+-import com.graphhopper.routing.ev.*;
++import com.graphhopper.routing.ev.Subnetwork;
++import com.graphhopper.routing.ev.VehicleAccess;
++import com.graphhopper.routing.ev.VehicleSpeed;
+ import com.graphhopper.routing.util.DefaultSnapFilter;
+ import com.graphhopper.routing.util.EncodingManager;
+ import com.graphhopper.routing.weighting.TurnCostProvider;
+@@ -55,6 +56,8 @@
+ import java.time.Instant;
+ import java.util.*;
+
++import static com.graphhopper.json.Statement.If;
++
+ @Path("isochrone-pt")
+ public class PtIsochroneResource {
+
+@@ -100,8 +103,8 @@ public Response doGet(
+
+         GeometryFactory geometryFactory = new GeometryFactory();
+         CustomModel customModel = new CustomModel()
+-                .addToPriority(Statement.If("!" + VehicleAccess.key("foot"), Statement.Op.MULTIPLY, "0"))
+-                .addToSpeed(Statement.If("true", Statement.Op.LIMIT, VehicleSpeed.key("foot")));
++                .addToPriority(If("!" + VehicleAccess.key("foot"), Statement.Op.MULTIPLY, "0"))
++                .addToSpeed(If("true", Statement.Op.LIMIT, VehicleSpeed.key("foot")));
+         final Weighting weighting = CustomModelParser.createWeighting(encodingManager, TurnCostProvider.NO_TURN_COST_PROVIDER, customModel);
+         DefaultSnapFilter snapFilter = new DefaultSnapFilter(weighting, encodingManager.getBooleanEncodedValue(Subnetwork.key("foot")));
+
+diff --git a/web/src/test/java/com/graphhopper/application/resources/RouteResourceClientHCTest.java b/web/src/test/java/com/graphhopper/application/resources/RouteResourceClientHCTest.java
+index 2f6c917fa15..7307ea1be39 100644
+--- a/web/src/test/java/com/graphhopper/application/resources/RouteResourceClientHCTest.java
++++ b/web/src/test/java/com/graphhopper/application/resources/RouteResourceClientHCTest.java
+@@ -390,7 +390,7 @@ public void testWaypointIndicesAndLegDetails(TestParam p) {
+         GHRequest req = new GHRequest().
+                 addPoint(new GHPoint(42.509141, 1.546063)).
+                 // #2915: duplicating the first point yields an empty leg, but there should still be path details for it
+-                addPoint(new GHPoint(42.509141, 1.546063)).
++                        addPoint(new GHPoint(42.509141, 1.546063)).
+                 addPoint(new GHPoint(42.507173, 1.531902)).
+                 addPoint(new GHPoint(42.505435, 1.515943)).
+                 addPoint(new GHPoint(42.499062, 1.506067)).
+diff --git a/web/src/test/java/com/graphhopper/application/resources/RouteResourceCustomModelTest.java b/web/src/test/java/com/graphhopper/application/resources/RouteResourceCustomModelTest.java
+index abb3cbf150d..9f2728ac498 100644
+--- a/web/src/test/java/com/graphhopper/application/resources/RouteResourceCustomModelTest.java
++++ b/web/src/test/java/com/graphhopper/application/resources/RouteResourceCustomModelTest.java
+@@ -66,7 +66,7 @@ private static GraphHopperServerConfiguration createConfig() {
+                 putObject("custom_areas.directory", "./src/test/resources/com/graphhopper/application/resources/areas").
+                 putObject("import.osm.ignored_highways", "").
+                 putObject("graph.encoded_values", "max_height, max_weight, max_width, hazmat, toll, surface, track_type, hgv, average_slope, max_slope, bus_access, " +
+-                        "car_access, car_average_speed, bike_access, bike_priority, bike_average_speed, road_class, road_access, get_off_bike, roundabout, foot_access, foot_priority, foot_average_speed").
++                        "car_access, car_average_speed, bike_access, bike_priority, bike_average_speed, road_class, road_access, get_off_bike, roundabout, foot_access, foot_priority, foot_average_speed, country").
+                 setProfiles(List.of(
+                         TestProfiles.constantSpeed("roads", 120),
+                         new Profile("car").setCustomModel(TestProfiles.accessAndSpeed("unused", "car").getCustomModel().setDistanceInfluence(70d)),
+@@ -77,17 +77,17 @@ private static GraphHopperServerConfiguration createConfig() {
+                         new Profile("json_bike").setCustomModel(null).putHint("custom_model_files", List.of("bike.json", "bike_elevation.json")),
+                         TestProfiles.accessSpeedAndPriority("foot_profile", "foot"),
+                         new Profile("car_no_unclassified").setCustomModel(TestProfiles.accessAndSpeed("unused", "car").getCustomModel().
+-                                                addToPriority(If("road_class == UNCLASSIFIED", LIMIT, "0"))),
++                                addToPriority(If("road_class == UNCLASSIFIED", LIMIT, "0"))),
+                         new Profile("custom_bike").
+                                 setCustomModel(TestProfiles.accessSpeedAndPriority("unused", "bike").getCustomModel().
+                                         addToSpeed(If("road_class == PRIMARY", LIMIT, "28")).
+                                         addToPriority(If("max_width < 1.2", MULTIPLY, "0"))),
+                         new Profile("custom_bike2").setCustomModel(
+                                 TestProfiles.accessSpeedAndPriority("unused", "bike").getCustomModel().setDistanceInfluence(70d).
+-                                                addToPriority(If("road_class == TERTIARY || road_class == TRACK", MULTIPLY, "0"))),
++                                        addToPriority(If("road_class == TERTIARY || road_class == TRACK", MULTIPLY, "0"))),
+                         new Profile("custom_bike3").setCustomModel(TestProfiles.accessSpeedAndPriority("unused", "bike").getCustomModel().
+-                                                addToSpeed(If("road_class == TERTIARY || road_class == TRACK", MULTIPLY, "10")).
+-                                                addToSpeed(If("true", LIMIT, "40")))
++                                addToSpeed(If("road_class == TERTIARY || road_class == TRACK", MULTIPLY, "10")).
++                                addToSpeed(If("true", LIMIT, "40")))
+                 )).
+                 setCHProfiles(Arrays.asList(new CHProfile("bus"), new CHProfile("car_no_unclassified")));
+         return config;
+@@ -116,18 +116,49 @@ public void testBus() {
+     }
+
+     @Test
+-    public void testRoadsFlagEncoder() {
++    public void testRoads() {
+         String body = "{\"points\": [[11.58199, 50.0141], [11.5865, 50.0095]], \"profile\": \"roads\", \"ch.disable\": true, " +
+                 "\"custom_model\": {" +
+-                "  \"speed\": [{\"if\": \"road_class == PRIMARY\", \"multiply_by\": 0.9}, " +
+-                "            {\"if\": \"true\", \"limit_to\": 120}" +
+-                "           ]" +
++                "  \"speed\": [" +
++                "    { \"if\": \"road_class == PRIMARY\", \"multiply_by\": 0.9 }, " +
++                "    { \"if\": \"true\", \"limit_to\": 120 }" +
++                "  ]" +
+                 "}}";
+         JsonNode path = getPath(body);
+         assertEquals(path.get("distance").asDouble(), 660, 10);
+         assertEquals(path.get("time").asLong(), 20_000, 1_000);
+     }
+
++    @Test
++    public void testBlock() {
++        String body = "{\"points\": [[11.58199, 50.0141], [11.5865, 50.0095]], \"profile\": \"roads\", \"ch.disable\": true, " +
++                "\"custom_model\": {" +
++                "  \"speed\": [" +
++                "    { \"if\": \"country == DEU\"," +
++                "      \"do\": [" +
++                "         { \"if\": \"road_class == PRIMARY\", \"multiply_by\": 0.9 }, " +
++                "         { \"if\": \"true\", \"limit_to\": 105 }" +
++                "      ]" +
++                "    }, " +
++                "    { \"else_if\": \"country == FRA\"," +
++                "      \"do\": [" +
++                "         { \"if\": \"road_class == PRIMARY\", \"multiply_by\": 0.8 }, " +
++                "         { \"else\": \"\", \"limit_to\": 110 }" +
++                "      ]" +
++                "    }, " +
++                "    { \"else\": \"\"," +
++                "      \"do\": [" +
++                "         { \"if\": \"road_class == PRIMARY\", \"multiply_by\": 0.7 }, " +
++                "         { \"if\": \"true\", \"limit_to\": 115 }" +
++                "      ]" +
++                "    }" +
++                "  ]" +
++                "}}";
++        JsonNode path = getPath(body);
++        assertEquals(path.get("distance").asDouble(), 660, 10);
++        assertEquals(path.get("time").asLong(), 22_680, 1_000);
++    }
++
+     @Test
+     public void testMissingProfile() {
+         String body = "{\"points\": [[11.58199, 50.0141], [11.5865, 50.0095]], \"custom_model\": {}, \"ch.disable\": true}";
+@@ -330,7 +361,7 @@ Response query(String body, int code) {
+         Response response = clientTarget(app, "/route").request().post(Entity.json(body));
+         response.bufferEntity();
+         JsonNode jsonNode = response.readEntity(JsonNode.class);
+-        assertEquals(code, response.getStatus(), jsonNode.has("message") ? jsonNode.get("message").toString() : "no error message");
++        assertEquals(code, response.getStatus(), jsonNode.toPrettyString());
+         return response;
+     }
+ }

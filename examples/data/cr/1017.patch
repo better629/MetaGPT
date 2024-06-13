@@ -1,0 +1,31 @@
+diff --git a/Frameworks/Core/ERExtensions/Sources/er/extensions/appserver/ERXShutdownHook.java b/Frameworks/Core/ERExtensions/Sources/er/extensions/appserver/ERXShutdownHook.java
+index 8bd7b4f969..2e48c5d617 100644
+--- a/Frameworks/Core/ERExtensions/Sources/er/extensions/appserver/ERXShutdownHook.java
++++ b/Frameworks/Core/ERExtensions/Sources/er/extensions/appserver/ERXShutdownHook.java
+@@ -3,6 +3,7 @@
+
+ import java.util.HashSet;
+ import java.util.Set;
++import java.util.stream.Collectors;
+
+ import com.webobjects.foundation.NSKeyValueCoding;
+ import com.webobjects.foundation.NSNotification;
+@@ -57,7 +58,8 @@ public void run() {
+ 					synchronized( ALL_HOOKS ) {
+ 						while( ALL_HOOKS.size() > 0 ) {
+ 							// Use System.out to minimize dependencies
+-							System.out.println( "ShutdownHook waiting for " + ALL_HOOKS.size() + " hook" + (ALL_HOOKS.size() > 1 ? "s" : "") + " to complete" );
++							String names = ALL_HOOKS.stream().map( hook -> hook.name ).collect( Collectors.joining( ", " ) );
++							System.out.println( "ERXShutdownHook waiting for " + ALL_HOOKS.size() + " hook" + (ALL_HOOKS.size() > 1 ? "s" : "") + " to complete: " + names );
+ 							ALL_HOOKS.wait();
+ 						}
+
+@@ -74,7 +76,7 @@ public void run() {
+ 		} );
+ 	}
+
+-	private String name;
++	String name;
+
+ 	/**
+ 	 * Call this in your app constructor if you have no other shutdown hooks. If you don't call

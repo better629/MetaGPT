@@ -1,0 +1,2209 @@
+diff --git a/langchain4j-workers-ai/pom.xml b/langchain4j-workers-ai/pom.xml
+new file mode 100644
+index 0000000000..118f89dda8
+--- /dev/null
++++ b/langchain4j-workers-ai/pom.xml
+@@ -0,0 +1,75 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project xmlns="http://maven.apache.org/POM/4.0.0"
++         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
++         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
++    <modelVersion>4.0.0</modelVersion>
++
++    <parent>
++        <groupId>dev.langchain4j</groupId>
++        <artifactId>langchain4j-parent</artifactId>
++        <version>0.32.0-SNAPSHOT</version>
++        <relativePath>../langchain4j-parent/pom.xml</relativePath>
++    </parent>
++
++    <artifactId>langchain4j-workers-ai</artifactId>
++    <packaging>jar</packaging>
++
++    <name>LangChain4j :: Integration :: CloudFlare Workers AI</name>
++
++    <dependencies>
++
++        <dependency>
++            <groupId>dev.langchain4j</groupId>
++            <artifactId>langchain4j-core</artifactId>
++        </dependency>
++
++        <dependency>
++            <groupId>com.squareup.retrofit2</groupId>
++            <artifactId>retrofit</artifactId>
++        </dependency>
++
++        <dependency>
++            <groupId>com.squareup.retrofit2</groupId>
++            <artifactId>converter-jackson</artifactId>
++        </dependency>
++
++        <dependency>
++            <groupId>com.squareup.okhttp3</groupId>
++            <artifactId>okhttp</artifactId>
++        </dependency>
++
++        <dependency>
++            <groupId>org.projectlombok</groupId>
++            <artifactId>lombok</artifactId>
++            <scope>provided</scope>
++        </dependency>
++
++        <dependency>
++            <groupId>org.junit.jupiter</groupId>
++            <artifactId>junit-jupiter-engine</artifactId>
++            <scope>test</scope>
++        </dependency>
++
++        <dependency>
++            <groupId>org.junit.jupiter</groupId>
++            <artifactId>junit-jupiter-params</artifactId>
++            <scope>test</scope>
++        </dependency>
++
++        <dependency>
++            <groupId>org.assertj</groupId>
++            <artifactId>assertj-core</artifactId>
++            <scope>test</scope>
++        </dependency>
++    </dependencies>
++
++    <licenses>
++        <license>
++            <name>Apache-2.0</name>
++            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
++            <distribution>repo</distribution>
++            <comments>A business-friendly OSS license</comments>
++        </license>
++    </licenses>
++
++</project>
+\ No newline at end of file
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiChatModel.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiChatModel.java
+new file mode 100644
+index 0000000000..dbd5068ccb
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiChatModel.java
+@@ -0,0 +1,206 @@
++package dev.langchain4j.model.workersai;
++
++import dev.langchain4j.agent.tool.ToolSpecification;
++import dev.langchain4j.data.message.AiMessage;
++import dev.langchain4j.data.message.ChatMessage;
++import dev.langchain4j.model.chat.ChatLanguageModel;
++import dev.langchain4j.model.output.FinishReason;
++import dev.langchain4j.model.output.Response;
++import dev.langchain4j.model.workersai.client.AbstractWorkersAIModel;
++import dev.langchain4j.model.workersai.client.WorkersAiChatCompletionRequest;
++import dev.langchain4j.model.workersai.spi.WorkersAiChatModelBuilderFactory;
++import lombok.NonNull;
++import lombok.extern.slf4j.Slf4j;
++
++import java.io.IOException;
++import java.util.Arrays;
++import java.util.List;
++import java.util.stream.Collectors;
++
++import static dev.langchain4j.spi.ServiceHelper.loadFactories;
++
++/**
++ * WorkerAI Chat model.
++ * <a href="https://developers.cloudflare.com/api/operations/workers-ai-post-run-model">...</a>
++ */
++@Slf4j
++public class WorkersAiChatModel extends AbstractWorkersAIModel implements ChatLanguageModel {
++
++    /**
++     * Constructor with Builder.
++     *
++     * @param builder
++     *      builder.
++     */
++    public WorkersAiChatModel(Builder builder) {
++       this(builder.accountId, builder.modelName, builder.apiToken);
++    }
++
++    /**
++     * Constructor with Builder.
++     *
++     * @param accountId
++     *      account identifier
++     * @param modelName
++     *      model name
++     * @param apiToken
++     *     api token
++     */
++    public WorkersAiChatModel(String accountId, String modelName, String apiToken) {
++        super(accountId, modelName, apiToken);
++    }
++
++    /**
++     * Builder access.
++     *
++     * @return
++     *      builder instance
++     */
++    public static Builder builder() {
++        for (WorkersAiChatModelBuilderFactory factory : loadFactories(WorkersAiChatModelBuilderFactory.class)) {
++            return factory.get();
++        }
++        return new Builder();
++    }
++
++    /**
++     * Internal Builder.
++     */
++    public static class Builder {
++
++        /**
++         * Account identifier, provided by the WorkerAI platform.
++         */
++        public String accountId;
++        /**
++         * ModelName, preferred as enum for extensibility.
++         */
++        public String apiToken;
++        /**
++         * ModelName, preferred as enum for extensibility.
++         */
++        public String modelName;
++
++        /**
++         * Simple constructor.
++         */
++        public Builder() {
++        }
++
++        /**
++         * Simple constructor.
++         *
++         * @param accountId
++         *      account identifier.
++         * @return
++         *      self reference
++         */
++        public Builder accountId(String accountId) {
++            this.accountId = accountId;
++            return this;
++        }
++
++        /**
++         * Sets the apiToken for the Worker AI model builder.
++         *
++         * @param apiToken The apiToken to set.
++         * @return The current instance of {@link Builder}.
++         */
++        public Builder apiToken(String apiToken) {
++            this.apiToken = apiToken;
++            return this;
++        }
++
++        /**
++         * Sets the model name for the Worker AI model builder.
++         *
++         * @param modelName The name of the model to set.
++         * @return The current instance of {@link Builder}.
++         */
++        public Builder modelName(String modelName) {
++            this.modelName = modelName;
++            return this;
++        }
++
++        /**
++         * Builds a new instance of Worker AI Chat Model.
++         *
++         * @return A new instance of {@link WorkersAiChatModel}.
++         */
++        public WorkersAiChatModel build() {
++            return new WorkersAiChatModel(this);
++        }
++    }
++
++    /** {@inheritDoc} */
++    @Override
++    public String generate(String userMessage) {
++        return generate(new WorkersAiChatCompletionRequest(WorkersAiChatCompletionRequest.MessageRole.user, userMessage));
++    }
++
++    /** {@inheritDoc} */
++    @Override
++    public Response<AiMessage> generate(@NonNull  ChatMessage... messages) {
++        return generate(Arrays.asList(messages));
++    }
++
++    /** {@inheritDoc} */
++    @Override
++    public Response<AiMessage> generate(List<ChatMessage> messages) {
++        WorkersAiChatCompletionRequest req = new WorkersAiChatCompletionRequest();
++        req.setMessages(messages.stream()
++                .map(this::toMessage)
++                .collect(Collectors.toList()));
++        return new Response<>(new AiMessage(generate(req)),null, FinishReason.STOP);
++    }
++
++    /** {@inheritDoc} */
++    @Override
++    public Response<AiMessage> generate(List<ChatMessage> messages, List<ToolSpecification> toolSpecifications) {
++        throw new UnsupportedOperationException("Tools are currently not supported for WorkerAI models");
++    }
++
++    /** {@inheritDoc} */
++    @Override
++    public Response<AiMessage> generate(List<ChatMessage> messages, ToolSpecification toolSpecification) {
++        throw new UnsupportedOperationException("Tools are currently not supported for WorkerAI models");
++    }
++
++    /**
++     * Mapping ChatMessage to ChatTextGenerationRequest.Message
++     *
++     * @param message
++     *      inbound message
++     * @return
++     *      message for request
++     */
++    private WorkersAiChatCompletionRequest.Message toMessage(ChatMessage message) {
++        return new WorkersAiChatCompletionRequest.Message(
++               WorkersAiChatCompletionRequest.MessageRole.valueOf(message.type().name().toLowerCase()),
++                message.text());
++    }
++
++    /**
++     * Invoke endpoint and process error.
++     *
++     * @param req
++     *      request
++     * @return
++     *      text generated by the model
++     */
++    private String generate(WorkersAiChatCompletionRequest req) {
++        try {
++            retrofit2.Response<dev.langchain4j.model.workersai.client.WorkersAiChatCompletionResponse> retrofitResponse = workerAiClient
++                    .generateChat(req, accountId, modelName)
++                    .execute();
++            processErrors(retrofitResponse.body(), retrofitResponse.errorBody());
++            if (retrofitResponse.body() == null) {
++                throw new IllegalStateException("Response is empty");
++            }
++            return retrofitResponse.body().getResult().getResponse();
++        } catch (IOException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++}
+\ No newline at end of file
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiChatModelName.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiChatModelName.java
+new file mode 100644
+index 0000000000..12521de2fe
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiChatModelName.java
+@@ -0,0 +1,96 @@
++package dev.langchain4j.model.workersai;
++
++/**
++ * Enum for Workers AI Chat Model Name.
++ */
++public enum WorkersAiChatModelName {
++
++    // ---------------------------------------------------------------------
++    // Text Generation
++    // https://developers.cloudflare.com/workers-ai/models/text-generation/
++    // ---------------------------------------------------------------------
++
++    /** Full precision (fp16) generative text model with 7 billion parameters from Met. */
++    LLAMA2_7B_FULL("@cf/meta/llama-2-7b-chat-fp16"),
++    /** Quantized (int8) generative text model with 7 billion parameters from Meta. */
++    LLAMA2_7B_QUANTIZED("@cf/meta/llama-2-7b-chat-int8"),
++    /** Instruct fine-tuned version of the Mistral-7b generative text model with 7 billion parameters. */
++    CODELLAMA_7B_AWQ("@hf/thebloke/codellama-7b-instruct-awq"),
++    /** Deepseek Coder is composed of a series of code language models, each trained from scratch on 2T tokens, with a composition of 87% code and 13% natural language in both English and Chinese.. */
++    DEEPSEEK_CODER_6_7_BASE("@hf/thebloke/deepseek-coder-6.7b-base-awq"),
++    /** Deepseek Coder is composed of a series of code language models, each trained from scratch on 2T tokens, with a composition of 87% code and 13% natural language in both English and Chinese.. */
++    DEEPSEEK_CODER_MATH_7B_AWQ(" @hf/thebloke/deepseek-math-7b-awq"),
++    /** DeepSeekMath is initialized with DeepSeek-Coder-v1.5 7B and continues pre-training on math-related tokens sourced from Common Crawl, together with natural language and code data for 500B tokens. */
++    DEEPSEEK_CODER_MATH_7B_INSTRUCT("@hf/thebloke/deepseek-math-7b-instruct"),
++    /** DeepSeekMath-Instruct 7B is a mathematically instructed tuning model derived from DeepSeekMath-Base 7B. DeepSeekMath is initialized with DeepSeek-Coder-v1.5 7B and continues pre-training on math-related tokens sourced from Common Crawl, together with natural language and code data for 500B tokens.. */
++    MISTRAL_7B_INSTRUCT("@cf/mistral/mistral-7b-instruct-v0.1"),
++    /** DiscoLM German 7b is a Mistral-based large language model with a focus on German-language applications. AWQ is an efficient, accurate and blazing-fast low-bit weight quantization method, currently supporting 4-bit quantization. */
++    DISCOLM_GERMAN_7B_V1_AWQ("@cf/thebloke/discolm-german-7b-v1-awq"),
++    /** Falcon-7B-Instruct is a 7B parameters causal decoder-only model built by TII based on Falcon-7B and finetuned on a mixture of chat/instruct datasets. */
++    FALCOM_7B_INSTRUCT("@cf/tiiuae/falcon-7b-instruct"),
++    /** This is a Gemma-2B base model that Cloudflare dedicates for inference with LoRA adapters. Gemma is a family of lightweight, state-of-the-art open models from Google, built from the same research and technology used to create the Gemini models. */
++    GEMMA_2B_IT_LORA("@cf/google/gemma-2b-it-lora"),
++    /** Gemma is a family of lightweight, state-of-the-art open models from Google, built from the same research and technology used to create the Gemini models. They are text-to-text, decoder-only large language models, available in English, with open weights, pre-trained variants, and instruction-tuned variants. */
++    GEMMA_7B_IT("@hf/google/gemma-7b-it"),
++    /** This is a Gemma-7B base model that Cloudflare dedicates for inference with LoRA adapters. Gemma is a family of lightweight, state-of-the-art open models from Google, built from the same research and technology used to create the Gemini models. */
++    GEMMA_2B_IT_LORA_DUPLICATE("@cf/google/gemma-2b-it-lora"),
++    /** Hermes 2 Pro on Mistral 7B is the new flagship 7B Hermes! Hermes 2 Pro is an upgraded, retrained version of Nous Hermes 2, consisting of an updated and cleaned version of the OpenHermes 2.5 Dataset, as well as a newly introduced Function Calling and JSON Mode dataset developed in-house. */
++    HERMES_2_PRO_MISTRAL_7B("@hf/nousresearch/hermes-2-pro-mistral-7b"),
++    /** Llama 2 13B Chat AWQ is an efficient, accurate and blazing-fast low-bit weight quantized Llama 2 variant. */
++    LLAMA_2_13B_CHAT_AWQ("@hf/thebloke/llama-2-13b-chat-awq"),
++    /** This is a Llama2 base model that Cloudflare dedicated for inference with LoRA adapters. Llama 2 is a collection of pretrained and fine-tuned generative text models ranging in scale from 7 billion to 70 billion parameters. This is the repository for the 7B fine-tuned model, optimized for dialogue use cases and converted for the Hugging Face Transformers format. */
++    LLAMA_2_7B_CHAT_HF_LORA("@cf/meta-llama/llama-2-7b-chat-hf-lora"),
++    /** Generation over generation, Meta Llama 3 demonstrates state-of-the-art performance on a wide range of industry benchmarks and offers new capabilities, including improved reasoning. */
++    LLAMA_3_8B_INSTRUCT("@cf/meta/llama-3-8b-instruct"),
++    /** Quantized (int4) generative text model with 8 billion parameters from Meta. */
++    LLAMA_2_13B_CHAT_AWQ_DUPLICATE("@hf/thebloke/llama-2-13b-chat-awq"),
++    /** Llama Guard is a model for classifying the safety of LLM prompts and responses, using a taxonomy of safety risks. */
++    LLAMAGUARD_7B_AWQ("@hf/thebloke/llamaguard-7b-awq"),
++    /** Quantized (int4) generative text model with 8 billion parameters from Meta. */
++    META_LLAMA_3_8B_INSTRUCT("@hf/meta-llama/meta-llama-3-8b-instruct"),
++    /** Mistral 7B Instruct v0.1 AWQ is an efficient, accurate and blazing-fast low-bit weight quantized Mistral variant. */
++    MISTRAL_7B_INSTRUCT_V0_1_AWQ("@hf/thebloke/mistral-7b-instruct-v0.1-awq"),
++    /** The Mistral-7B-Instruct-v0.2 Large Language Model (LLM) is an instruct fine-tuned version of the Mistral-7B-v0.2. Mistral-7B-v0.2 has the following changes compared to Mistral-7B-v0.1: 32k context window (vs 8k context in v0.1), rope-theta = 1e6, and no Sliding-Window Attention. */
++    MISTRAL_7B_INSTRUCT_V0_2("@hf/mistral/mistral-7b-instruct-v0.2"),
++    /** The Mistral-7B-Instruct-v0.2 Large Language Model (LLM) is an instruct fine-tuned version of the Mistral-7B-v0.2. */
++    MISTRAL_7B_INSTRUCT_V0_2_LORA("@cf/mistral/mistral-7b-instruct-v0.2-lora"),
++    /** This model is a fine-tuned 7B parameter LLM on the Intel Gaudi 2 processor from the mistralai/Mistral-7B-v0.1 on the open source dataset Open-Orca/SlimOrca. */
++    NEURAL_CHAT_7B_V3_1_AWQ("@hf/thebloke/neural-chat-7b-v3-1-awq"),
++    /** OpenChat is an innovative library of open-source language models, fine-tuned with C-RLFT - a strategy inspired by offline reinforcement learning. */
++    OPENCHAT_3_5_0106("@cf/openchat/openchat-3.5-0106"),
++    /** OpenHermes 2.5 Mistral 7B is a state of the art Mistral Fine-tune, a continuation of OpenHermes 2 model, which trained on additional code datasets. */
++    OPENHERMES_2_5_MISTRAL_7B_AWQ("@hf/thebloke/openhermes-2.5-mistral-7b-awq"),
++    /** Phi-2 is a Transformer-based model with a next-word prediction objective, trained on 1.4T tokens from multiple passes on a mixture of Synthetic and Web datasets for NLP and coding. */
++    PHI_2("@cf/microsoft/phi-2"),
++    /** Qwen1.5 is the improved version of Qwen, the large language model series developed by Alibaba Cloud. */
++    QWEN1_5_0_5B_CHAT("@cf/qwen/qwen1.5-0.5b-chat"),
++    /** Qwen1.5 is the improved version of Qwen, the large language model series developed by Alibaba Cloud. */
++    QWEN1_5_1_8B_CHAT("@cf/qwen/qwen1.5-1.8b-chat"),
++    /** Qwen1.5 is the improved version of Qwen, the large language model series developed by Alibaba Cloud. AWQ is an efficient, accurate and blazing-fast low-bit weight quantization method, currently supporting 4-bit quantization. */
++    QWEN1_5_14B_CHAT_AWQ("@cf/qwen/qwen1.5-14b-chat-awq"),
++    /** Qwen1.5 is the improved version of Qwen, the large language model series developed by Alibaba Cloud. AWQ is an efficient, accurate and blazing-fast low-bit weight quantization method, currently supporting 4-bit quantization. */
++    QWEN1_5_7B_CHAT_AWQ("@cf/qwen/qwen1.5-7b-chat-awq"),
++    /** This model is intended to be used by non-technical users to understand data inside their SQL databases. */
++    SQLCODER_7B_2("@cf/defog/sqlcoder-7b-2"),
++    /** We introduce Starling-LM-7B-beta, an open large language model (LLM) trained by Reinforcement Learning from AI Feedback (RLAIF). Starling-LM-7B-beta is trained from Openchat-3.5-0106 with our new reward model Nexusflow/Starling-RM-34B and policy optimization method Fine-Tuning Language Models from Human Preferences (PPO). */
++    STARLING_LM_7B_BETA("@hf/nexusflow/starling-lm-7b-beta"),
++    /** The TinyLlama project aims to pretrain a 1.1B Llama model on 3 trillion tokens. This is the chat model finetuned on top of TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T. */
++    TINYLLAMA_1_1B_CHAT_V1_0("@cf/tinyllama/tinyllama-1.1b-chat-v1.0"),
++    /** Cybertron 7B v2 is a 7B MistralAI based model, best on it’s series. It was trained with SFT, DPO and UNA (Unified Neural Alignment) on multiple datasets. */
++    UNA_CYBERTRON_7B_V2_BF16("@cf/fblgit/una-cybertron-7b-v2-bf16"),
++    /** Zephyr 7B Beta AWQ is an efficient, accurate and blazing-fast low-bit weight quantized Zephyr model variant. */
++    ZEPHYR_7B_BETA_AWQ("@hf/thebloke/zephyr-7b-beta-awq");
++
++    private final String stringValue;
++
++    WorkersAiChatModelName(String stringValue) {
++        this.stringValue = stringValue;
++    }
++
++    @Override
++    public String toString() {
++        return stringValue;
++    }
++
++
++}
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiEmbeddingModel.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiEmbeddingModel.java
+new file mode 100644
+index 0000000000..e5dc9ea34e
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiEmbeddingModel.java
+@@ -0,0 +1,248 @@
++package dev.langchain4j.model.workersai;
++
++import dev.langchain4j.data.embedding.Embedding;
++import dev.langchain4j.data.segment.TextSegment;
++import dev.langchain4j.model.embedding.EmbeddingModel;
++import dev.langchain4j.model.output.FinishReason;
++import dev.langchain4j.model.output.Response;
++import dev.langchain4j.model.workersai.client.AbstractWorkersAIModel;
++import dev.langchain4j.model.workersai.client.WorkersAiEmbeddingResponse;
++import dev.langchain4j.model.workersai.spi.WorkersAiEmbeddingModelBuilderFactory;
++import lombok.extern.slf4j.Slf4j;
++
++import java.io.IOException;
++import java.util.ArrayList;
++import java.util.List;
++import java.util.concurrent.ExecutionException;
++import java.util.concurrent.ExecutorService;
++import java.util.concurrent.Executors;
++import java.util.concurrent.Future;
++import java.util.concurrent.TimeUnit;
++
++import static dev.langchain4j.spi.ServiceHelper.loadFactories;
++
++/**
++ * WorkerAI Embedding model.
++ * <a href="https://developers.cloudflare.com/api/operations/workers-ai-post-run-model">...</a>
++ */
++@Slf4j
++public class WorkersAiEmbeddingModel extends AbstractWorkersAIModel implements EmbeddingModel {
++
++    /**
++     * Constructor with Builder.
++     *
++     * @param builder
++     *      builder.
++     */
++    public WorkersAiEmbeddingModel(Builder builder) {
++        this(builder.accountId, builder.modelName, builder.apiToken);
++    }
++
++    /**
++     * Constructor with Builder.
++     *
++     * @param accountId
++     *      account identifier
++     * @param modelName
++     *      model name
++     * @param apiToken
++     *     api token
++     */
++    public WorkersAiEmbeddingModel(String accountId, String modelName, String apiToken) {
++        super(accountId, modelName, apiToken);
++    }
++
++    /**
++     * Builder access.
++     *
++     * @return
++     *      builder instance
++     */
++    public static Builder builder() {
++        for (WorkersAiEmbeddingModelBuilderFactory factory : loadFactories(WorkersAiEmbeddingModelBuilderFactory.class)) {
++            return factory.get();
++        }
++        return new WorkersAiEmbeddingModel.Builder();
++    }
++
++    /**
++     * Internal Builder.
++     */
++    public static class Builder {
++
++        /**
++         * Account identifier, provided by the WorkerAI platform.
++         */
++        public String accountId;
++        /**
++         * ModelName, preferred as enum for extensibility.
++         */
++        public String apiToken;
++        /**
++         * ModelName, preferred as enum for extensibility.
++         */
++        public String modelName;
++
++        /**
++         * Simple constructor.
++         */
++        public Builder() {
++        }
++
++        /**
++         * Simple constructor.
++         *
++         * @param accountId
++         *      account identifier.
++         * @return
++         *      self reference
++         */
++        public Builder accountId(String accountId) {
++            this.accountId = accountId;
++            return this;
++        }
++
++        /**
++         * Sets the apiToken for the Worker AI model builder.
++         *
++         * @param apiToken The apiToken to set.
++         * @return The current instance of {@link WorkersAiChatModel.Builder}.
++         */
++        public Builder apiToken(String apiToken) {
++            this.apiToken = apiToken;
++            return this;
++        }
++
++        /**
++         * Sets the model name for the Worker AI model builder.
++         *
++         * @param modelName The name of the model to set.
++         * @return The current instance of {@link WorkersAiChatModel.Builder}.
++         */
++        public Builder modelName(String modelName) {
++            this.modelName = modelName;
++            return this;
++        }
++
++        /**
++         * Builds a new instance of Worker AI Chat Model.
++         *
++         * @return A new instance of {@link WorkersAiChatModel}.
++         */
++        public WorkersAiEmbeddingModel build() {
++            return new WorkersAiEmbeddingModel(this);
++        }
++    }
++
++    /** {@inheritDoc} */
++    @Override
++    public Response<Embedding> embed(String text) {
++        try {
++            dev.langchain4j.model.workersai.client.WorkersAiEmbeddingRequest req = new dev.langchain4j.model.workersai.client.WorkersAiEmbeddingRequest();
++            req.getText().add(text);
++
++            retrofit2.Response<dev.langchain4j.model.workersai.client.WorkersAiEmbeddingResponse> retrofitResponse = workerAiClient
++                    .embed(req, accountId, modelName)
++                    .execute();
++
++            processErrors(retrofitResponse.body(), retrofitResponse.errorBody());
++            if (retrofitResponse.body() == null) {
++                throw new RuntimeException("Unexpected response: " + retrofitResponse);
++            }
++            dev.langchain4j.model.workersai.client.WorkersAiEmbeddingResponse.EmbeddingResult res = retrofitResponse.body().getResult();
++            // Single Vector expected
++            if (res.getShape().get(0) != 1) {
++                throw new RuntimeException("Unexpected shape: " + res.getShape());
++            }
++            List<Float> embeddings = res.getData().get(0);
++            float[] floatArray = new float[embeddings.size()];
++            for (int i = 0; i < embeddings.size(); i++) {
++                floatArray[i] = embeddings.get(i); // Unboxing Float to float
++            }
++            return new Response<>(new Embedding(floatArray), null, FinishReason.STOP);
++        } catch (IOException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    /** {@inheritDoc} */
++    @Override
++    public Response<Embedding> embed(TextSegment textSegment) {
++        // no metadata in worker ai
++        return embed(textSegment.text());
++    }
++
++
++    /** {@inheritDoc} */
++    @Override
++    public Response<List<Embedding>> embedAll(List<TextSegment> textSegments) {
++        List<Future<List<Embedding>>> futures = new ArrayList<>();
++        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
++        try {
++            final int chunkSize = 100;
++            for (int i = 0; i < textSegments.size(); i += chunkSize) {
++                List<TextSegment> chunk = textSegments.subList(i, Math.min(textSegments.size(), i + chunkSize));
++                Future<List<Embedding>> future = executor.submit(() -> processChunk(chunk, accountId, modelName));
++                futures.add(future);
++            }
++            // Wait for all futures to complete and collect results
++            List<Embedding> result = new ArrayList<>();
++            for (Future<List<Embedding>> future : futures) {
++                result.addAll(future.get());
++            }
++            return new Response<>(result);
++        } catch (InterruptedException | ExecutionException e) {
++            throw new RuntimeException(e);
++        } finally {
++            executor.shutdown();
++            try {
++                if (!executor.awaitTermination(800, TimeUnit.MILLISECONDS)) {
++                    executor.shutdownNow();
++                }
++            } catch (InterruptedException e) {
++                executor.shutdownNow();
++            }
++        }
++    }
++
++    /**
++     * Process chunk of text segments.
++     *
++     * @param chunk
++     *      chunk of text segments.
++     * @param accountIdentifier
++     *      account identifier.
++     * @param modelName
++     *      model name.
++     * @return
++     *      list of embeddings.
++     * @throws IOException
++     *      error occurred during invocation.
++     */
++    private List<Embedding> processChunk(List<TextSegment> chunk, String accountIdentifier, String modelName)
++    throws IOException {
++        dev.langchain4j.model.workersai.client.WorkersAiEmbeddingRequest req = new dev.langchain4j.model.workersai.client.WorkersAiEmbeddingRequest();
++        for (TextSegment textSegment : chunk) {
++            req.getText().add(textSegment.text());
++        }
++        retrofit2.Response<dev.langchain4j.model.workersai.client.WorkersAiEmbeddingResponse> retrofitResponse = workerAiClient
++                .embed(req, accountIdentifier, modelName)
++                .execute();
++        processErrors(retrofitResponse.body(), retrofitResponse.errorBody());
++        if (retrofitResponse.body() == null) {
++            throw new RuntimeException("Unexpected response: " + retrofitResponse);
++        }
++        WorkersAiEmbeddingResponse.EmbeddingResult res = retrofitResponse.body().getResult();
++
++        List<List<Float>> embeddings = res.getData();
++        List<Embedding> embeddingsList = new ArrayList<>();
++        for (List<Float> embedding : embeddings) {
++            float[] floatArray = new float[embedding.size()];
++            for (int i = 0; i < embedding.size(); i++) {
++                floatArray[i] = embedding.get(i); // Unboxing Float to float
++            }
++            embeddingsList.add(new Embedding(floatArray));
++        }
++        return embeddingsList;
++    }
++}
+\ No newline at end of file
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiEmbeddingModelName.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiEmbeddingModelName.java
+new file mode 100644
+index 0000000000..691c055281
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiEmbeddingModelName.java
+@@ -0,0 +1,34 @@
++package dev.langchain4j.model.workersai;
++
++/**
++ * Enum for Workers AI Embedding Model Name.
++ */
++public enum WorkersAiEmbeddingModelName {
++
++    // ---------------------------------------------------------------------
++    // Text Embeddings
++    // https://developers.cloudflare.com/workers-ai/models/text-embeddings/
++    // ---------------------------------------------------------------------
++
++    /** BAAI general embedding (bge) models transform any given text into a compact vector. */
++    BAAI_EMBEDDING_SMALL("@cf/baai/bge-small-en-v1.5"),
++
++    /** BAAI general embedding (bge) models transform any given text into a compact vector. */
++    BAAI_EMBEDDING_BASE("@cf/baai/bge-base-en-v1.5"),
++
++    /** BAAI general embedding (bge) models transform any given text into a compact vector. */
++    BAAI_EMBEDDING_LARGE("@cf/baai/bge-large-en-v1.5");
++
++    private final String stringValue;
++
++    WorkersAiEmbeddingModelName(String stringValue) {
++        this.stringValue = stringValue;
++    }
++
++    @Override
++    public String toString() {
++        return stringValue;
++    }
++
++
++}
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiImageModel.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiImageModel.java
+new file mode 100644
+index 0000000000..c6fe2ae58d
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiImageModel.java
+@@ -0,0 +1,291 @@
++package dev.langchain4j.model.workersai;
++
++import dev.langchain4j.data.image.Image;
++import dev.langchain4j.model.image.ImageModel;
++import dev.langchain4j.model.output.FinishReason;
++import dev.langchain4j.model.output.Response;
++import dev.langchain4j.model.workersai.client.AbstractWorkersAIModel;
++import dev.langchain4j.model.workersai.client.WorkersAiImageGenerationRequest;
++import dev.langchain4j.model.workersai.spi.WorkersAiImageModelBuilderFactory;
++import okhttp3.ResponseBody;
++
++import javax.imageio.ImageIO;
++import java.awt.image.BufferedImage;
++import java.io.ByteArrayOutputStream;
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.IOException;
++import java.io.InputStream;
++import java.net.URL;
++import java.util.Base64;
++
++import static dev.langchain4j.internal.ValidationUtils.ensureNotBlank;
++import static dev.langchain4j.internal.ValidationUtils.ensureNotNull;
++import static dev.langchain4j.spi.ServiceHelper.loadFactories;
++
++/**
++ * WorkerAI Image model.
++ */
++public class WorkersAiImageModel extends AbstractWorkersAIModel implements ImageModel {
++
++    /**
++     * The mime type returned by Workers
++     */
++    private static final String MIME_TYPE = "image/png";
++
++    /**
++     * Constructor with Builder.
++     *
++     * @param builder
++     *      builder.
++     */
++    public WorkersAiImageModel(Builder builder) {
++        this(builder.accountId, builder.modelName, builder.apiToken);
++    }
++
++    /**
++     * Constructor with Builder.
++     *
++     * @param accountId
++     *      account identifier
++     * @param modelName
++     *      model name
++     * @param apiToken
++     *     api token
++     */
++    public WorkersAiImageModel(String accountId, String modelName, String apiToken) {
++        super(accountId, modelName, apiToken);
++    }
++
++    /**
++     * Builder access.
++     *
++     * @return
++     *      builder instance
++     */
++    public static Builder builder() {
++        for (WorkersAiImageModelBuilderFactory factory : loadFactories(WorkersAiImageModelBuilderFactory.class)) {
++            return factory.get();
++        }
++        return new WorkersAiImageModel.Builder();
++    }
++
++    /**
++     * Internal Builder.
++     */
++    public static class Builder {
++
++        /**
++         * Account identifier, provided by the WorkerAI platform.
++         */
++        public String accountId;
++        /**
++         * ModelName, preferred as enum for extensibility.
++         */
++        public String apiToken;
++        /**
++         * ModelName, preferred as enum for extensibility.
++         */
++        public String modelName;
++
++        /**
++         * Simple constructor.
++         */
++        public Builder() {
++        }
++
++        /**
++         * Simple constructor.
++         *
++         * @param accountId
++         *      account identifier.
++         * @return
++         *      self reference
++         */
++        public Builder accountId(String accountId) {
++            this.accountId = accountId;
++            return this;
++        }
++
++        /**
++         * Sets the apiToken for the Worker AI model builder.
++         *
++         * @param apiToken The apiToken to set.
++         * @return The current instance of {@link WorkersAiChatModel.Builder}.
++         */
++        public Builder apiToken(String apiToken) {
++            this.apiToken = apiToken;
++            return this;
++        }
++
++        /**
++         * Sets the model name for the Worker AI model builder.
++         *
++         * @param modelName The name of the model to set.
++         * @return The current instance of {@link WorkersAiChatModel.Builder}.
++         */
++        public Builder modelName(String modelName) {
++            this.modelName = modelName;
++            return this;
++        }
++
++        /**
++         * Builds a new instance of Worker AI Chat Model.
++         *
++         * @return A new instance of {@link WorkersAiChatModel}.
++         */
++        public WorkersAiImageModel build() {
++            return new WorkersAiImageModel(this);
++        }
++    }
++
++    /** {@inheritDoc} */
++    public Response<Image> generate(String prompt) {
++        ensureNotBlank(prompt, "Prompt");
++        return new Response<>(convertAsImage(executeQuery(prompt, null, null)), null, FinishReason.STOP);
++    }
++
++    /** {@inheritDoc} */
++    public Response<Image> edit(Image image, String prompt) {
++        ensureNotBlank(prompt, "Prompt");
++        ensureNotNull(image, "Image");
++        return new Response<>(convertAsImage(executeQuery(prompt, null, image)), null, FinishReason.STOP);
++    }
++
++    /** {@inheritDoc} */
++    public Response<Image> edit(Image image, Image mask, String prompt) {
++        ensureNotBlank(prompt, "Prompt");
++        ensureNotNull(image, "Image");
++        ensureNotNull(mask, "Mask");
++        return new Response<>(convertAsImage(executeQuery(prompt, mask, image)), null, FinishReason.STOP);
++    }
++
++    /**
++     * Generate image and save to file.
++     *
++     * @param prompt
++     *      current prompt
++     * @param destinationFile
++     *      local file
++     * @return
++     *      response with the destination file
++     */
++    public Response<File> generate(String prompt, String destinationFile) {
++        ensureNotBlank(prompt, "Prompt");
++        ensureNotBlank(destinationFile, "Destination file");
++        try {
++            byte[] image = executeQuery(prompt, null, null);
++            try (FileOutputStream fileOutputStream = new FileOutputStream(destinationFile)) {
++                fileOutputStream.write(image);
++            }
++            return new Response<>(new File(destinationFile), null, FinishReason.STOP);
++        } catch (IOException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    /**
++     * Execute query.
++     *
++     * @param prompt
++     *     prompt.
++     * @return
++     *    image.
++     */
++    private byte[] executeQuery(String prompt, Image image, Image mask) {
++        try {
++            // Mapping inbound
++            WorkersAiImageGenerationRequest imgReq = new WorkersAiImageGenerationRequest();
++            imgReq.setPrompt(prompt);
++            if (image != null) {
++                if (image.url() != null) {
++                    imgReq.setImage(getPixels(image.url().toURL()));
++                }
++            }
++            if (mask != null) {
++                if (mask.url() != null) {
++                    imgReq.setMask(getPixels(mask.url().toURL()));
++                }
++            }
++
++            retrofit2.Response<ResponseBody> response = workerAiClient
++                    .generateImage(imgReq, accountId, modelName)
++                    .execute();
++
++            if (response.isSuccessful() && response.body() != null) {
++                InputStream inputStream = response.body().byteStream();
++                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
++                int nRead;
++                byte[] data = new byte[1024];
++                while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
++                    buffer.write(data, 0, nRead);
++                }
++                buffer.flush();
++                return buffer.toByteArray();
++            }
++            throw new IllegalStateException("An error occured while generating image.");
++        } catch (Exception e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    /**
++     * Convert an image into a array of number, supposedly the Pixels.
++     * @param imageUrl
++     *      current image URL
++     * @return
++     *      pixels of the image
++     * @throws Exception
++     *      return an exception if pixel not returned
++     */
++    public int[] getPixels(URL imageUrl) throws Exception {
++        BufferedImage image = ImageIO.read(imageUrl);
++
++        // Get image dimensions
++        int width = image.getWidth();
++        int height = image.getHeight();
++
++        // Initialize an array to hold the pixel data
++        int[] pixelData = new int[width * height];
++
++        // Extract pixel data
++        int index = 0;
++        for (int y = 0; y < height; y++) {
++            for (int x = 0; x < width; x++) {
++                // Get pixel color at (x, y)
++                int pixel = image.getRGB(x, y);
++
++                // Extract the individual color components
++                int alpha = (pixel >> 24) & 0xff;
++                int red = (pixel >> 16) & 0xff;
++                int green = (pixel >> 8) & 0xff;
++                int blue = pixel & 0xff;
++
++                // Combine the color components into a single integer
++                int color = (alpha << 24) | (red << 16) | (green << 8) | blue;
++
++                // Store the color in the array
++                pixelData[index++] = color;
++            }
++        }
++        return pixelData;
++    }
++
++    /**
++     * Convert Workers AI Image Generation output to Langchain4j model.
++     *
++     * @param data
++     *      output image
++     * @return
++     *      output image converted
++     */
++    public Image convertAsImage(byte[] data) {
++        return Image.builder()
++                .base64Data(Base64.getEncoder().encodeToString(data))
++                .mimeType(MIME_TYPE)
++                .build();
++    }
++
++}
++
++
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiImageModelName.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiImageModelName.java
+new file mode 100644
+index 0000000000..55c93fe8c9
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiImageModelName.java
+@@ -0,0 +1,46 @@
++package dev.langchain4j.model.workersai;
++
++/**
++ * Enum for Workers AI Omage Model Name.
++ */
++public enum WorkersAiImageModelName {
++
++    // ---------------------------------------------------------------------
++    // Text to image
++    // https://developers.cloudflare.com/workers-ai/models/text-to-image/
++    // ---------------------------------------------------------------------
++
++    /**
++     * Diffusion-based text-to-image generative model by Stability AI. Generates and modify images based on text prompts.
++     */
++    STABLE_DIFFUSION_XL("@cf/stabilityai/stable-diffusion-xl-base-1.0"),
++    /**
++     * Stable Diffusion model that has been fine-tuned to be better at photorealism without sacrificing range.
++     */
++    DREAM_SHAPER_8_LCM("@cf/lykon/dreamshaper-8-lcm"),
++    /**
++     * Stable Diffusion is a latent text-to-image diffusion model capable of generating photo-realistic images. Img2img generate a new image from an input image with Stable Diffusion.
++     */
++    STABLE_DIFFUSION_V1_5_IMG2IMG("@cf/runwayml/stable-diffusion-v1-5-img2img"),
++    /**
++     * Stable Diffusion Inpainting is a latent text-to-image diffusion model capable of generating photo-realistic images given any text input, with the extra capability of inpainting the pictures by using a mask.
++     */
++    STABLE_DIFFUSION_V1_5_IN_PAINTING("@cf/runwayml/stable-diffusion-v1-5-inpainting"),
++    /**
++     * SDXL-Lightning is a lightning-fast text-to-image generation model. It can generate high-quality 1024px images in a few steps.
++     */
++    STABLE_DIFFUSION_XL_LIGHTNING("@cf/bytedance/stable-diffusion-xl-lightning");
++
++    private final String stringValue;
++
++    WorkersAiImageModelName(String stringValue) {
++        this.stringValue = stringValue;
++    }
++
++    @Override
++    public String toString() {
++        return stringValue;
++    }
++
++
++}
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiLanguageModel.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiLanguageModel.java
+new file mode 100644
+index 0000000000..4e1938d396
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/WorkersAiLanguageModel.java
+@@ -0,0 +1,151 @@
++package dev.langchain4j.model.workersai;
++
++import dev.langchain4j.model.input.Prompt;
++import dev.langchain4j.model.language.LanguageModel;
++import dev.langchain4j.model.output.Response;
++import dev.langchain4j.model.workersai.client.AbstractWorkersAIModel;
++import dev.langchain4j.model.workersai.client.WorkersAiTextCompletionRequest;
++import dev.langchain4j.model.workersai.client.WorkersAiTextCompletionResponse;
++import dev.langchain4j.model.workersai.spi.WorkersAiLanguageModelBuilderFactory;
++import lombok.extern.slf4j.Slf4j;
++
++import java.io.IOException;
++
++import static dev.langchain4j.spi.ServiceHelper.loadFactories;
++
++/**
++ * WorkerAI Language model.
++ * <a href="https://developers.cloudflare.com/api/operations/workers-ai-post-run-model">...</a>
++ */
++@Slf4j
++public class WorkersAiLanguageModel extends AbstractWorkersAIModel implements LanguageModel {
++
++    /**
++     * Constructor with Builder.
++     *
++     * @param builder
++     *      builder.
++     */
++    public WorkersAiLanguageModel(Builder builder) {
++        this(builder.accountId, builder.modelName, builder.apiToken);
++    }
++
++    /**
++     * Constructor with Builder.
++     *
++     * @param accountId
++     *      account identifier
++     * @param modelName
++     *      model name
++     * @param apiToken
++     *     api token
++     */
++    public WorkersAiLanguageModel(String accountId, String modelName, String apiToken) {
++        super(accountId, modelName, apiToken);
++    }
++
++    /**
++     * Builder access.
++     *
++     * @return
++     *      builder instance
++     */
++    public static WorkersAiLanguageModel.Builder builder() {
++        for (WorkersAiLanguageModelBuilderFactory factory : loadFactories(WorkersAiLanguageModelBuilderFactory.class)) {
++            return factory.get();
++        }
++        return new Builder();
++    }
++
++    /**
++     * Internal Builder.
++     */
++    public static class Builder {
++
++        /**
++         * Account identifier, provided by the WorkerAI platform.
++         */
++        public String accountId;
++        /**
++         * ModelName, preferred as enum for extensibility.
++         */
++        public String apiToken;
++        /**
++         * ModelName, preferred as enum for extensibility.
++         */
++        public String modelName;
++
++        /**
++         * Simple constructor.
++         */
++        public Builder() {
++        }
++
++        /**
++         * Simple constructor.
++         *
++         * @param accountId
++         *      account identifier.
++         * @return
++         *      self reference
++         */
++        public Builder accountId(String accountId) {
++            this.accountId = accountId;
++            return this;
++        }
++
++        /**
++         * Sets the apiToken for the Worker AI model builder.
++         *
++         * @param apiToken The apiToken to set.
++         * @return The current instance of {@link WorkersAiChatModel.Builder}.
++         */
++        public Builder apiToken(String apiToken) {
++            this.apiToken = apiToken;
++            return this;
++        }
++
++        /**
++         * Sets the model name for the Worker AI model builder.
++         *
++         * @param modelName The name of the model to set.
++         * @return The current instance of {@link WorkersAiChatModel.Builder}.
++         */
++        public Builder modelName(String modelName) {
++            this.modelName = modelName;
++            return this;
++        }
++
++        /**
++         * Builds a new instance of Worker AI Chat Model.
++         *
++         * @return A new instance of {@link WorkersAiChatModel}.
++         */
++        public WorkersAiLanguageModel build() {
++            return new WorkersAiLanguageModel(this);
++        }
++    }
++
++    /** {@inheritDoc} */
++    @Override
++    public Response<String> generate(String prompt) {
++        try {
++            retrofit2.Response<WorkersAiTextCompletionResponse> retrofitResponse = workerAiClient
++                    .generateText(new WorkersAiTextCompletionRequest(prompt), accountId, modelName)
++                    .execute();
++            processErrors(retrofitResponse.body(), retrofitResponse.errorBody());
++            if (retrofitResponse.body() == null) {
++                throw new RuntimeException("Empty response");
++            }
++            return new Response<>(retrofitResponse.body().getResult().getResponse());
++        } catch (IOException e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    /** {@inheritDoc} */
++    @Override
++    public Response<String> generate(Prompt prompt) {
++        return generate(prompt.text());
++    }
++}
+\ No newline at end of file
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/AbstractWorkersAIModel.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/AbstractWorkersAIModel.java
+new file mode 100644
+index 0000000000..54a847b349
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/AbstractWorkersAIModel.java
+@@ -0,0 +1,83 @@
++package dev.langchain4j.model.workersai.client;
++
++import lombok.extern.slf4j.Slf4j;
++import okhttp3.ResponseBody;
++
++import java.io.IOException;
++
++/**
++ * Abstract class for WorkerAI models as they are all initialized the same way.
++ * <a href="https://developers.cloudflare.com/api/operations/workers-ai-post-run-model">...</a>
++ */
++@Slf4j
++public abstract class AbstractWorkersAIModel {
++
++    /**
++     * Account identifier, provided by the WorkerAI platform.
++     */
++    protected String accountId;
++
++    /**
++     * ModelName, preferred as enum for extensibility.
++     */
++    protected String modelName;
++
++    /**
++     * OkHttpClient for the WorkerAI API.
++     */
++    protected WorkersAiApi workerAiClient;
++
++    /**
++     * Simple constructor.
++     *
++     * @param accountId
++     *      account identifier.
++     * @param modelName
++     *      model name.
++     * @param apiToken
++     *      api apiToken from .
++     */
++    public AbstractWorkersAIModel(String accountId, String modelName, String apiToken) {
++        if (accountId == null || accountId.isEmpty()) {
++            throw new IllegalArgumentException("Account identifier should not be null or empty");
++        }
++        this.accountId = accountId;
++        if (modelName == null || modelName.isEmpty()) {
++            throw new IllegalArgumentException("Model name should not be null or empty");
++        }
++        this.modelName  = modelName;
++        if (apiToken == null || apiToken.isEmpty()) {
++            throw new IllegalArgumentException("Token should not be null or empty");
++        }
++        this.workerAiClient = WorkersAiClient.createService(apiToken);
++    }
++
++    /**
++     * Process errors from the API.
++     * @param res
++     *      response
++     * @param errors
++     *      errors body from retrofit
++     * @throws IOException
++     *      error occurred during invocation
++     */
++    protected void processErrors(ApiResponse<?> res, ResponseBody errors)
++    throws IOException {
++        if (res == null || !res.isSuccess()) {
++            StringBuilder errorMessage = new StringBuilder("Failed to generate chat message:");
++            if (res == null) {
++                errorMessage.append(errors.string());
++            } else if (res.getErrors() != null) {
++                errorMessage.append(res.getErrors().stream()
++                        .map(ApiResponse.Error::getMessage)
++                        .reduce((a, b) -> a + "\n" + b)
++                        .orElse(""));
++            }
++            log.error(errorMessage.toString());
++            throw new RuntimeException(errorMessage.toString());
++        }
++    }
++
++
++
++}
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/ApiResponse.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/ApiResponse.java
+new file mode 100644
+index 0000000000..c2b46eb71b
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/ApiResponse.java
+@@ -0,0 +1,60 @@
++package dev.langchain4j.model.workersai.client;
++
++import lombok.Data;
++
++import java.util.List;
++
++/**
++ * Multiple models leverage the same output format, so we can use this class to parse the response.
++ *
++ * @param <T>
++ *     Type of the result.
++ */
++@Data
++public class ApiResponse<T> {
++
++    /**
++     * Result of the API call.
++     */
++    private T result;
++
++    /**
++     * Success of the API call.
++     */
++    private boolean success;
++
++    /**
++     * Errors of the API call.
++     */
++    private List<Error> errors;
++
++    /**
++     * Messages of the API call.
++     */
++    private List<String> messages;
++
++    /**
++     * Default constructor.
++     */
++    public ApiResponse() {}
++
++    /**
++     * Error class.
++     */
++    @Data
++    public static class Error {
++        /**
++         * Message of the error.
++         */
++        private String message;
++        /**
++         * Code of the error.
++         */
++        private int code;
++        /**
++         * Default constructor.
++         */
++        public Error() {}
++    }
++
++}
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiApi.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiApi.java
+new file mode 100644
+index 0000000000..de6dc6c06e
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiApi.java
+@@ -0,0 +1,82 @@
++package dev.langchain4j.model.workersai.client;
++
++import okhttp3.ResponseBody;
++import retrofit2.Call;
++import retrofit2.http.Body;
++import retrofit2.http.POST;
++import retrofit2.http.Path;
++
++/**
++ * Public interface to interact with the WorkerAI API.
++ */
++public interface WorkersAiApi {
++
++    /**
++     * Generate chat.
++     *
++     * @param apiRequest
++     *      request.
++     * @param accountIdentifier
++     *      account identifier.
++     * @param modelId
++     *      model id.
++     * @return
++     *      response.
++     */
++    @POST("client/v4/accounts/{accountIdentifier}/ai/run/{modelName}")
++    Call<WorkersAiChatCompletionResponse> generateChat(@Body WorkersAiChatCompletionRequest apiRequest,
++                                                      @Path("accountIdentifier") String accountIdentifier,
++                                                      @Path(value = "modelName", encoded = true) String modelId);
++
++    /**
++     * Generate text.
++     *
++     * @param apiRequest
++     *      request.
++     * @param accountIdentifier
++     *      account identifier.
++     * @param modelName
++     *      model name.
++     * @return
++     *      response.
++     */
++    @POST("client/v4/accounts/{accountIdentifier}/ai/run/{modelName}")
++    Call<WorkersAiTextCompletionResponse> generateText(@Body WorkersAiTextCompletionRequest apiRequest,
++                                                      @Path("accountIdentifier") String accountIdentifier,
++                                                      @Path(value = "modelName", encoded = true) String modelName);
++
++    /**
++     * Generate image.
++     *
++     * @param apiRequest
++     *      request.
++     * @param accountIdentifier
++     *      account identifier.
++     * @param modelName
++     *      model name.
++     * @return
++     *      response.
++     */
++    @POST("client/v4/accounts/{accountIdentifier}/ai/run/{modelName}")
++    Call<ResponseBody> generateImage(@Body WorkersAiImageGenerationRequest apiRequest,
++                                     @Path("accountIdentifier") String accountIdentifier,
++                                     @Path(value = "modelName", encoded = true) String modelName);
++
++    /**
++     * Generate embeddings.
++     *
++     * @param apiRequest
++     *      request.
++     * @param accountIdentifier
++     *      account identifier.
++     * @param modelName
++     *      model name.
++     * @return
++     *      response.
++     */
++    @POST("client/v4/accounts/{accountIdentifier}/ai/run/{modelName}")
++    Call<WorkersAiEmbeddingResponse>  embed(@Body WorkersAiEmbeddingRequest apiRequest,
++             @Path("accountIdentifier") String accountIdentifier,
++             @Path(value = "modelName", encoded = true) String modelName);
++
++}
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiChatCompletionRequest.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiChatCompletionRequest.java
+new file mode 100644
+index 0000000000..32148cc1e3
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiChatCompletionRequest.java
+@@ -0,0 +1,82 @@
++package dev.langchain4j.model.workersai.client;
++
++import lombok.AllArgsConstructor;
++import lombok.Data;
++
++import java.util.ArrayList;
++import java.util.List;
++
++/**
++ * Represents a request for AI chat completion.
++ * Contains a list of messages that form part of the chat conversation.
++ */
++@Data
++public class WorkersAiChatCompletionRequest {
++
++    private List<Message> messages;
++
++    /**
++     * Represents a message in the AI chat.
++     * Each message has a role and content.
++     */
++    @Data @AllArgsConstructor
++    public static class Message {
++        private MessageRole role;
++        private String content;
++        /**
++         * Default constructor.
++         */
++        @SuppressWarnings("unused")
++        public Message() {}
++    }
++
++    /**
++     * Defines the roles a message can have in the chat conversation.
++     */
++    @SuppressWarnings("unused")
++    public enum MessageRole {
++        /**
++         * Directive for the prompt
++         */
++        system,
++        /**
++         * The message is from the AI.
++         */
++        ai,
++        /**
++         * The message is from the user.
++         */
++        user
++    }
++
++    /**
++     * Constructs an empty WorkerAiChatCompletionRequest with an empty list of messages.
++     */
++    public WorkersAiChatCompletionRequest() {
++        this.messages = new ArrayList<>();
++    }
++
++    /**
++     * Constructs a WorkerAiChatCompletionRequest with an initial message.
++     *
++     * @param role The role of the initial message.
++     * @param content The content of the initial message.
++     */
++    public WorkersAiChatCompletionRequest(MessageRole role, String content) {
++        this();
++        addMessage(role, content);
++    }
++
++    /**
++     * Adds a new message to the chat completion request.
++     *
++     * @param role The role of the message.
++     * @param content The content of the message.
++     */
++    public void addMessage(MessageRole role, String content) {
++        Message message = new Message(role, content);
++        this.messages.add(message);
++    }
++
++}
++
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiChatCompletionResponse.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiChatCompletionResponse.java
+new file mode 100644
+index 0000000000..9622e7bfdb
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiChatCompletionResponse.java
+@@ -0,0 +1,12 @@
++package dev.langchain4j.model.workersai.client;
++
++/**
++ * Wrapper for the chat completion response.
++ */
++public class WorkersAiChatCompletionResponse extends WorkersAiTextCompletionResponse {
++
++    /**
++     * Default constructor.
++     */
++    public WorkersAiChatCompletionResponse() {}
++}
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiClient.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiClient.java
+new file mode 100644
+index 0000000000..a420f5041b
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiClient.java
+@@ -0,0 +1,86 @@
++package dev.langchain4j.model.workersai.client;
++
++import okhttp3.Interceptor;
++import okhttp3.OkHttpClient;
++import okhttp3.Request;
++import okhttp3.Response;
++import org.jetbrains.annotations.NotNull;
++import retrofit2.Retrofit;
++import retrofit2.converter.jackson.JacksonConverterFactory;
++
++import java.io.IOException;
++import java.time.Duration;
++
++/**
++ * Low level client to interact with the WorkerAI API.
++ */
++public class WorkersAiClient {
++
++    private static final String BASE_URL = "https://api.cloudflare.com/";
++
++    /**
++     * Constructor.
++     */
++    public WorkersAiClient() {}
++
++    /**
++     * Initialization of okHTTP.
++     *
++     * @param apiToken
++     *      authorization token
++     * @return
++     *      api
++     */
++    public static WorkersAiApi createService(String apiToken) {
++        OkHttpClient okHttpClient = new OkHttpClient.Builder()
++                .addInterceptor(new AuthInterceptor(apiToken))
++                // Slow but can be needed for images
++                .callTimeout(Duration.ofSeconds(30))
++                .readTimeout(Duration.ofSeconds(30))
++                .build();
++
++        Retrofit retrofit = new Retrofit.Builder()
++                .baseUrl(BASE_URL)
++                .client(okHttpClient)
++                .addConverterFactory(JacksonConverterFactory.create())
++                .build();
++
++        return retrofit.create(WorkersAiApi.class);
++    }
++
++    /**
++     * An interceptor for HTTP requests to add an authorization token to the header.
++     * Implements the {@link Interceptor} interface.
++     */
++    public static class AuthInterceptor implements Interceptor {
++        private final String apiToken;
++
++        /**
++         * Constructs an AuthInterceptor with a specified authorization token.
++         *
++         * @param apiToken The authorization token to be used in HTTP headers.
++         */
++        public AuthInterceptor(String apiToken) {
++            this.apiToken = apiToken;
++        }
++
++        /**
++         * Intercepts an outgoing HTTP request, adding an authorization header.
++         *
++         * @param chain The chain of request/response interceptors.
++         * @return The modified response after adding the authorization header.
++         * @throws IOException If an IO exception occurs during request processing.
++         */
++        @NotNull
++        @Override
++        public Response intercept(Chain chain) throws IOException {
++            Request.Builder builder = chain
++                    .request().newBuilder()
++                    .header("Authorization", "Bearer " + apiToken);
++            Request request = builder.build();
++            return chain.proceed(request);
++        }
++    }
++
++
++}
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiEmbeddingRequest.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiEmbeddingRequest.java
+new file mode 100644
+index 0000000000..fa8b0bb8e9
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiEmbeddingRequest.java
+@@ -0,0 +1,21 @@
++package dev.langchain4j.model.workersai.client;
++
++import lombok.Data;
++
++import java.util.ArrayList;
++import java.util.List;
++
++/**
++ * Request to compute embeddings
++ */
++@Data
++public class WorkersAiEmbeddingRequest {
++
++    private List<String> text = new ArrayList<>();
++
++    /**
++     * Default constructor.
++     */
++    public WorkersAiEmbeddingRequest() {
++    }
++}
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiEmbeddingResponse.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiEmbeddingResponse.java
+new file mode 100644
+index 0000000000..1677a286f3
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiEmbeddingResponse.java
+@@ -0,0 +1,41 @@
++package dev.langchain4j.model.workersai.client;
++
++import lombok.Data;
++
++import java.util.List;
++
++/**
++ * Response to compute embeddings
++ */
++public class WorkersAiEmbeddingResponse extends ApiResponse<WorkersAiEmbeddingResponse.EmbeddingResult>{
++
++    /**
++     * Default constructor.
++     */
++    public WorkersAiEmbeddingResponse() {
++    }
++
++    /**
++     * Beam to hold results
++     */
++    @Data
++    public static class EmbeddingResult {
++
++        /**
++         * Shape of the result
++         */
++        private List<Integer> shape;
++
++        /**
++         * Embedding data
++         */
++        private List<List<Float>> data;
++
++        /**
++         * Default constructor.
++         */
++        public EmbeddingResult() {
++        }
++    }
++
++}
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiImageGenerationRequest.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiImageGenerationRequest.java
+new file mode 100644
+index 0000000000..f8d13c3973
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiImageGenerationRequest.java
+@@ -0,0 +1,47 @@
++package dev.langchain4j.model.workersai.client;
++
++import lombok.AllArgsConstructor;
++import lombok.Data;
++
++/**
++ * Request to generate an image.
++ */
++@Data @AllArgsConstructor
++public class WorkersAiImageGenerationRequest {
++
++    /**
++     * Prompt to generate the image.
++     */
++    String prompt;
++
++    /**
++     * Source image to edit
++     */
++    int[] image;
++
++    /**
++     * Mask image to edit (optional)
++     */
++    int[] mask;
++
++    /**
++     * Mask operation to apply.
++     */
++    Integer num_steps;
++
++    /**
++     * Strength
++     */
++    Integer strength;
++
++    /**
++     * File to save the image.
++     */
++    String destinationFile;
++
++    /**
++     * Default constructor.
++     */
++    public WorkersAiImageGenerationRequest() {
++    }
++}
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiImageGenerationResponse.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiImageGenerationResponse.java
+new file mode 100644
+index 0000000000..519ed89498
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiImageGenerationResponse.java
+@@ -0,0 +1,36 @@
++package dev.langchain4j.model.workersai.client;
++
++import lombok.AllArgsConstructor;
++import lombok.Data;
++
++import java.io.InputStream;
++
++/**
++ * Response to generate an image.
++ */
++public class WorkersAiImageGenerationResponse
++        extends ApiResponse<dev.langchain4j.model.workersai.client.WorkersAiImageGenerationResponse.ImageGenerationResult> {
++
++    /**
++     * Default constructor.
++     */
++    public WorkersAiImageGenerationResponse() {
++    }
++
++    /**
++     * Body of the image generating process
++     */
++    @Data
++    @AllArgsConstructor
++    public static class ImageGenerationResult {
++        private InputStream image;
++
++        /**
++         * Default constructor.
++         */
++        @SuppressWarnings("unused")
++        public ImageGenerationResult() {
++        }
++    }
++
++}
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiTextCompletionRequest.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiTextCompletionRequest.java
+new file mode 100644
+index 0000000000..bd90d2cfcc
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiTextCompletionRequest.java
+@@ -0,0 +1,19 @@
++package dev.langchain4j.model.workersai.client;
++
++import lombok.AllArgsConstructor;
++import lombok.Data;
++
++/**
++ * Request to complete a text.
++ */
++@Data @AllArgsConstructor
++public class WorkersAiTextCompletionRequest {
++
++    String prompt;
++
++    /**
++     * Default constructor.
++     */
++    public WorkersAiTextCompletionRequest() {
++    }
++}
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiTextCompletionResponse.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiTextCompletionResponse.java
+new file mode 100644
+index 0000000000..73451b85dc
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/client/WorkersAiTextCompletionResponse.java
+@@ -0,0 +1,31 @@
++package dev.langchain4j.model.workersai.client;
++
++import lombok.Data;
++
++/**
++ * Wrapper for the text completion response.
++ */
++public class WorkersAiTextCompletionResponse extends ApiResponse<dev.langchain4j.model.workersai.client.WorkersAiTextCompletionResponse.TextResponse> {
++
++    /**
++     * Default constructor.
++     */
++    public WorkersAiTextCompletionResponse() {}
++
++    /**
++     * Wrapper for the text completion response.
++     */
++    @Data
++    public static class TextResponse {
++
++        /**
++         * The generated text.
++         */
++        private String response;
++
++        /**
++         * Default constructor.
++         */
++        public TextResponse() {}
++    }
++}
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/spi/WorkersAiChatModelBuilderFactory.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/spi/WorkersAiChatModelBuilderFactory.java
+new file mode 100644
+index 0000000000..d1e40ffe64
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/spi/WorkersAiChatModelBuilderFactory.java
+@@ -0,0 +1,11 @@
++package dev.langchain4j.model.workersai.spi;
++
++import dev.langchain4j.model.workersai.WorkersAiChatModel;
++
++import java.util.function.Supplier;
++
++/**
++ * A factory for building {@link WorkersAiChatModel.Builder} instances.
++ */
++public interface WorkersAiChatModelBuilderFactory extends Supplier<WorkersAiChatModel.Builder> {
++}
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/spi/WorkersAiEmbeddingModelBuilderFactory.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/spi/WorkersAiEmbeddingModelBuilderFactory.java
+new file mode 100644
+index 0000000000..302766d25c
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/spi/WorkersAiEmbeddingModelBuilderFactory.java
+@@ -0,0 +1,11 @@
++package dev.langchain4j.model.workersai.spi;
++
++import dev.langchain4j.model.workersai.WorkersAiEmbeddingModel;
++
++import java.util.function.Supplier;
++
++/**
++ * A factory for building {@link WorkersAiEmbeddingModel.Builder} instances.
++ */
++public interface WorkersAiEmbeddingModelBuilderFactory extends Supplier<WorkersAiEmbeddingModel.Builder> {
++}
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/spi/WorkersAiImageModelBuilderFactory.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/spi/WorkersAiImageModelBuilderFactory.java
+new file mode 100644
+index 0000000000..3db4040718
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/spi/WorkersAiImageModelBuilderFactory.java
+@@ -0,0 +1,12 @@
++package dev.langchain4j.model.workersai.spi;
++
++import dev.langchain4j.model.workersai.WorkersAiImageModel;
++import dev.langchain4j.model.workersai.WorkersAiLanguageModel;
++
++import java.util.function.Supplier;
++
++/**
++ * A factory for building {@link WorkersAiImageModel.Builder} instances.
++ */
++public interface WorkersAiImageModelBuilderFactory extends Supplier<WorkersAiImageModel.Builder> {
++}
+diff --git a/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/spi/WorkersAiLanguageModelBuilderFactory.java b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/spi/WorkersAiLanguageModelBuilderFactory.java
+new file mode 100644
+index 0000000000..bcd6522078
+--- /dev/null
++++ b/langchain4j-workers-ai/src/main/java/dev/langchain4j/model/workersai/spi/WorkersAiLanguageModelBuilderFactory.java
+@@ -0,0 +1,11 @@
++package dev.langchain4j.model.workersai.spi;
++
++import dev.langchain4j.model.workersai.WorkersAiLanguageModel;
++
++import java.util.function.Supplier;
++
++/**
++ * A factory for building {@link WorkersAiLanguageModel.Builder} instances.
++ */
++public interface WorkersAiLanguageModelBuilderFactory extends Supplier<WorkersAiLanguageModel.Builder> {
++}
+diff --git a/langchain4j-workers-ai/src/test/java/dev/langchain4j/model/workersai/WorkerAIChatModelIT.java b/langchain4j-workers-ai/src/test/java/dev/langchain4j/model/workersai/WorkerAIChatModelIT.java
+new file mode 100644
+index 0000000000..65640fb761
+--- /dev/null
++++ b/langchain4j-workers-ai/src/test/java/dev/langchain4j/model/workersai/WorkerAIChatModelIT.java
+@@ -0,0 +1,73 @@
++package dev.langchain4j.model.workersai;
++
++import dev.langchain4j.agent.tool.ToolSpecification;
++import dev.langchain4j.data.message.AiMessage;
++import dev.langchain4j.data.message.ChatMessage;
++import dev.langchain4j.data.message.UserMessage;
++import dev.langchain4j.model.output.Response;
++import org.junit.jupiter.api.Assertions;
++import org.junit.jupiter.api.BeforeAll;
++import org.junit.jupiter.api.Test;
++import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
++
++import java.util.ArrayList;
++import java.util.List;
++
++import static dev.langchain4j.data.message.SystemMessage.systemMessage;
++import static dev.langchain4j.data.message.UserMessage.userMessage;
++import static dev.langchain4j.model.output.FinishReason.STOP;
++import static dev.langchain4j.model.workersai.WorkersAiChatModelName.LLAMA2_7B_FULL;
++import static org.assertj.core.api.Assertions.assertThat;
++
++@EnabledIfEnvironmentVariable(named = "WORKERS_AI_API_KEY", matches = ".*")
++@EnabledIfEnvironmentVariable(named = "WORKERS_AI_ACCOUNT_ID", matches = ".*")
++class WorkerAIChatModelIT {
++
++    static WorkersAiChatModel chatModel;
++
++    @BeforeAll
++    static void initializeModel() {
++        chatModel = WorkersAiChatModel.builder()
++                .modelName(LLAMA2_7B_FULL.toString())
++                .accountId(System.getenv("WORKERS_AI_ACCOUNT_ID"))
++                .apiToken(System.getenv("WORKERS_AI_API_KEY"))
++                .build();
++    }
++
++    @Test
++    void should_generate_answer_and_return_finish_reason_stop() {
++        UserMessage userMessage = userMessage("hello, how are you?");
++        Response<AiMessage> response = chatModel.generate(userMessage);
++        assertThat(response.content().text()).isNotBlank();
++        assertThat(response.finishReason()).isEqualTo(STOP);
++    }
++
++    @Test
++    void should_generate_answer_based_on_context() {
++        List<ChatMessage> conversation = new ArrayList<>();
++        conversation.add(systemMessage("You an an assistant i will give you the name of " +
++                "a country and you will give me exactly the name of the capital, " +
++                "no other text or message, " +
++                "just the name of the city"));
++        conversation.add(userMessage("France"));
++        Response<AiMessage> response = chatModel.generate(conversation);
++        Assertions.assertNotNull(response);
++        assertThat(response.content().text()).isNotBlank();
++        Assertions.assertEquals("PARIS", chatModel.generate(conversation).content().text().toUpperCase());
++    }
++
++    @Test
++    void should_throw_unsupported_if_using_toolSpecification() {
++        List<ToolSpecification> toolSpecifications = new ArrayList<>();
++        toolSpecifications.add(ToolSpecification.builder().build());
++        List<ChatMessage> messages = new ArrayList<>();
++        messages.add(userMessage("hello, how are you?"));
++        Assertions.assertThrows(UnsupportedOperationException.class, () -> {
++            chatModel.generate(messages, toolSpecifications);
++        });
++    }
++
++
++
++
++}
+diff --git a/langchain4j-workers-ai/src/test/java/dev/langchain4j/model/workersai/WorkerAIEmbeddingModelIT.java b/langchain4j-workers-ai/src/test/java/dev/langchain4j/model/workersai/WorkerAIEmbeddingModelIT.java
+new file mode 100644
+index 0000000000..c96289cb0e
+--- /dev/null
++++ b/langchain4j-workers-ai/src/test/java/dev/langchain4j/model/workersai/WorkerAIEmbeddingModelIT.java
+@@ -0,0 +1,45 @@
++package dev.langchain4j.model.workersai;
++
++import dev.langchain4j.data.document.Metadata;
++import dev.langchain4j.data.embedding.Embedding;
++import dev.langchain4j.data.segment.TextSegment;
++import dev.langchain4j.model.output.Response;
++import org.junit.jupiter.api.Assertions;
++import org.junit.jupiter.api.BeforeAll;
++import org.junit.jupiter.api.Test;
++import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
++
++import java.util.ArrayList;
++import java.util.List;
++
++@EnabledIfEnvironmentVariable(named = "WORKERS_AI_API_KEY", matches = ".*")
++@EnabledIfEnvironmentVariable(named = "WORKERS_AI_ACCOUNT_ID", matches = ".*")
++class WorkerAIEmbeddingModelIT {
++
++    static WorkersAiEmbeddingModel embeddingModel;
++
++    @BeforeAll
++    static void initializeModel() {
++        embeddingModel = WorkersAiEmbeddingModel.builder()
++                .modelName(WorkersAiEmbeddingModelName.BAAI_EMBEDDING_BASE.toString())
++                .accountId(System.getenv("WORKERS_AI_ACCOUNT_ID"))
++                .apiToken(System.getenv("WORKERS_AI_API_KEY"))
++                .build();
++    }
++
++    @Test
++    void generateEmbeddingSimple() {
++        Response<Embedding> out = embeddingModel.embed("Sentence1");
++        Assertions.assertNotNull(out.content());
++    }
++
++    @Test
++    void generateEmbeddings() {
++        List<TextSegment> data = new ArrayList<>();
++        data.add(new TextSegment("Sentence1", new Metadata()));
++        data.add(new TextSegment("Sentence2", new Metadata()));
++        Response<List<Embedding>> out = embeddingModel.embedAll(data);
++        Assertions.assertNotNull(out.content());
++        Assertions.assertEquals(2, out.content().size());
++    }
++}
+diff --git a/langchain4j-workers-ai/src/test/java/dev/langchain4j/model/workersai/WorkerAILanguageModelIT.java b/langchain4j-workers-ai/src/test/java/dev/langchain4j/model/workersai/WorkerAILanguageModelIT.java
+new file mode 100644
+index 0000000000..b8dd8e2ada
+--- /dev/null
++++ b/langchain4j-workers-ai/src/test/java/dev/langchain4j/model/workersai/WorkerAILanguageModelIT.java
+@@ -0,0 +1,31 @@
++package dev.langchain4j.model.workersai;
++
++import dev.langchain4j.model.output.Response;
++import org.junit.jupiter.api.Assertions;
++import org.junit.jupiter.api.BeforeAll;
++import org.junit.jupiter.api.Test;
++import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
++
++@EnabledIfEnvironmentVariable(named = "WORKERS_AI_API_KEY", matches = ".*")
++@EnabledIfEnvironmentVariable(named = "WORKERS_AI_ACCOUNT_ID", matches = ".*")
++class WorkerAILanguageModelIT {
++
++    static WorkersAiLanguageModel languageModel;
++
++    @BeforeAll
++    static void initializeModel() {
++        languageModel = WorkersAiLanguageModel.builder()
++                .modelName(WorkersAiChatModelName.LLAMA2_7B_FULL.toString())
++                .accountId(System.getenv("WORKERS_AI_ACCOUNT_ID"))
++                .apiToken(System.getenv("WORKERS_AI_API_KEY"))
++                .build();
++    }
++    @Test
++    void generateText() {
++        Response<String> joke = languageModel.generate("Tell me a joke about thw cloud");
++        Assertions.assertNotNull(joke);
++        Assertions.assertNotNull(joke.content());
++        Assertions.assertNotNull(joke.finishReason());
++
++    }
++}
+diff --git a/langchain4j-workers-ai/src/test/java/dev/langchain4j/model/workersai/WorkerAiImageModelIT.java b/langchain4j-workers-ai/src/test/java/dev/langchain4j/model/workersai/WorkerAiImageModelIT.java
+new file mode 100644
+index 0000000000..62c1a307ef
+--- /dev/null
++++ b/langchain4j-workers-ai/src/test/java/dev/langchain4j/model/workersai/WorkerAiImageModelIT.java
+@@ -0,0 +1,84 @@
++package dev.langchain4j.model.workersai;
++
++import dev.langchain4j.data.image.Image;
++import dev.langchain4j.model.output.Response;
++import org.junit.jupiter.api.Assertions;
++import org.junit.jupiter.api.BeforeAll;
++import org.junit.jupiter.api.Test;
++import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
++
++import java.io.ByteArrayOutputStream;
++import java.io.File;
++import java.io.FileOutputStream;
++import java.io.InputStream;
++import java.net.HttpURLConnection;
++import java.net.URL;
++import java.util.Base64;
++
++@EnabledIfEnvironmentVariable(named = "WORKERS_AI_API_KEY", matches = ".*")
++@EnabledIfEnvironmentVariable(named = "WORKERS_AI_ACCOUNT_ID", matches = ".*")
++class WorkerAiImageModelIT {
++
++    static WorkersAiImageModel imageModel;
++
++    @BeforeAll
++    static void initializeModel() {
++        imageModel = WorkersAiImageModel.builder()
++                .modelName(WorkersAiImageModelName.STABLE_DIFFUSION_XL.toString())
++                .accountId(System.getenv("WORKERS_AI_ACCOUNT_ID"))
++                .apiToken(System.getenv("WORKERS_AI_API_KEY"))
++                .build();
++    }
++
++    @Test
++    void should_generate_an_image_as_binary() {
++        Response<Image> image = imageModel.generate("Draw me a squirrel");;
++        Assertions.assertNotNull(image.content());
++        Assertions.assertNotNull(image.content().base64Data());
++    }
++
++    @Test
++    void should_generate_an_image_as_file() {
++        String homeDirectory = System.getProperty("user.home");
++        Response<File> image = imageModel.generate("Draw me a squirrel",
++                System.getProperty("user.home") + "/langchain4j-squirrel.png");;
++        Assertions.assertTrue(image.content().exists());
++    }
++
++    @Test
++    void should_edit_source_image() throws Exception {
++        Image sourceImage  = imageModel
++                .convertAsImage(
++                        getImageFromUrl("https://pub-1fb693cb11cc46b2b2f656f51e015a2c.r2.dev/dog.png"));
++        Image maskImage = imageModel
++                .convertAsImage(
++                        getImageFromUrl( "https://pub-1fb693cb11cc46b2b2f656f51e015a2c.r2.dev/dog.png"));
++        Response<Image> image = imageModel.edit(sourceImage, maskImage, "Face of a yellow cat, high resolution, sitting on a park bench");
++        saveOutputToFile(Base64.getDecoder().decode(image.content().base64Data()),
++                System.getProperty("user.home") + "/Downloads/yellow_cat_on_park_bench.png");
++    }
++
++    private byte[] getImageFromUrl(String imageUrl) throws Exception {
++        URL url = new URL(imageUrl);
++        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
++        connection.setRequestMethod("GET");
++        connection.setDoInput(true);
++        connection.connect();
++        try (InputStream inputStream = connection.getInputStream();
++             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream()) {
++            byte[] buffer = new byte[1024];
++            int bytesRead;
++            while ((bytesRead = inputStream.read(buffer)) != -1) {
++                byteArrayOutputStream.write(buffer, 0, bytesRead);
++            }
++            return byteArrayOutputStream.toByteArray();
++        }
++    }
++
++    private void saveOutputToFile(byte[] image, String destinationFile) throws Exception {
++        try (FileOutputStream fileOutputStream = new FileOutputStream(destinationFile)) {
++            fileOutputStream.write(image);
++        }
++    }
++
++}
+diff --git a/pom.xml b/pom.xml
+index bcda43a266..9b63241f69 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -37,6 +37,7 @@
+         <module>langchain4j-qianfan</module>
+         <module>langchain4j-vertex-ai</module>
+         <module>langchain4j-vertex-ai-gemini</module>
++        <module>langchain4j-workers-ai</module>
+         <module>langchain4j-zhipu-ai</module>
+
+         <!-- embedding stores -->

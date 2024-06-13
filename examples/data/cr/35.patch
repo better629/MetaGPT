@@ -1,0 +1,1325 @@
+diff --git a/spring-security-login-error-handling/bin/.gitignore b/spring-security-login-error-handling/bin/.gitignore
+new file mode 100644
+index 000000000000..a57582cc39fe
+--- /dev/null
++++ b/spring-security-login-error-handling/bin/.gitignore
+@@ -0,0 +1 @@
++/src
+diff --git a/spring-security-login-error-handling/bin/pom.xml b/spring-security-login-error-handling/bin/pom.xml
+index d26e2d0d4437..413dbd2c972b 100644
+--- a/spring-security-login-error-handling/bin/pom.xml
++++ b/spring-security-login-error-handling/bin/pom.xml
+@@ -116,9 +116,7 @@
+ 		<!-- Servlet -->
+ 		<dependency>
+ 			<groupId>javax.servlet</groupId>
+-			<artifactId>servlet-api</artifactId>
+-			<version>2.5</version>
+-			<scope>provided</scope>
++			<artifactId>javax.servlet-api</artifactId>
+ 		</dependency>
+ 		<dependency>
+ 			<groupId>javax.servlet.jsp</groupId>
+@@ -147,66 +145,35 @@
+ 	</dependencies>
+
+ 	<build>
+-		<finalName>SpringSecurityLogin</finalName>
++		<finalName>spring-security-login-and-registration</finalName>
+ 		<resources>
+ 			<resource>
+ 				<directory>src/main/resources</directory>
+ 				<filtering>true</filtering>
+ 			</resource>
+ 		</resources>
+-
++
+ 		<plugins>
+-			<plugin>
+-				<artifactId>maven-eclipse-plugin</artifactId>
+-				<configuration>
+-					<additionalProjectnatures>
+-						<projectnature>org.springframework.ide.eclipse.core.springnature</projectnature>
+-					</additionalProjectnatures>
+-					<additionalBuildcommands>
+-						<buildcommand>org.springframework.ide.eclipse.core.springbuilder</buildcommand>
+-					</additionalBuildcommands>
+-					<downloadSources>true</downloadSources>
+-					<downloadJavadocs>true</downloadJavadocs>
+-				</configuration>
+-			</plugin>
+-
+ 			<plugin>
+ 				<groupId>org.apache.maven.plugins</groupId>
+ 				<artifactId>maven-compiler-plugin</artifactId>
+-				<configuration>
+-					<source>1.7</source>
+-					<target>1.7</target>
+-					<compilerArgument>-Xlint:all</compilerArgument>
+-					<showWarnings>true</showWarnings>
+-					<showDeprecation>true</showDeprecation>
+-				</configuration>
+ 			</plugin>
+-
+ 			<plugin>
+ 				<groupId>org.apache.maven.plugins</groupId>
+ 				<artifactId>maven-war-plugin</artifactId>
+ 			</plugin>
+-
+-			<plugin>
+-				<groupId>org.codehaus.mojo</groupId>
+-				<artifactId>exec-maven-plugin</artifactId>
+-				<configuration>
+-					<mainClass>org.test.int1.Main</mainClass>
+-				</configuration>
+-			</plugin>
+ 		</plugins>
+ 	</build>
+-
+ 	<properties>
+ 		<java-version>1.7</java-version>
+ 		<org.springframework-version>3.1.1.RELEASE</org.springframework-version>
+ 		<org.springframework.security.version>3.2.4.RELEASE</org.springframework.security.version>
+ 		<org.aspectj-version>1.6.10</org.aspectj-version>
+-
++
+ 		<!-- logging -->
+ 		<org.slf4j.version>1.7.6</org.slf4j.version>
+ 		<logback.version>1.1.1</logback.version>
+-
++
+ 	</properties>
+
+ </project>
+diff --git a/spring-security-login-error-handling/bin/src/main/webapp/WEB-INF/view/login.jsp b/spring-security-login-error-handling/bin/src/main/webapp/WEB-INF/view/login.jsp
+index 95559b045511..815c6ca891d5 100644
+--- a/spring-security-login-error-handling/bin/src/main/webapp/WEB-INF/view/login.jsp
++++ b/spring-security-login-error-handling/bin/src/main/webapp/WEB-INF/view/login.jsp
+@@ -73,5 +73,7 @@
+
+ 		</form>
+ 	<br> Current Locale : ${pageContext.response.locale}
++
++	<a href="<c:url value="/registration.html" />">Home</a>
+ </body>
+ </html>
+\ No newline at end of file
+diff --git a/spring-security-login-error-handling/bin/src/main/webapp/WEB-INF/view/registration.jsp b/spring-security-login-error-handling/bin/src/main/webapp/WEB-INF/view/registration.jsp
+index 474a1817b52a..dc85ce8afa5a 100644
+--- a/spring-security-login-error-handling/bin/src/main/webapp/WEB-INF/view/registration.jsp
++++ b/spring-security-login-error-handling/bin/src/main/webapp/WEB-INF/view/registration.jsp
+@@ -1,6 +1,9 @@
+-<%@ page language="java" contentType="text/html; charset=US-ASCII"
+-    pageEncoding="US-ASCII"%>
+-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
++<!DOCTYPE html>
++<%@ page contentType="text/html;charset=UTF-8" language="java" %>
++<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
++<%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
++<%@ taglib prefix="spring" uri="http://www.springframework.org/tags" %>
++<%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
+ <html>
+ <head>
+ <meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+@@ -8,5 +11,15 @@
+ </head>
+ <body>
+ <H1> This is the registration page</H1>
++<form:form action="/user/registration" commandName="user" method="POST" enctype="utf8" role="form">
++
++
++
++                            <label class="control-label" for="user-firstName">First Name:</label>
++                            <form:input id="user-firstName" path="firstName" />
++                            <form:errors id="error-firstName" path="firstName" />
++
++
++                    </form:form>
+ </body>
+ </html>
+\ No newline at end of file
+diff --git a/spring-security-login-error-handling/pom.xml b/spring-security-login-error-handling/pom.xml
+index 5dad868501e8..ea519a712b28 100644
+--- a/spring-security-login-error-handling/pom.xml
++++ b/spring-security-login-error-handling/pom.xml
+@@ -25,9 +25,13 @@
+ 			<artifactId>spring-security-config</artifactId>
+ 			<scope>runtime</scope>
+ 		</dependency>
+-
++		<dependency>
++			<groupId>org.springframework</groupId>
++			<artifactId>spring-context-support</artifactId>
++		</dependency>
++
+ 		<!-- Validation -->
+-
++
+ 		<!-- logging -->
+ 		<dependency>
+ 			<groupId>org.slf4j</groupId>
+@@ -66,9 +70,9 @@
+ 		<dependency>
+ 			<groupId>javax.servlet.jsp</groupId>
+ 			<artifactId>javax.servlet.jsp-api</artifactId>
+-			<version>${javax.servlet.jsp-api.version}</version>
++			<version>${javax.servlet.jsp-api.version}</version>
+ 		</dependency>
+-
++
+ 		<dependency>
+ 			<groupId>javax.servlet</groupId>
+ 			<artifactId>jstl</artifactId>
+@@ -86,7 +90,42 @@
+ 			<artifactId>junit</artifactId>
+ 			<scope>test</scope>
+ 		</dependency>
++
++		<!-- Spring Data JPA dependencies -->
++		<dependency>
++			<groupId>org.springframework.data</groupId>
++			<artifactId>spring-data-jpa</artifactId>
++		</dependency>
++		<dependency>
++			<groupId>org.hibernate</groupId>
++			<artifactId>hibernate-entitymanager</artifactId>
++		</dependency>
++
++		<!-- DB dependencies -->
++		<dependency>
++			<groupId>mysql</groupId>
++			<artifactId>mysql-connector-java</artifactId>
++		</dependency>
++		<dependency>
++			<groupId>commons-dbcp</groupId>
++			<artifactId>commons-dbcp</artifactId>
++		</dependency>
++		<dependency>
++			<groupId>com.fasterxml.jackson.core</groupId>
++			<artifactId>jackson-databind</artifactId>
++		</dependency>
++		<dependency>
++			<groupId>javax.mail</groupId>
++			<artifactId>mail</artifactId>
++			<version>1.4.3</version>
++		</dependency>
++		<dependency>
++			<groupId>com.google.guava</groupId>
++			<artifactId>guava</artifactId>
++			<version>${guava.version}</version>
++		</dependency>
+ 	</dependencies>
++
+ 	<build>
+ 		<finalName>spring-security-login-and-registration</finalName>
+ 		<resources>
+@@ -105,12 +144,18 @@
+ 		<!-- logging -->
+ 		<org.slf4j.version>1.7.6</org.slf4j.version>
+ 		<logback.version>1.1.1</logback.version>
+-
++
+ 		<!-- javax jsp -->
+-        <javax.servlet.jsp-api.version>2.3.2-b01</javax.servlet.jsp-api.version>
+-
+-        <!-- Inject -->
+-        <javax.inject.version>1</javax.inject.version>
++		<javax.servlet.jsp-api.version>2.3.2-b01</javax.servlet.jsp-api.version>
++
++		<!-- Inject -->
++		<javax.inject.version>1</javax.inject.version>
++
++		<!-- Spring Data Jpa -->
++		<spring-data-jpa.version>1.4.1.RELEASE</spring-data-jpa.version>
++
++		<!-- guava -->
++		<guava.version>17.0</guava.version>
+ 	</properties>
+
+ </project>
+diff --git a/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/dao/UserRepository.java b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/dao/UserRepository.java
+new file mode 100644
+index 000000000000..d36cd1ba2fa7
+--- /dev/null
++++ b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/dao/UserRepository.java
+@@ -0,0 +1,9 @@
++package org.baeldung.persistence.dao;
++
++import org.springframework.data.jpa.repository.JpaRepository;
++import org.baeldung.persistence.model.User;
++
++
++public interface UserRepository extends JpaRepository<User,Long>{
++    public User findByUsername(String username);
++}
+diff --git a/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/model/Role.java b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/model/Role.java
+new file mode 100644
+index 000000000000..f0a08885f518
+--- /dev/null
++++ b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/model/Role.java
+@@ -0,0 +1,62 @@
++package org.baeldung.persistence.model;
++
++import javax.persistence.CascadeType;
++import javax.persistence.Column;
++import javax.persistence.Entity;
++import javax.persistence.FetchType;
++import javax.persistence.GeneratedValue;
++import javax.persistence.GenerationType;
++import javax.persistence.Id;
++import javax.persistence.JoinColumn;
++import javax.persistence.OneToOne;
++import javax.persistence.Table;
++
++
++@Entity(name="role")
++@Table(name = "role")
++public class Role {
++
++        @Id
++        @GeneratedValue(strategy = GenerationType.AUTO)
++        private Long id;
++
++
++        @OneToOne(targetEntity = User.class, fetch = FetchType.EAGER,  cascade = CascadeType.ALL)
++        @JoinColumn(name = "user_id")
++        private User user;
++
++        @Column(name="role")
++        private Integer role;
++
++        public Role(){
++            super();
++
++         }
++        public Role(Integer role){
++           super();
++           this.role = role;
++        }
++        public Role(Integer role, User user){
++            super();
++            this.role = role;
++            this.user = user;
++         }
++        public Long getId() {
++                return id;
++        }
++        public void setId(Long id) {
++                this.id = id;
++        }
++        public User getUser() {
++                return user;
++        }
++        public void setUser(User user) {
++                this.user = user;
++        }
++        public Integer getRole() {
++                return role;
++        }
++        public void setRole(Integer role) {
++                this.role = role;
++        }
++}
+\ No newline at end of file
+diff --git a/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/model/User.java b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/model/User.java
+new file mode 100644
+index 000000000000..4fe8c9986f99
+--- /dev/null
++++ b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/model/User.java
+@@ -0,0 +1,110 @@
++package org.baeldung.persistence.model;
++
++import javax.persistence.CascadeType;
++import javax.persistence.Column;
++import javax.persistence.Entity;
++import javax.persistence.FetchType;
++import javax.persistence.GeneratedValue;
++import javax.persistence.GenerationType;
++import javax.persistence.Id;
++import javax.persistence.OneToOne;
++import javax.persistence.Table;
++
++@Entity(name = "user")
++@Table(name = "user")
++public class User {
++
++    @Id
++    @GeneratedValue(strategy = GenerationType.AUTO)
++    private Long id;
++    @Column(name="firstName")
++    private String firstName;
++    @Column(name="lastName")
++    private String lastName;
++    @Column(name="username")
++    private String username;
++    @Column(name="password")
++    private String password;
++
++
++    @OneToOne(mappedBy = "user",fetch = FetchType.EAGER, cascade = CascadeType.ALL)
++    private Role role;
++
++    public Long getId() {
++        return id;
++    }
++
++    public void setId(Long id) {
++        this.id = id;
++    }
++
++    public String getFirstName() {
++        return firstName;
++    }
++
++    public void setFirstName(String firstName) {
++        this.firstName = firstName;
++    }
++
++    public String getLastName() {
++        return lastName;
++    }
++
++    public void setLastName(String lastName) {
++        this.lastName = lastName;
++    }
++
++    public String getUsername() {
++        return username;
++    }
++
++    public void setUsername(String username) {
++        this.username = username;
++    }
++
++    public String getPassword() {
++        return password;
++    }
++
++    public void setPassword(String password) {
++        this.password = password;
++    }
++
++    public Role getRole() {
++        return role;
++    }
++
++    public void setRole(Role role) {
++        this.role = role;
++    }
++
++
++    @Override
++    public int hashCode() {
++        final int prime = 31;
++        int result = 1;
++        result = prime * result + ((username == null) ? 0 : username.hashCode());
++        return result;
++    }
++
++    @Override
++    public boolean equals(final Object obj) {
++        if (this == obj)
++            return true;
++        if (obj == null)
++            return false;
++        if (getClass() != obj.getClass())
++            return false;
++        final User user = (User) obj;
++        if (!username.equals(user.username))
++            return false;
++        return true;
++    }
++    @Override
++    public String toString() {
++        final StringBuilder builder = new StringBuilder();
++        builder.append("User [firstName=").append(firstName).append("]").
++            append("[lastName=").append(lastName).append("]").append("[username").append(username).append("]");
++        return builder.toString();
++    }
++}
+\ No newline at end of file
+diff --git a/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/EmailExistsException.java b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/EmailExistsException.java
+new file mode 100644
+index 000000000000..848eab02c2e6
+--- /dev/null
++++ b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/EmailExistsException.java
+@@ -0,0 +1,8 @@
++package org.baeldung.persistence.service;
++
++public class EmailExistsException extends Throwable{
++
++    public EmailExistsException(String message) {
++        super(message);
++    }
++}
+diff --git a/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/RegistrationFormWithValidation.java b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/RegistrationFormWithValidation.java
+new file mode 100644
+index 000000000000..6735ca7ab3f6
+--- /dev/null
++++ b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/RegistrationFormWithValidation.java
+@@ -0,0 +1,75 @@
++package org.baeldung.persistence.service;
++
++import javax.validation.constraints.Size;
++
++import org.hibernate.validator.constraints.Email;
++import org.hibernate.validator.constraints.NotEmpty;
++
++public class RegistrationFormWithValidation {
++
++
++
++    @Email
++    @NotEmpty
++    @Size(max = 100)
++    private String email;
++
++    @NotEmpty
++    @Size(max = 100)
++    private String firstName;
++
++    @NotEmpty
++    @Size(max = 100)
++    private String lastName;
++
++    private String password;
++
++    private String passwordVerification;
++
++    public String getEmail() {
++        return email;
++    }
++
++    public void setEmail(String email) {
++        this.email = email;
++    }
++
++    public String getFirstName() {
++        return firstName;
++    }
++
++    public void setFirstName(String firstName) {
++        this.firstName = firstName;
++    }
++
++    public String getLastName() {
++        return lastName;
++    }
++
++    public void setLastName(String lastName) {
++        this.lastName = lastName;
++    }
++
++    public String getPassword() {
++        return password;
++    }
++
++    public void setPassword(String password) {
++        this.password = password;
++    }
++
++    public String getPasswordVerification() {
++        return passwordVerification;
++    }
++
++    public void setPasswordVerification(String passwordVerification) {
++        this.passwordVerification = passwordVerification;
++    }
++
++    @Override
++    public String toString() {
++        final StringBuilder builder = new StringBuilder();
++        builder.append("User [firstName=").append(firstName).append("]").append("[lastName=").append(lastName).append("]").append("[email").append(email).append("]");
++        return builder.toString();
++    }
++}
+diff --git a/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/RepositoryService.java b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/RepositoryService.java
+new file mode 100644
+index 000000000000..c5f480e93cfa
+--- /dev/null
++++ b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/RepositoryService.java
+@@ -0,0 +1,54 @@
++package org.baeldung.persistence.service;
++
++import javax.transaction.Transactional;
++
++import org.baeldung.persistence.dao.UserRepository;
++import org.baeldung.persistence.model.Role;
++import org.baeldung.persistence.model.User;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.core.env.Environment;
++import org.springframework.dao.DataIntegrityViolationException;
++import org.springframework.data.repository.RepositoryDefinition;
++import org.springframework.security.crypto.password.PasswordEncoder;
++import org.springframework.stereotype.Service;
++
++@Service
++public class RepositoryService implements UserService {
++   @Autowired
++    private UserRepository repository;
++    private PasswordEncoder passwordEncoder;
++
++    @Autowired
++    private Environment env;
++
++    @Autowired
++    public RepositoryService(PasswordEncoder passwordEncoder, UserRepository repository) {
++        this.passwordEncoder = passwordEncoder;
++        this.repository = repository;
++    }
++
++    @Transactional
++    @Override
++    public User registerNewUserAccount(UserDto userAccountData) throws EmailExistsException {
++        if (emailExist(userAccountData.getUsername())) {
++
++            throw new EmailExistsException("There is an account with that email adress: " + userAccountData.getUsername());
++        }
++
++        User user = new User();
++        user.setFirstName(userAccountData.getFirstName());
++        user.setLastName(userAccountData.getLastName());
++        user.setPassword(userAccountData.getPassword());
++        user.setUsername(userAccountData.getUsername());
++        user.setRole(new Role(userAccountData.getRole(), user));
++        return repository.save(user);
++    }
++
++    private boolean emailExist(String email) {
++        User user = repository.findByUsername(email);
++        if (user != null) {
++            return true;
++        }
++        return false;
++    }
++}
+diff --git a/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/UserDto.java b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/UserDto.java
+new file mode 100644
+index 000000000000..0cf36dd5c1fa
+--- /dev/null
++++ b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/UserDto.java
+@@ -0,0 +1,57 @@
++package org.baeldung.persistence.service;
++//Renamed original RegistrationForm
++
++public class UserDto {
++
++    private String firstName;
++    private String lastName;
++    private String password;
++    private String username;
++    private Integer role;
++    private String lastError;
++
++    public String getLastError() {
++        return lastError;
++    }
++
++    public void setLastError(String lastError) {
++        this.lastError = lastError;
++    }
++    public Integer getRole() {
++        return role;
++    }
++    public void setRole(Integer role) {
++        this.role = role;
++    }
++    public String getUsername() {
++        return username;
++    }
++    public void setUsername(String username) {
++        this.username = username;
++    }
++    public String getFirstName() {
++        return firstName;
++    }
++    public void setFirstName(String firstName) {
++        this.firstName = firstName;
++    }
++    public String getLastName() {
++        return lastName;
++    }
++    public void setLastName(String lastName) {
++        this.lastName = lastName;
++    }
++    public String getPassword() {
++        return password;
++    }
++    public void setPassword(String password) {
++        this.password = password;
++    }
++    @Override
++    public String toString() {
++        final StringBuilder builder = new StringBuilder();
++        builder.append("User [firstName=").append(firstName).append("]").
++            append("[lastName=").append(lastName).append("]").append("[username").append(username).append("]");
++        return builder.toString();
++    }
++}
+diff --git a/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/UserService.java b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/UserService.java
+new file mode 100644
+index 000000000000..65c7516494c8
+--- /dev/null
++++ b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/UserService.java
+@@ -0,0 +1,7 @@
++package org.baeldung.persistence.service;
++import org.baeldung.persistence.model.User;
++
++public interface UserService {
++
++    public User registerNewUserAccount(UserDto userAccountData) throws EmailExistsException;
++}
+diff --git a/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/UserValidator.java b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/UserValidator.java
+new file mode 100644
+index 000000000000..f93ba5825e0b
+--- /dev/null
++++ b/spring-security-login-error-handling/src/main/java/org/baeldung/persistence/service/UserValidator.java
+@@ -0,0 +1,22 @@
++package org.baeldung.persistence.service;
++
++import org.springframework.validation.Errors;
++import org.springframework.validation.ValidationUtils;
++import org.springframework.validation.Validator;
++
++public class UserValidator implements Validator {
++
++    @Override
++    public boolean supports(Class<?> clazz) {
++        return UserDto.class.isAssignableFrom(clazz);
++    }
++
++    @Override
++    public void validate(Object obj, Errors errors) {
++        ValidationUtils.rejectIfEmptyOrWhitespace(errors, "firstName", "message.firstName", "Firstname is required.");
++        ValidationUtils.rejectIfEmptyOrWhitespace(errors, "lastName", "message.lastName", "LastName is required.");
++        ValidationUtils.rejectIfEmptyOrWhitespace(errors, "password", "message.password", "LastName is required.");
++        ValidationUtils.rejectIfEmptyOrWhitespace(errors, "username", "message.username", "UserName is required.");
++    }
++
++}
+diff --git a/spring-security-login-error-handling/src/main/java/org/baeldung/security/MyUserDetailsService.java b/spring-security-login-error-handling/src/main/java/org/baeldung/security/MyUserDetailsService.java
+new file mode 100644
+index 000000000000..41c27e2a9c3b
+--- /dev/null
++++ b/spring-security-login-error-handling/src/main/java/org/baeldung/security/MyUserDetailsService.java
+@@ -0,0 +1,81 @@
++package org.baeldung.security;
++
++import java.util.ArrayList;
++import java.util.Collection;
++import java.util.List;
++
++import org.springframework.security.core.userdetails.UserDetails;
++import org.springframework.security.core.userdetails.UserDetailsService;
++import org.springframework.security.core.userdetails.UsernameNotFoundException;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
++import org.baeldung.persistence.dao.UserRepository;
++import org.baeldung.persistence.model.User;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.security.core.GrantedAuthority;
++import org.springframework.security.core.authority.SimpleGrantedAuthority;
++import org.springframework.stereotype.Service;
++import org.springframework.transaction.annotation.Transactional;
++
++@Service
++@Transactional
++public class MyUserDetailsService implements UserDetailsService {
++
++    private static final Logger LOGGER = LoggerFactory.getLogger(UserDetailsService.class);
++
++    private UserRepository userRepository;
++
++    @Autowired
++    public MyUserDetailsService(UserRepository repository) {
++        this.userRepository = repository;
++    }
++
++    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
++        try {
++            LOGGER.debug("Loading user by username: {}", username);
++            User user = userRepository.findByUsername(username);
++            LOGGER.debug("Found user: {}", user);
++            if (user == null) {
++               //throw new UsernameNotFoundException("No user found with username: " + username);
++               boolean enabled = false;
++               return  new org.springframework.security.core.userdetails.User(" ", " ", enabled, true, true, true, getAuthorities(new Integer(1)));
++            }
++            boolean enabled = true;
++            boolean accountNonExpired = true;
++            boolean credentialsNonExpired = true;
++            boolean accountNonLocked = true;
++            return  new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword().toLowerCase(), enabled, accountNonExpired, credentialsNonExpired, accountNonLocked, getAuthorities(user.getRole().getRole()));
++
++        } catch (Exception e) {
++            throw new RuntimeException(e);
++        }
++    }
++
++    public Collection<? extends GrantedAuthority> getAuthorities(Integer role) {
++        List<GrantedAuthority> authList = getGrantedAuthorities(getRoles(role));
++        return authList;
++    }
++
++    public List<String> getRoles(Integer role) {
++        List<String> roles = new ArrayList<String>();
++
++        if (role.intValue() == 2) {
++           // roles.add("ROLE_USER");
++            roles.add("ROLE_ADMIN");
++
++        } else if (role.intValue() == 1) {
++            roles.add("ROLE_USER");
++        }
++
++        return roles;
++    }
++
++    public static List<GrantedAuthority> getGrantedAuthorities(List<String> roles) {
++        List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
++        for (String role : roles) {
++            authorities.add(new SimpleGrantedAuthority(role));
++        }
++        return authorities;
++    }
++
++}
+diff --git a/spring-security-login-error-handling/src/main/java/org/baeldung/spring/AppConfig.java b/spring-security-login-error-handling/src/main/java/org/baeldung/spring/AppConfig.java
+new file mode 100644
+index 000000000000..861e68b9ede0
+--- /dev/null
++++ b/spring-security-login-error-handling/src/main/java/org/baeldung/spring/AppConfig.java
+@@ -0,0 +1,45 @@
++package org.baeldung.spring;
++
++import java.util.Properties;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.context.annotation.Bean;
++import org.springframework.context.annotation.ComponentScan;
++import org.springframework.context.annotation.Configuration;
++import org.springframework.context.annotation.Import;
++import org.springframework.context.annotation.PropertySource;
++import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
++import org.springframework.core.env.Environment;
++import org.springframework.mail.javamail.JavaMailSenderImpl;
++
++@Configuration
++@ComponentScan(basePackages = { "org.baeldung.persistence.service", "org.baeldung.persistence.dao" })
++@Import({ MvcConfig.class, PersistenceJPAConfig.class, SecSecurityConfig.class })
++@PropertySource("classpath:application.properties")
++public class AppConfig {
++    @Autowired
++    private Environment env;
++
++    @Bean
++    public static PropertySourcesPlaceholderConfigurer propertyPlaceHolderConfigurer() {
++        return new PropertySourcesPlaceholderConfigurer();
++    }
++
++    @Bean
++    public JavaMailSenderImpl javaMailSenderImpl() {
++        JavaMailSenderImpl mailSenderImpl = new JavaMailSenderImpl();
++        mailSenderImpl.setHost(env.getProperty("smtp.host"));
++        mailSenderImpl.setPort(env.getProperty("smtp.port", Integer.class));
++        mailSenderImpl.setProtocol(env.getProperty("smtp.protocol"));
++        mailSenderImpl.setUsername(env.getProperty("smtp.username"));
++        mailSenderImpl.setPassword(env.getProperty("smtp.password"));
++
++        Properties javaMailProps = new Properties();
++        javaMailProps.put("mail.smtp.auth", true);
++        javaMailProps.put("mail.smtp.starttls.enable", true);
++
++        mailSenderImpl.setJavaMailProperties(javaMailProps);
++
++        return mailSenderImpl;
++    }
++
++}
+diff --git a/spring-security-login-error-handling/src/main/java/org/baeldung/spring/MvcConfig.java b/spring-security-login-error-handling/src/main/java/org/baeldung/spring/MvcConfig.java
+index 2d83d6a5d98a..a51e253430c9 100644
+--- a/spring-security-login-error-handling/src/main/java/org/baeldung/spring/MvcConfig.java
++++ b/spring-security-login-error-handling/src/main/java/org/baeldung/spring/MvcConfig.java
+@@ -2,8 +2,10 @@
+
+ import java.util.Locale;
+
++import org.baeldung.persistence.service.UserValidator;
+ import org.springframework.context.MessageSource;
+ import org.springframework.context.annotation.Bean;
++import org.springframework.context.annotation.ComponentScan;
+ import org.springframework.context.annotation.Configuration;
+ import org.springframework.context.support.ReloadableResourceBundleMessageSource;
+ import org.springframework.web.servlet.LocaleResolver;
+@@ -17,7 +19,11 @@
+ import org.springframework.web.servlet.view.InternalResourceViewResolver;
+ import org.springframework.web.servlet.view.JstlView;
+
++
+ @Configuration
++@ComponentScan(basePackages = {
++        "org.baeldung.web.controller", "org.baeldung.persistence.service", "org.baeldung.persistence.dao"
++})
+ @EnableWebMvc
+ public class MvcConfig extends WebMvcConfigurerAdapter {
+
+@@ -39,8 +45,10 @@ public void addViewControllers(final ViewControllerRegistry registry) {
+         registry.addViewController("/console.html");
+         registry.addViewController("/admin.html");
+         registry.addViewController("/registration.html");
++        registry.addViewController("/successRegister.html");
++
+     }
+-
++
+     @Bean
+     public ViewResolver viewResolver() {
+         final InternalResourceViewResolver bean = new InternalResourceViewResolver();
+@@ -74,5 +82,10 @@ public MessageSource messageSource() {
+         messageSource.setCacheSeconds(0);
+         return messageSource;
+     }
+-
++    @Bean
++    public UserValidator userValidator() {
++        UserValidator userValidator = new UserValidator();
++        return userValidator;
++    }
++
+ }
+\ No newline at end of file
+diff --git a/spring-security-login-error-handling/src/main/java/org/baeldung/spring/PersistenceJPAConfig.java b/spring-security-login-error-handling/src/main/java/org/baeldung/spring/PersistenceJPAConfig.java
+new file mode 100644
+index 000000000000..172ebbb77d32
+--- /dev/null
++++ b/spring-security-login-error-handling/src/main/java/org/baeldung/spring/PersistenceJPAConfig.java
+@@ -0,0 +1,81 @@
++package org.baeldung.spring;
++
++import java.util.Properties;
++
++import javax.sql.DataSource;
++
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.context.annotation.Bean;
++import org.springframework.context.annotation.ComponentScan;
++import org.springframework.context.annotation.Configuration;
++import org.springframework.context.annotation.PropertySource;
++import org.springframework.core.env.Environment;
++import org.springframework.dao.annotation.PersistenceExceptionTranslationPostProcessor;
++import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
++import org.springframework.jdbc.datasource.DriverManagerDataSource;
++import org.springframework.orm.jpa.JpaTransactionManager;
++import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
++import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
++import org.springframework.transaction.annotation.EnableTransactionManagement;
++
++//import com.google.common.base.Preconditions;
++
++@Configuration
++@EnableTransactionManagement
++@PropertySource({ "classpath:application.properties" })
++@ComponentScan({ "org.baeldung.persistence.model" })
++@EnableJpaRepositories(basePackages = "org.baeldung.persistence.dao")
++public class PersistenceJPAConfig {
++    @Autowired
++    private Environment env;
++
++    public PersistenceJPAConfig() {
++        super();
++    }
++
++    @Bean
++    public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
++        final LocalContainerEntityManagerFactoryBean em = new LocalContainerEntityManagerFactoryBean();
++        em.setDataSource(dataSource());
++        em.setPackagesToScan(new String[] { "org.baeldung.persistence.model" });
++
++        final HibernateJpaVendorAdapter vendorAdapter = new HibernateJpaVendorAdapter();
++        // vendorAdapter.set
++        em.setJpaVendorAdapter(vendorAdapter);
++        em.setJpaProperties(additionalProperties());
++
++        return em;
++    }
++
++    @Bean
++    public DataSource dataSource() {
++        final DriverManagerDataSource dataSource = new DriverManagerDataSource();
++        dataSource.setDriverClassName(env.getProperty("jdbc.driverClassName"));
++        dataSource.setUrl(env.getProperty("jdbc.url"));
++        dataSource.setUsername(env.getProperty("jdbc.user"));
++        dataSource.setPassword(env.getProperty("jdbc.pass"));
++
++        return dataSource;
++    }
++
++    @Bean
++    public JpaTransactionManager transactionManager() {
++        JpaTransactionManager transactionManager = new JpaTransactionManager();
++        transactionManager.setEntityManagerFactory(entityManagerFactory().getObject());
++        return transactionManager;
++    }
++
++    @Bean
++    public PersistenceExceptionTranslationPostProcessor exceptionTranslation() {
++        return new PersistenceExceptionTranslationPostProcessor();
++    }
++
++    final Properties additionalProperties() {
++        final Properties hibernateProperties = new Properties();
++        hibernateProperties.setProperty("hibernate.hbm2ddl.auto", env.getProperty("hibernate.hbm2ddl.auto"));
++        hibernateProperties.setProperty("hibernate.dialect", env.getProperty("hibernate.dialect"));
++        // hibernateProperties.setProperty("hibernate.globally_quoted_identifiers", "true");
++        return hibernateProperties;
++    }
++
++}
+diff --git a/spring-security-login-error-handling/src/main/java/org/baeldung/web/controller/RegistrationController.java b/spring-security-login-error-handling/src/main/java/org/baeldung/web/controller/RegistrationController.java
+new file mode 100644
+index 000000000000..12537965253b
+--- /dev/null
++++ b/spring-security-login-error-handling/src/main/java/org/baeldung/web/controller/RegistrationController.java
+@@ -0,0 +1,127 @@
++package org.baeldung.web.controller;
++
++import java.util.Locale;
++
++import org.baeldung.persistence.model.User;
++import org.baeldung.persistence.service.EmailExistsException;
++import org.baeldung.persistence.service.UserDto;
++import org.baeldung.persistence.service.UserService;
++import org.baeldung.persistence.service.UserValidator;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.beans.factory.annotation.Qualifier;
++import org.springframework.context.MessageSource;
++import org.springframework.core.env.Environment;
++import org.springframework.mail.SimpleMailMessage;
++import org.springframework.mail.javamail.JavaMailSender;
++import org.springframework.stereotype.Controller;
++import org.springframework.ui.Model;
++import org.springframework.validation.BindingResult;
++import org.springframework.validation.Errors;
++import org.springframework.validation.ObjectError;
++import org.springframework.validation.Validator;
++import org.springframework.web.bind.WebDataBinder;
++import org.springframework.web.bind.annotation.InitBinder;
++import org.springframework.web.bind.annotation.ModelAttribute;
++import org.springframework.web.bind.annotation.RequestMapping;
++import org.springframework.web.bind.annotation.RequestMethod;
++import org.springframework.web.bind.annotation.SessionAttributes;
++import org.springframework.web.context.request.WebRequest;
++import org.springframework.web.servlet.ModelAndView;
++
++
++@Controller
++@SessionAttributes("user")
++public class RegistrationController {
++
++    private static final Logger LOGGER = LoggerFactory.getLogger(RegistrationController.class);
++    private UserService service;
++    @Autowired
++    private MessageSource messages;
++    @Autowired
++    private JavaMailSender mailSender;
++    @Autowired
++    private UserValidator validator;
++
++    @InitBinder
++    protected void initBinder(WebDataBinder binder) {
++        binder.setValidator(this.validator);
++    }
++    @Autowired
++    public RegistrationController(UserService service) {
++        this.service = service;
++    }
++
++    @RequestMapping(value = "/user/registration", method = RequestMethod.GET)
++    public String showRegistrationForm(WebRequest request, Model model) {
++        LOGGER.debug("Rendering registration page.");
++        UserDto userDto = new UserDto();
++        model.addAttribute("user", userDto);
++        return "registration";
++    }
++  /*  @RequestMapping(value ="/user/registration", method = RequestMethod.POST)
++    public String registerUserAccount( @ModelAttribute("user") UserDto userAccountData,
++                                      BindingResult result,
++                                      WebRequest request, Errors errors)  {
++        LOGGER.debug("Registering user account with information: {}", userAccountData);
++        if (result.hasErrors()) {
++            LOGGER.debug("Validation errors found. Rendering form view.");
++            return "registration";
++        }
++        LOGGER.debug("No validation errors found. Continuing registration process.");
++        User registered = createUserAccount(userAccountData, result);
++        if (registered == null) {
++            errors.rejectValue("lastError", "message.regError");
++            return "registration";
++        }
++        LOGGER.debug("Registered user account with information: {}", registered);
++
++        sendConfirmMail(userAccountData.getUsername(), request.getLocale());
++        return "successRegister";
++        //return "redirect:/";
++    }*/
++    @RequestMapping(value ="/user/registration", method = RequestMethod.POST)
++    public ModelAndView registerUserAccount( @ModelAttribute("user") UserDto userAccountData,
++                                      BindingResult result,
++                                      WebRequest request, Errors errors)  {
++        LOGGER.debug("Registering user account with information: {}", userAccountData);
++        validator.validate(userAccountData, result);
++        User registered = createUserAccount(userAccountData, result);
++        if (registered == null) {
++            result.rejectValue("lastError", "message.regError");
++        }
++        if (result.hasErrors()) {
++            // show errors
++            return new ModelAndView("registration", "user", userAccountData);
++        } else {
++
++            // success
++            return new ModelAndView("successRegister", "user", userAccountData);
++        }
++
++    }
++
++    private User createUserAccount(UserDto userAccountData, BindingResult result) {
++        LOGGER.debug("Creating user account with information: {}", userAccountData);
++        User registered = null;
++        try {
++            registered = service.registerNewUserAccount(userAccountData);
++        } catch (EmailExistsException e) {
++            // TODO Auto-generated catch block
++            return null;
++        }
++        return registered;
++    }
++
++    private void sendConfirmMail(String address, Locale locale){
++        String recipientAddress = address;
++        String subject = "Registration Confirmation";
++        String message = messages.getMessage("message.regSucc", null, locale);
++        SimpleMailMessage email = new SimpleMailMessage();
++        email.setTo(recipientAddress);
++        email.setSubject(subject);
++        email.setText(message);
++        mailSender.send(email);
++    }
++}
+diff --git a/spring-security-login-error-handling/src/main/resources/application.properties b/spring-security-login-error-handling/src/main/resources/application.properties
+new file mode 100644
+index 000000000000..7ddffa4e1f6b
+--- /dev/null
++++ b/spring-security-login-error-handling/src/main/resources/application.properties
+@@ -0,0 +1,17 @@
++################### DataSource Configuration ##########################
++jdbc.driverClassName=com.mysql.jdbc.Driver
++jdbc.url=jdbc:mysql://localhost:3306/AUTHDATA
++jdbc.user=root
++###jdbc.pass=admin###
++init-db=false
++################### Hibernate Configuration ##########################
++hibernate.dialect=org.hibernate.dialect.MySQLDialect
++hibernate.show_sql=true
++hibernate.hbm2ddl.auto=validate
++################### JavaMail Configuration ##########################
++smtp.host=smtp.gmail.com
++smtp.port=465
++smtp.protocol=smtps
++smtp.username=egmp777@gmail.com
++smtp.password=k117srvf
++support.email=egmp777@gmail.com
+\ No newline at end of file
+diff --git a/spring-security-login-error-handling/src/main/resources/messages_en.properties b/spring-security-login-error-handling/src/main/resources/messages_en.properties
+index 3e05a6b76a3b..66a58dfeabf5 100644
+--- a/spring-security-login-error-handling/src/main/resources/messages_en.properties
++++ b/spring-security-login-error-handling/src/main/resources/messages_en.properties
+@@ -5,5 +5,12 @@ message.badCredentials=Invalid Username or Password
+ message.sessionExpired=Session Timed Out
+ message.logoutError=Sorry, error logging out
+ message.logoutSucc=You logged out successfully
+-message.regSucc=You registrated correctly, please log in
+-message.regError=There was a registration error please go back to registration
+\ No newline at end of file
++message.regSucc=You registered successfully. We will send you a confirmation message to your email account.
++message.regError=An account for that username/email already exists. Please enter a different username.
++message.lastName=Last name is required
++message.firstName=First name is required
++label.user.email=Email
++label.user.firstName=First name
++label.user.lastName=Last name
++label.user.password=Password
++label.login=Login here
+\ No newline at end of file
+diff --git a/spring-security-login-error-handling/src/main/resources/messages_es_ES.properties b/spring-security-login-error-handling/src/main/resources/messages_es_ES.properties
+index 842a899e4316..0becc40dd413 100644
+--- a/spring-security-login-error-handling/src/main/resources/messages_es_ES.properties
++++ b/spring-security-login-error-handling/src/main/resources/messages_es_ES.properties
+@@ -5,5 +5,12 @@ message.badCredentials=Usuario o clave invalida
+ message.sessionExpired=La sesion expiro
+ message.logoutError=Lo sentimos, hubo problemas en logout
+ message.logoutSucc=Logout con exito
+-message.regSucc=Se registro correctamente, por favor ingrese
+-message.regError=Hubo un error, por favor vuelva a registrarse
+\ No newline at end of file
++message.regSucc=Se registro correctamente. Le enviaremos un mensaje de confirmacion a su direccion de email.
++message.regError=Ya existe una cuenta con ese nombre de usuario. Ingrese un nombre de usuario diferente.
++message.lastName=El campo Last Name es obligatorio
++message.firstName=El campo First Name es obligatorio
++label.user.email=Email
++label.user.firstName=Nombre
++label.user.lastName=Apellido
++label.user.password=Clave
++label.login=Loguee aqui
+\ No newline at end of file
+diff --git a/spring-security-login-error-handling/src/main/resources/webSecurityConfig.xml b/spring-security-login-error-handling/src/main/resources/webSecurityConfig.xml
+index 46550f03da76..ef5ba495dad8 100644
+--- a/spring-security-login-error-handling/src/main/resources/webSecurityConfig.xml
++++ b/spring-security-login-error-handling/src/main/resources/webSecurityConfig.xml
+@@ -10,9 +10,13 @@
+ 	<http use-expressions="true">
+ 		<intercept-url pattern="/login*" access="permitAll" />
+ 		<intercept-url pattern="/logout*" access="permitAll" />
++		<intercept-url pattern="/signin/**" access="permitAll" />
++		<intercept-url pattern="/signup/**" access="permitAll" />
++		<intercept-url pattern="/user/registration*" access="permitAll" />
+ 		<intercept-url pattern="/registration*" access="permitAll" />
+ 		<intercept-url pattern="/resources/**" access="permitAll" />
+ 		<intercept-url pattern="/invalidSession*" access="isAnonymous()" />
++		<!-- <intercept-url pattern="/result*" access="isAnonymous()" /> -->
+ 		<intercept-url pattern="/**" access="isAuthenticated()" />
+ 		<form-login login-page='/login.html'
+ 			authentication-failure-url="/login.html?error=true"
+@@ -25,12 +29,22 @@
+ 	</http>
+ 	<beans:bean id="myAuthenticationSuccessHandler"
+ 		class="org.baeldung.security.MySimpleUrlAuthenticationSuccessHandler" />
++	<!-- <authentication-manager> <authentication-provider> <user-service> <user
++		name="user1" password="user1Pass" authorities="ROLE_USER" /> <user name="admin1"
++		password="admin1Pass" authorities="ROLE_ADMIN" /> </user-service> </authentication-provider> -->
++	<!-- Authentication from database.(For article 2) -->
+ 	<authentication-manager>
+-		<authentication-provider>
+-			<user-service>
+-				<user name="user1" password="user1Pass" authorities="ROLE_USER" />
+-				<user name="admin1" password="admin1Pass" authorities="ROLE_ADMIN" />
+-			</user-service>
++		<authentication-provider user-service-ref="userDetailsService">
++			<!-- <password-encoder ref="passwordEncoder"/> -->
+ 		</authentication-provider>
+ 	</authentication-manager>
++
++	<!-- This is used to hash the password of the user.(For article 2) -->
++	<beans:bean id="passwordEncoder"
++		class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder"
++		autowire="constructor" />
++	<!-- <beans:constructor-arg index="0" value="10"/> </beans:bean> -->
++
++	<beans:bean id="userDetailsService" class="org.baeldung.security.MyUserDetailsService"
++		autowire="constructor" />
+ </beans:beans>
+\ No newline at end of file
+diff --git a/spring-security-login-error-handling/src/main/webapp/WEB-INF/view/admin.jsp b/spring-security-login-error-handling/src/main/webapp/WEB-INF/view/admin.jsp
+index 12f9f7aba986..5aefc9ab5590 100644
+--- a/spring-security-login-error-handling/src/main/webapp/WEB-INF/view/admin.jsp
++++ b/spring-security-login-error-handling/src/main/webapp/WEB-INF/view/admin.jsp
+@@ -2,7 +2,7 @@
+ <%@ taglib prefix="sec" uri="http://www.springframework.org/security/tags" %>
+ <%@taglib uri="http://www.springframework.org/tags" prefix="spring"%>
+ <html>
+-<sec:authorize ifAnyGranted="ROLE_USER">
++<sec:authorize ifAnyGranted ="ROLE_USER">
+ <spring:message code="message.unauth" ></spring:message>
+ </sec:authorize>
+ <head></head>
+diff --git a/spring-security-login-error-handling/src/main/webapp/WEB-INF/view/login.jsp b/spring-security-login-error-handling/src/main/webapp/WEB-INF/view/login.jsp
+index 95559b045511..97bc749acc23 100644
+--- a/spring-security-login-error-handling/src/main/webapp/WEB-INF/view/login.jsp
++++ b/spring-security-login-error-handling/src/main/webapp/WEB-INF/view/login.jsp
+@@ -4,7 +4,7 @@
+ <%@taglib uri="http://www.springframework.org/tags" prefix="spring"%>
+ <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt"%>
+ <fmt:setBundle basename="messages" />
+-<%@ page session="false"%>
++<%@ page session="true"%>
+ <c:if test="${param.error != null}">
+ 	<div id="error">
+ 		<spring:message code="message.badCredentials"></spring:message>
+@@ -73,5 +73,7 @@
+
+ 		</form>
+ 	<br> Current Locale : ${pageContext.response.locale}
++	<a href="<c:url value="/user/registration" />">Sign Up</a>
++
+ </body>
+ </html>
+\ No newline at end of file
+diff --git a/spring-security-login-error-handling/src/main/webapp/WEB-INF/view/registration.jsp b/spring-security-login-error-handling/src/main/webapp/WEB-INF/view/registration.jsp
+deleted file mode 100644
+index 474a1817b52a..000000000000
+--- a/spring-security-login-error-handling/src/main/webapp/WEB-INF/view/registration.jsp
++++ /dev/null
+@@ -1,12 +0,0 @@
+-<%@ page language="java" contentType="text/html; charset=US-ASCII"
+-    pageEncoding="US-ASCII"%>
+-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+-<html>
+-<head>
+-<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+-<title>Registration</title>
+-</head>
+-<body>
+-<H1> This is the registration page</H1>
+-</body>
+-</html>
+\ No newline at end of file
+diff --git a/spring-security-login-error-handling/src/main/webapp/WEB-INF/view/successRegister.jsp b/spring-security-login-error-handling/src/main/webapp/WEB-INF/view/successRegister.jsp
+new file mode 100644
+index 000000000000..f824ceba9222
+--- /dev/null
++++ b/spring-security-login-error-handling/src/main/webapp/WEB-INF/view/successRegister.jsp
+@@ -0,0 +1,19 @@
++<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
++<%@ taglib prefix="sec"
++	uri="http://www.springframework.org/security/tags"%>
++<%@taglib uri="http://www.springframework.org/tags" prefix="spring"%>
++<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt"%>
++<fmt:setBundle basename="messages" />
++<%@ page session="true"%>
++
++<html>
++<head>
++<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
++<title>Registration Success</title>
++</head>
++<body>
++
++			<spring:message code="message.regSucc"></spring:message>
++			<a href="<c:url value="login.html" />"><spring:message code="label.login"></spring:message></a>
++</body>
++</html>
+\ No newline at end of file
+diff --git a/spring-security-rest-full/.project b/spring-security-rest-full/.project
+index 89da95b5283f..6df4d1d27bce 100644
+--- a/spring-security-rest-full/.project
++++ b/spring-security-rest-full/.project
+@@ -30,6 +30,11 @@
+ 			<arguments>
+ 			</arguments>
+ 		</buildCommand>
++		<buildCommand>
++			<name>org.hibernate.eclipse.console.hibernateBuilder</name>
++			<arguments>
++			</arguments>
++		</buildCommand>
+ 	</buildSpec>
+ 	<natures>
+ 		<nature>org.springframework.ide.eclipse.core.springnature</nature>
+@@ -38,5 +43,6 @@
+ 		<nature>org.eclipse.jdt.core.javanature</nature>
+ 		<nature>org.eclipse.m2e.core.maven2Nature</nature>
+ 		<nature>org.eclipse.wst.common.project.facet.core.nature</nature>
++		<nature>org.hibernate.eclipse.console.hibernateNature</nature>
+ 	</natures>
+ </projectDescription>

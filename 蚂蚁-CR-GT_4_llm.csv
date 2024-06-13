@@ -162,3 +162,152 @@ if (ownersResults.isEmpty()) {
                 }
             }"
 2723,TaskRuntimeHelper.java,24,命名含义需优化,Integer ok = 0;
+3004,CustomModelParser.java,12,禁止日志中直接使用 String 输出异常,"throw new IllegalArgumentException(""The first group needs to end with an 'else' (or contain a single unconditional 'if' statement)."");"
+3004,CustomModelParser.java,12,禁止日志中直接使用 String 输出异常,"throw new IllegalArgumentException(""The first group needs to contain a single unconditional 'if' statement (or end with an 'else')."");"
+3004,CustomModelParser.java,12,禁止日志中直接使用 String 输出异常,"throw new IllegalArgumentException(""Every group must start with an if-statement"");"
+3004,CustomModelParser.java,12,禁止日志中直接使用 String 输出异常,"throw new IllegalArgumentException(""condition must be empty but was "" + statement.condition());"
+3004,CustomModelParser.java,12,禁止日志中直接使用 String 输出异常,"throw new IllegalArgumentException(exceptionInfo + "" invalid condition \"""" + statement.condition() + ""\"""" +"
+3004,StatementDeserializer.java,12,禁止日志中直接使用 String 输出异常,"throw new IllegalArgumentException(""This block statement expects two entries but was "" + treeNode.size() + "" for "" + treeNode);"
+3004,StatementDeserializer.java,26,避免重复代码代码结构冗余（首批不包括）,"if (treeNode.has(IF.getName()))
+                return If(treeNode.get(IF.getName()).asText(), list);
+            else if (treeNode.has(ELSEIF.getName()))
+                return ElseIf(treeNode.get(ELSEIF.getName()).asText(), list);
+            else if (treeNode.has(ELSE.getName())) {
+                JsonNode elseNode = treeNode.get(ELSE.getName());
+                if (elseNode.isNull() || elseNode.isValueNode() && elseNode.asText().isEmpty())
+                    return Else(list);
+                throw new IllegalArgumentException(""else cannot have expression but was "" + treeNode.get(ELSE.getName()));
+            } else
+                throw new IllegalArgumentException(""invalid then block: "" + treeNode.toPrettyString());"
+2805,WaySegmentParser.java,24,命名含义需优化,int id = segment.get(i).id;GHPoint3D c = nodeData.getCoordinates(id);
+18785,AbstractGoCodegen.java,15,对对象不必要的 NULL 检查,if (ref != null && !ref.isEmpty() && ref.endsWith(openAPIType))
+16834,Employee.java,18,初始化块为空 ,"public Employee() {
+    }"
+16834,EmployeeMaxValueService.java,24,命名含义需优化,CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+35,User.java,26,避免重复代码代码结构冗余（首批不包括）,"if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        final User user = (User) obj;
+        if (!username.equals(user.username))
+            return false;
+        return true;"
+1017,ERXShutdownHook.java,3,不要使用 System.out.println 去打印,"System.out.println( ""ERXShutdownHook waiting for "" + ALL_HOOKS.size() + "" hook"" + (ALL_HOOKS.size() > 1 ? ""s"" : """") + "" to complete: "" + names );"
+1262,WorkersAiChatModel.java,12,禁止日志中直接使用 String 输出异常,"throw new IllegalStateException(""Response is empty"");"
+1262,WorkersAiEmbeddingModel.java,12,禁止日志中直接使用 String 输出异常,"throw new RuntimeException(""Unexpected response: "" + retrofitResponse);"
+1262,WorkersAiImageModel.java,26,避免重复代码代码结构冗余（首批不包括）,"if (image != null) {
+                if (image.url() != null) {
+                    imgReq.setImage(getPixels(image.url().toURL()));
+                }
+            }
+            if (mask != null) {
+                if (mask.url() != null) {
+                    imgReq.setMask(getPixels(mask.url().toURL()));
+                }
+            }"
+1262,WorkersAiImageModel.java,12,禁止日志中直接使用 String 输出异常,"throw new IllegalStateException(""An error occured while generating image."");"
+1262,WorkersAiLanguageModel.java,12,禁止日志中直接使用 String 输出异常,"throw new RuntimeException(""Empty response"");"
+1262,AbstractWorkersAIModel.java,12,禁止日志中直接使用 String 输出异常,"throw new IllegalArgumentException(""Account identifier should not be null or empty"");"
+11537,ApiWrapperConsumer.java,3,不要使用 System.out.println 去打印,"System.out.println(""============================================================================"");"
+11537,ReflectionPackableMethod.java,12,禁止日志中直接使用 String 输出异常,"throw new RuntimeException(""fieldNum should is 2 "");"
+10001,CodeIssues.java,1,避免无效的 import ,import java.util.Map;
+10001,CodeIssues.java,2,未使用的临时变量,int temp = 10;
+10001,CodeIssues.java,4,函数中未使用的形参,"public void unusedParameter(int param1, int param2) {
+    System.out.println(""This method has unused parameters."");
+}"
+10001,CodeIssues.java,5,if 语句块不能为空,"if (value > 0) {
+
+    }"
+10001,CodeIssues.java,6,"循环体不能为空,不能有多余的分号","while (true) {
+        }"
+10001,CodeIssues.java,7,"避免使用 printStackTrace(),应该使用日志的方式去记录","try {
+        } catch (Exception e) {
+            e.printStackTrace();
+        }"
+10001,CodeIssues.java,8,catch 语句块不能为空,"try {
+        } catch (Exception e) {
+        }"
+10001,CodeIssues.java,9,不必要的永真/永假判断,"if (condition) {
+            System.out.println(""This condition is always true."");
+        }
+
+        if (!condition) {
+            System.out.println(""This condition is always false."");
+        }"
+10001,CodeIssues.java,10,switch 中 default 必须放在最后,"switch (value) {
+            default:
+                System.out.println(""Default case"");
+                break;
+            case 1:
+                System.out.println(""Case 1"");
+                break;
+        }"
+10001,CodeIssues.java,11,未使用 equals() 函数对 String 作比较,"public void stringComparisonWithoutEquals(String str1, String str2) {
+        if (str1 == str2) {
+            System.out.println(""Strings are equal."");
+        }
+    }"
+10001,CodeIssues.java,13,finally 语句块不能为空,"try {
+        } catch (Exception e) {
+            System.out.println(""Exception occurred."");
+        } finally {
+        }"
+10001,CodeIssues.java,14,try 语句块不能为空,"try {
+        } catch (Exception e) {
+            System.out.println(""Exception occurred."");
+        } finally {
+        }"
+10001,CodeIssues.java,16,while 语句块不能为空,"while (true) {
+        }"
+10001,CodeIssues.java,17,避免 finally 块中出现 return,"try {
+            return 10;
+        } catch (Exception e) {
+            System.out.println(""Exception occurred."");
+        } finally {
+            return 20;
+        }"
+10001,CodeIssues.java,19,日历类用法不当风险,"Calendar calendar = Calendar.getInstance();
+        Date date = calendar.getTime();"
+10001,CodeIssues.java,20,简单的日期格式容易出错的规则,"SimpleDateFormat sdf = new SimpleDateFormat(""yyyy/MM/dd"");"
+10001,CodeIssues.java,21,"使用集合转数组的方法,必须使用集合的 toArray(T[] array),传入的是类型完全一样的数组,大小就是 list.size()",String[] stringArray = (String[]) stringList.toArray();
+10001,CodeIssues.java,22,禁止在 equals() 中使用 NULL 做比较,"if (str.equals(null)) {
+            System.out.println(""Strings are equal."");
+        }"
+10001,CodeIssues.java,23,switch 语句块不能为空,"switch (value) {
+
+        }"
+10001,CodeIssues.java,24,命名含义需优化,"int x = 10;
+        int y = 20;
+        int result = x + y;"
+10001,CodeIssues.java,27,非线程安全的 SimpleDateFormat 使用必须在函数或代码块级别使用 synchronized,"SimpleDateFormat sdf = new SimpleDateFormat(""yyyy-MM-dd"");
+        Date date = sdf.parse(""2023-06-12"");"
+12891,AuthenticationFlow.java,12,禁止日志中直接使用 String 输出异常,"throw new IllegalStateException(""Not supposed to be invoked"");"
+12891,AuthenticationProcessor.java,24,命名含义需优化,"String client_execution = authSession.getAuthNote(AuthenticationProcessor.CLIENT_AUTHENTICATION_EXECUTION);
+        String client_flow = authSession.getAuthNote(AuthenticationProcessor.CLIENT_FLOW_ID);"
+12891,IdentityProviderAuthenticator.java,24,命名含义需优化,Optional<IdentityProviderModel> idp = context.getRealm().getIdentityProvidersStream()
+10905,RealmAdapter.java,25,不必要判断逻辑（首批不包括）,"if (getAttribute(RealmAttributes.CLAIMS_SUPPORTED) != null) {
+            return new ArrayList<String>(Arrays.asList(getAttribute(RealmAttributes.CLAIMS_SUPPORTED).split("","")));
+        } else {
+            return null;
+        }"
+10905,MapRealmAdapter.java,26,避免重复代码代码结构冗余（首批不包括）,"if (getAttribute(CLAIMS_SUPPORTED) != null) {
+            return new ArrayList<String>(Arrays.asList(getAttribute(CLAIMS_SUPPORTED).split("","")));
+        } else {
+            return null;
+        }"
+819,AnimationSampleActivity.java,26,避免重复代码代码结构冗余（首批不包括）,"if (pvGif.getTag().equals(""pic_dog"")) {
+                pvGif.setImageResource(R.mipmap.pic_cat);
+                pvGif.setTag(""pic_cat"");
+            } else {
+                pvGif.setImageResource(R.mipmap.pic_dog);
+                pvGif.setTag(""pic_dog"");
+            }"
+800,PhotoViewAttacher.java,8,catch 语句块不能为空,"catch (ArrayIndexOutOfBoundsException e) {
+                        // Can sometimes happen when getX() and getY() is called
+                    }"
+621,PhotoViewAttacher.java,26,避免重复代码代码结构冗余（首批不包括）,"if (e1.getPointerCount() > SINGLE_TOUCH
+                            || e1.getPointerCount() > SINGLE_TOUCH) {
+                        return false;
+                    }"

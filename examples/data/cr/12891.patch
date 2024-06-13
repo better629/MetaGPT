@@ -1,0 +1,392 @@
+diff --git a/server-spi-private/src/main/java/org/keycloak/authentication/AuthenticationFlow.java b/server-spi-private/src/main/java/org/keycloak/authentication/AuthenticationFlow.java
+index 2fee6ef14ca..34dee65f168 100755
+--- a/server-spi-private/src/main/java/org/keycloak/authentication/AuthenticationFlow.java
++++ b/server-spi-private/src/main/java/org/keycloak/authentication/AuthenticationFlow.java
+@@ -21,6 +21,8 @@
+ import java.util.Collections;
+ import java.util.List;
+
++import org.keycloak.models.AuthenticationExecutionModel;
++
+ /**
+  * @author <a href="mailto:bill@burkecentral.com">Bill Burke</a>
+  * @version $Revision: 1 $
+@@ -36,4 +38,6 @@ public interface AuthenticationFlow {
+     default List<AuthenticationFlowException> getFlowExceptions(){
+         return Collections.emptyList();
+     }
++
++    default Response continueClientAuthAfterIdPLogin(AuthenticationExecutionModel model){ throw new IllegalStateException("Not supposed to be invoked"); }
+ }
+diff --git a/server-spi-private/src/main/java/org/keycloak/authentication/AuthenticationFlowContext.java b/server-spi-private/src/main/java/org/keycloak/authentication/AuthenticationFlowContext.java
+index af108802e4a..3d82038b90c 100755
+--- a/server-spi-private/src/main/java/org/keycloak/authentication/AuthenticationFlowContext.java
++++ b/server-spi-private/src/main/java/org/keycloak/authentication/AuthenticationFlowContext.java
+@@ -74,6 +74,11 @@ public interface AuthenticationFlowContext extends AbstractAuthenticationFlowCon
+      */
+     String getFlowPath();
+
++    /**
++     * @return flow id
++     */
++    String getFlowId();
++
+     /**
+      * Create a Freemarker form builder that presets the user, action URI, and a generated access code
+      *
+diff --git a/services/src/main/java/org/keycloak/authentication/AuthenticationProcessor.java b/services/src/main/java/org/keycloak/authentication/AuthenticationProcessor.java
+index 9640d926b54..a383c43256d 100755
+--- a/services/src/main/java/org/keycloak/authentication/AuthenticationProcessor.java
++++ b/services/src/main/java/org/keycloak/authentication/AuthenticationProcessor.java
+@@ -80,6 +80,8 @@ public class AuthenticationProcessor {
+     public static final String CURRENT_AUTHENTICATION_EXECUTION = "current.authentication.execution";
+     public static final String LAST_PROCESSED_EXECUTION = "last.processed.execution";
+     public static final String CURRENT_FLOW_PATH = "current.flow.path";
++    public static final String CLIENT_FLOW_ID = "client.flow.id";
++    public static final String CLIENT_AUTHENTICATION_EXECUTION = "client.authentication.execution";
+     public static final String FORKED_FROM = "forked.from";
+
+     public static final String BROKER_SESSION_ID = "broker.session.id";
+@@ -270,6 +272,10 @@ public String getFlowPath() {
+         return flowPath;
+     }
+
++    public String getFlowId() {
++        return flowId;
++    }
++
+     public void setAutheticatedUser(UserModel user) {
+         UserModel previousUser = getAuthenticationSession().getAuthenticatedUser();
+         if (previousUser != null && !user.getId().equals(previousUser.getId()))
+@@ -480,6 +486,11 @@ public String getFlowPath() {
+             return AuthenticationProcessor.this.getFlowPath();
+         }
+
++        @Override
++        public String getFlowId() {
++            return AuthenticationProcessor.this.getFlowId();
++        }
++
+         @Override
+         public ClientConnection getConnection() {
+             return AuthenticationProcessor.this.getConnection();
+@@ -860,6 +871,7 @@ public Response handleClientAuthException(Exception failure) {
+     }
+
+     public AuthenticationFlow createFlowExecution(String flowId, AuthenticationExecutionModel execution) {
++
+         AuthenticationFlowModel flow = realm.getAuthenticationFlowById(flowId);
+         if (flow == null) {
+             logger.error("Unknown flow to execute with");
+@@ -925,7 +937,14 @@ public static void resetFlow(AuthenticationSessionModel authSession, String flow
+         authSession.setAuthenticatedUser(null);
+         authSession.clearExecutionStatus();
+         authSession.clearUserSessionNotes();
++        String client_execution = authSession.getAuthNote(AuthenticationProcessor.CLIENT_AUTHENTICATION_EXECUTION);
++        String client_flow = authSession.getAuthNote(AuthenticationProcessor.CLIENT_FLOW_ID);
+         authSession.clearAuthNotes();
++        //keep CLIENT_AUTHENTICATION_EXECUTION and CLIENT_FLOW_ID if they exist
++        if (client_execution != null)
++            authSession.setAuthNote(AuthenticationProcessor.CLIENT_AUTHENTICATION_EXECUTION,client_execution);
++        if (client_flow != null)
++            authSession.setAuthNote(AuthenticationProcessor.CLIENT_FLOW_ID,client_flow);
+
+         Set<String> requiredActions = authSession.getRequiredActions();
+         for (String reqAction : requiredActions) {
+diff --git a/services/src/main/java/org/keycloak/authentication/DefaultAuthenticationFlow.java b/services/src/main/java/org/keycloak/authentication/DefaultAuthenticationFlow.java
+index 592fd13153e..59599219afb 100755
+--- a/services/src/main/java/org/keycloak/authentication/DefaultAuthenticationFlow.java
++++ b/services/src/main/java/org/keycloak/authentication/DefaultAuthenticationFlow.java
+@@ -155,6 +155,18 @@ public Response processAction(String actionExecution) {
+         } else return response;
+     }
+
++    @Override
++    public Response continueClientAuthAfterIdPLogin(AuthenticationExecutionModel model){
++        AuthenticatorFactory factory = getAuthenticatorFactory(model);
++        Authenticator authenticator = createAuthenticator(factory);
++        AuthenticationProcessor.Result result = processor.createAuthenticatorContext(model, null, null);
++        authenticator.action(result);
++        Response response = processResult(result, true);
++        if (response == null) {
++            return continueAuthenticationAfterSuccessfulAction(model);
++        } else return response;
++    }
++
+
+     /**
+      * Called after "actionExecutionModel" execution is finished (Either successful or attempted). Find the next appropriate authentication
+diff --git a/services/src/main/java/org/keycloak/authentication/authenticators/browser/IdentityProviderAuthenticator.java b/services/src/main/java/org/keycloak/authentication/authenticators/browser/IdentityProviderAuthenticator.java
+index cdf4ac4441b..39ebc7fd110 100644
+--- a/services/src/main/java/org/keycloak/authentication/authenticators/browser/IdentityProviderAuthenticator.java
++++ b/services/src/main/java/org/keycloak/authentication/authenticators/browser/IdentityProviderAuthenticator.java
+@@ -23,6 +23,7 @@
+ import org.keycloak.authentication.AuthenticationProcessor;
+ import org.keycloak.authentication.Authenticator;
+ import org.keycloak.constants.AdapterConstants;
++import org.keycloak.events.Details;
+ import org.keycloak.models.IdentityProviderModel;
+ import org.keycloak.models.KeycloakSession;
+ import org.keycloak.models.RealmModel;
+@@ -75,11 +76,13 @@ public void authenticate(AuthenticationFlowContext context) {
+     }
+
+     private void redirect(AuthenticationFlowContext context, String providerId) {
+-        Optional<IdentityProviderModel> idp = context.getRealm().getIdentityProvidersStream()
++       Optional<IdentityProviderModel> idp = context.getRealm().getIdentityProvidersStream()
+                 .filter(IdentityProviderModel::isEnabled)
+                 .filter(identityProvider -> Objects.equals(providerId, identityProvider.getAlias()))
+                 .findFirst();
+         if (idp.isPresent()) {
++            context.getAuthenticationSession().setAuthNote(AuthenticationProcessor.CLIENT_FLOW_ID, context.getFlowId());
++            context.getAuthenticationSession().setAuthNote(AuthenticationProcessor.CLIENT_AUTHENTICATION_EXECUTION, context.getExecution().getId());
+             String accessCode = new ClientSessionCode<>(context.getSession(), context.getRealm(), context.getAuthenticationSession()).getOrGenerateCode();
+             String clientId = context.getAuthenticationSession().getClient().getClientId();
+             String tabId = context.getAuthenticationSession().getTabId();
+@@ -102,6 +105,9 @@ private void redirect(AuthenticationFlowContext context, String providerId) {
+
+     @Override
+     public void action(AuthenticationFlowContext context) {
++        //BROKER_USER_ID not null user have been login with Idp -> return success
++        if (context.getAuthenticationSession().getUserSessionNotes().get(Details.IDENTITY_PROVIDER_USERNAME) != null)
++            context.success();
+     }
+
+     @Override
+diff --git a/services/src/main/java/org/keycloak/authentication/authenticators/browser/UsernamePasswordForm.java b/services/src/main/java/org/keycloak/authentication/authenticators/browser/UsernamePasswordForm.java
+index e554a887107..296ce7e3721 100755
+--- a/services/src/main/java/org/keycloak/authentication/authenticators/browser/UsernamePasswordForm.java
++++ b/services/src/main/java/org/keycloak/authentication/authenticators/browser/UsernamePasswordForm.java
+@@ -18,7 +18,9 @@
+ package org.keycloak.authentication.authenticators.browser;
+
+ import org.keycloak.authentication.AuthenticationFlowContext;
++import org.keycloak.authentication.AuthenticationProcessor;
+ import org.keycloak.authentication.Authenticator;
++import org.keycloak.events.Details;
+ import org.keycloak.forms.login.LoginFormsProvider;
+ import org.keycloak.models.KeycloakSession;
+ import org.keycloak.models.RealmModel;
+@@ -40,13 +42,16 @@ public class UsernamePasswordForm extends AbstractUsernameFormAuthenticator impl
+
+     @Override
+     public void action(AuthenticationFlowContext context) {
+-        MultivaluedMap<String, String> formData = context.getHttpRequest().getDecodedFormParameters();
+-        if (formData.containsKey("cancel")) {
+-            context.cancelLogin();
+-            return;
+-        }
+-        if (!validateForm(context, formData)) {
+-            return;
++        //BROKER_USER_ID not null user have been login with Idp -> return success
++        if (context.getAuthenticationSession().getUserSessionNotes().get(Details.IDENTITY_PROVIDER_USERNAME) == null) {
++            MultivaluedMap<String, String> formData = context.getHttpRequest().getDecodedFormParameters();
++            if (formData.containsKey("cancel")) {
++                context.cancelLogin();
++                return;
++            }
++            if (!validateForm(context, formData)) {
++                return;
++            }
+         }
+         context.success();
+     }
+@@ -59,6 +64,8 @@ protected boolean validateForm(AuthenticationFlowContext context, MultivaluedMap
+     public void authenticate(AuthenticationFlowContext context) {
+         MultivaluedMap<String, String> formData = new MultivaluedHashMap<>();
+         String loginHint = context.getAuthenticationSession().getClientNote(OIDCLoginProtocol.LOGIN_HINT_PARAM);
++        context.getAuthenticationSession().setAuthNote(AuthenticationProcessor.CLIENT_FLOW_ID, context.getFlowId());
++        context.getAuthenticationSession().setAuthNote(AuthenticationProcessor.CLIENT_AUTHENTICATION_EXECUTION, context.getExecution().getId());
+
+         String rememberMeUsername = AuthenticationManager.getRememberMeUsername(context.getSession());
+
+diff --git a/services/src/main/java/org/keycloak/services/resources/IdentityBrokerService.java b/services/src/main/java/org/keycloak/services/resources/IdentityBrokerService.java
+index 370a72c47fe..90f4bd6452b 100755
+--- a/services/src/main/java/org/keycloak/services/resources/IdentityBrokerService.java
++++ b/services/src/main/java/org/keycloak/services/resources/IdentityBrokerService.java
+@@ -20,6 +20,8 @@
+ import org.jboss.resteasy.reactive.NoCache;
+ import org.keycloak.http.HttpRequest;
+ import org.keycloak.OAuthErrorException;
++import org.keycloak.authentication.AuthenticationFlow;
++import org.keycloak.authentication.AuthenticationFlowException;
+ import org.keycloak.authentication.AuthenticationProcessor;
+ import org.keycloak.authentication.authenticators.broker.AbstractIdpAuthenticator;
+ import org.keycloak.authentication.authenticators.broker.util.PostBrokerLoginConstants;
+@@ -47,6 +49,7 @@
+ import org.keycloak.locale.LocaleSelectorProvider;
+ import org.keycloak.models.AccountRoles;
+ import org.keycloak.models.AuthenticatedClientSessionModel;
++import org.keycloak.models.AuthenticationExecutionModel;
+ import org.keycloak.models.AuthenticationFlowModel;
+ import org.keycloak.models.ClientModel;
+ import org.keycloak.models.ClientSessionContext;
+@@ -838,6 +841,39 @@ private Response finishBrokerAuthentication(BrokeredIdentityContext context, Use
+             logger.debugf("Performing local authentication for user [%s].", federatedUser);
+         }
+
++        //code for returning to client browser flow
++        String execution = authSession.getAuthNote(AuthenticationProcessor.CLIENT_AUTHENTICATION_EXECUTION);
++        String flowId =  authSession.getAuthNote(AuthenticationProcessor.CLIENT_FLOW_ID);
++
++        if (execution != null && flowId!=null) {
++            AuthenticationExecutionModel model = realmModel.getAuthenticationExecutionById(execution);
++            //remove the CLIENT_AUTHENTICATION_EXECUTION and CLIENT_FLOW_ID from session
++            authSession.removeAuthNote(AuthenticationProcessor.CLIENT_AUTHENTICATION_EXECUTION);
++            authSession.removeAuthNote(AuthenticationProcessor.CLIENT_FLOW_ID);
++
++            AuthenticationProcessor processor = new AuthenticationProcessor();
++            processor.setAuthenticationSession(authSession)
++                    .setFlowPath(LoginActionsService.AUTHENTICATE_PATH)
++                    .setBrowserFlow(true)
++                    .setFlowId(flowId)
++                    .setConnection(clientConnection)
++                    .setEventBuilder(event)
++                    .setRealm(realmModel)
++                    .setSession(session)
++                    .setUriInfo(session.getContext().getUri())
++                    .setRequest(request);
++            processor.setAutheticatedUser(federatedUser);
++            AuthenticationFlow authenticationFlow = processor.createFlowExecution(flowId, model);
++            //maybe find next flow
++            Response challenge = authenticationFlow.continueClientAuthAfterIdPLogin(model);
++            if (challenge != null) return challenge;
++            if (!authenticationFlow.isSuccessful()) {
++                throw new AuthenticationFlowException(authenticationFlow.getFlowExceptions());
++            }
++        } else {
++            logger.warn("CLIENT_AUTHENTICATION_EXECUTION and CLIENT_FLOW_ID are not included in the authenticationSession");
++        }
++
+         AuthenticationManager.setClientScopesInSession(authSession);
+
+         String nextRequiredAction = AuthenticationManager.nextRequiredAction(session, authSession, request, event);
+diff --git a/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/broker/AbstractAdvancedBrokerTest.java b/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/broker/AbstractAdvancedBrokerTest.java
+index ec38b1dd978..91ebdcb2516 100644
+--- a/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/broker/AbstractAdvancedBrokerTest.java
++++ b/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/broker/AbstractAdvancedBrokerTest.java
+@@ -5,9 +5,11 @@
+ import org.keycloak.admin.client.resource.RealmResource;
+ import org.keycloak.admin.client.resource.UserResource;
+ import org.keycloak.common.util.Time;
++import org.keycloak.models.AuthenticationExecutionModel;
+ import org.keycloak.models.IdentityProviderMapperSyncMode;
+ import org.keycloak.models.IdentityProviderSyncMode;
+ import org.keycloak.models.utils.TimeBasedOTP;
++import org.keycloak.representations.idm.AuthenticationExecutionInfoRepresentation;
+ import org.keycloak.representations.idm.ClientRepresentation;
+ import org.keycloak.representations.idm.ComponentRepresentation;
+ import org.keycloak.representations.idm.IdentityProviderMapperRepresentation;
+@@ -35,6 +37,7 @@
+ import java.net.URI;
+ import java.util.Arrays;
+ import java.util.Collections;
++import java.util.List;
+ import java.util.Set;
+ import java.util.concurrent.TimeUnit;
+ import java.util.concurrent.atomic.AtomicReference;
+@@ -70,6 +73,8 @@
+  */
+ public abstract class AbstractAdvancedBrokerTest extends AbstractBrokerTest {
+
++    private static final String Browser_Conditional_OTP = "Browser - Conditional OTP";
++    private static final String Browser = "browser";
+
+     protected void createRoleMappersForConsumerRealm() {
+         createRoleMappersForConsumerRealm(IdentityProviderMapperSyncMode.FORCE);
+@@ -577,7 +582,10 @@ public void testPostBrokerLoginFlowWithOTP_bruteForceEnabled() {
+             setOtpTimeOffset(TimeBasedOTP.DEFAULT_INTERVAL_SECONDS, totp);
+
+             loginTotpPage.login(totp.generateTOTP(totpSecret));
+-            AccountHelper.logout(adminClient.realm(bc.consumerRealmName()), bc.getUserLogin());
++            //return to client flow -> otp has been configured -> ask again
++            loginTotpPage.login(totp.generateTOTP(totpSecret));
++            waitForAccountManagementTitle();
++             AccountHelper.logout(adminClient.realm(bc.consumerRealmName()), bc.getUserLogin());
+         } finally {
+             testingClient.server(bc.consumerRealmName()).run(disablePostBrokerLoginFlow(bc.getIDPAlias()));
+
+@@ -630,6 +638,15 @@ public void testLogoutWorksWithTokenTimeout() {
+      */
+     @Test
+     public void testWithLinkedFederationProvider() {
++
++        //disable otp for browser flow
++        List<AuthenticationExecutionInfoRepresentation> executionReps = adminClient.realm(bc.consumerRealmName()).flows().getExecutions(Browser);
++        AuthenticationExecutionInfoRepresentation exec =  executionReps.stream().filter(authExec -> authExec.getDisplayName().equals(Browser_Conditional_OTP)).findFirst().orElse(null);
++        if (exec != null) {
++            exec.setRequirement(AuthenticationExecutionModel.Requirement.DISABLED.name());
++            adminClient.realm(bc.consumerRealmName()).flows().updateExecutions(Browser, exec);
++        }
++
+         try {
+             updateExecutions(AbstractBrokerTest::disableUpdateProfileOnFirstLogin);
+
+@@ -671,6 +688,11 @@ public void testWithLinkedFederationProvider() {
+         } finally {
+             removeUserByUsername(adminClient.realm(bc.consumerRealmName()), "test-user");
+             removeUserByUsername(adminClient.realm(bc.consumerRealmName()), "test-user-noemail");
++
++            if (exec != null) {
++                exec.setRequirement(AuthenticationExecutionModel.Requirement.CONDITIONAL.name());
++                adminClient.realm(bc.consumerRealmName()).flows().updateExecutions(Browser, exec);
++            }
+         }
+     }
+ }
+diff --git a/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/broker/KcOidcBrokerTest.java b/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/broker/KcOidcBrokerTest.java
+index 7cf72ac02df..39618975907 100644
+--- a/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/broker/KcOidcBrokerTest.java
++++ b/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/broker/KcOidcBrokerTest.java
+@@ -420,6 +420,8 @@ public void testReauthenticationBothBrokersWithOTPRequired() throws Exception {
+
+                 loginTotpPage.assertCurrent();
+                 loginTotpPage.login(totp.generateTOTP(totpSecret));
++                //return to client flow -> otp has been configured -> ask again
++                loginTotpPage.login(totp.generateTOTP(totpSecret));
+
+                 assertNumFederatedIdentities(consumerRealm.users().search(samlBrokerConfig.getUserLogin()).get(0).getId(), 2);
+             } finally {
+diff --git a/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/broker/KcOidcFirstBrokerLoginNewAuthTest.java b/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/broker/KcOidcFirstBrokerLoginNewAuthTest.java
+index 5516b673890..bac03d66a39 100644
+--- a/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/broker/KcOidcFirstBrokerLoginNewAuthTest.java
++++ b/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/broker/KcOidcFirstBrokerLoginNewAuthTest.java
+@@ -93,6 +93,9 @@ public void testReAuthenticateWithPasswordAndConditionalOTP_otpRequested() {
+         loginTotpPage.assertCurrent();
+         loginTotpPage.login(totp.generateTOTP(totpSecret));
+
++        //return to client flow -> otp has been configured -> ask again
++        loginTotpPage.login(totp.generateTOTP(totpSecret));
++
+         assertUserAuthenticatedInConsumer(consumerRealmUserId);
+     }
+
+@@ -131,7 +134,7 @@ public void testReAuthenticateWithPasswordOrOTP_otpConfigured_passwordUsed() {
+
+         // Create user and link him with TOTP
+         String consumerRealmUserId = createUser("consumer");
+-        addTOTPToUser("consumer");
++        String totpSecret = addTOTPToUser("consumer");
+
+         loginWithBrokerAndConfirmLinkAccount();
+
+@@ -150,6 +153,9 @@ public void testReAuthenticateWithPasswordOrOTP_otpConfigured_passwordUsed() {
+         Assert.assertTrue(passwordPage.isCurrent("consumer"));
+         passwordPage.login("password");
+
++        //return to client flow -> otp has been configured -> ask again
++        loginTotpPage.login(totp.generateTOTP(totpSecret));
++
+         assertUserAuthenticatedInConsumer(consumerRealmUserId);
+     }
+
+@@ -184,6 +190,9 @@ public void testReAuthenticateWithPasswordOrOTP_otpConfigured_otpUsed() {
+         // Login with OTP now
+         loginTotpPage.login(totp.generateTOTP(totpSecret));
+
++        //return to client flow -> otp has been configured -> ask again
++        loginTotpPage.login(totp.generateTOTP(totpSecret));
++
+         assertUserAuthenticatedInConsumer(consumerRealmUserId);
+     }
+

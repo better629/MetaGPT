@@ -1,0 +1,185 @@
+diff --git a/build.gradle b/build.gradle
+index 9483085c..c1171180 100755
+--- a/build.gradle
++++ b/build.gradle
+@@ -21,5 +21,5 @@ allprojects {
+
+ ext {
+     sdkVersion = 29
+-    minSdkVersion = 16
++    minSdkVersion = 17
+ }
+diff --git a/photoview/build.gradle b/photoview/build.gradle
+index d500b0ef..bfba2bc9 100644
+--- a/photoview/build.gradle
++++ b/photoview/build.gradle
+@@ -14,6 +14,7 @@ android {
+
+ dependencies {
+     implementation "androidx.appcompat:appcompat:1.1.0"
++    api "pl.droidsonroids.gif:android-gif-drawable:1.2.24"
+ }
+
+ afterEvaluate {
+diff --git a/photoview/src/main/java/com/github/chrisbanes/photoview/PhotoView.java b/photoview/src/main/java/com/github/chrisbanes/photoview/PhotoView.java
+index 8a8ba0a7..0e859520 100644
+--- a/photoview/src/main/java/com/github/chrisbanes/photoview/PhotoView.java
++++ b/photoview/src/main/java/com/github/chrisbanes/photoview/PhotoView.java
+@@ -23,14 +23,14 @@
+ import android.util.AttributeSet;
+ import android.view.GestureDetector;
+
+-import androidx.appcompat.widget.AppCompatImageView;
++import pl.droidsonroids.gif.GifImageView;
+
+ /**
+  * A zoomable ImageView. See {@link PhotoViewAttacher} for most of the details on how the zooming
+  * is accomplished
+  */
+ @SuppressWarnings("unused")
+-public class PhotoView extends AppCompatImageView {
++public class PhotoView extends GifImageView {
+
+     private PhotoViewAttacher attacher;
+     private ScaleType pendingScaleType;
+diff --git a/sample/src/main/AndroidManifest.xml b/sample/src/main/AndroidManifest.xml
+index 3d1b9431..e0fc14a7 100755
+--- a/sample/src/main/AndroidManifest.xml
++++ b/sample/src/main/AndroidManifest.xml
+@@ -35,6 +35,8 @@
+         <activity android:name=".ActivityTransitionToActivity" />
+
+         <activity android:name=".ImmersiveActivity" />
++
++        <activity android:name=".AnimationSampleActivity" />
+     </application>
+
+ </manifest>
+diff --git a/sample/src/main/java/com/github/chrisbanes/photoview/sample/AnimationSampleActivity.java b/sample/src/main/java/com/github/chrisbanes/photoview/sample/AnimationSampleActivity.java
+new file mode 100644
+index 00000000..daf7799d
+--- /dev/null
++++ b/sample/src/main/java/com/github/chrisbanes/photoview/sample/AnimationSampleActivity.java
+@@ -0,0 +1,31 @@
++package com.github.chrisbanes.photoview.sample;
++
++import android.os.Bundle;
++
++import androidx.appcompat.app.AppCompatActivity;
++
++import com.github.chrisbanes.photoview.PhotoView;
++
++import pl.droidsonroids.gif.GifDrawable;
++
++public class AnimationSampleActivity extends AppCompatActivity {
++
++    @Override
++    protected void onCreate(Bundle savedInstanceState) {
++        super.onCreate(savedInstanceState);
++        setContentView(R.layout.activity_animation_sample);
++        PhotoView pvGif = findViewById(R.id.pvGif);
++        findViewById(R.id.btnSwitchPic).setOnClickListener(v -> {
++            if (pvGif.getTag().equals("pic_dog")) {
++                pvGif.setImageResource(R.mipmap.pic_cat);
++                pvGif.setTag("pic_cat");
++            } else {
++                pvGif.setImageResource(R.mipmap.pic_dog);
++                pvGif.setTag("pic_dog");
++            }
++        });
++        findViewById(R.id.btnHalfSpeed).setOnClickListener(v -> ((GifDrawable) pvGif.getDrawable()).setSpeed(0.5f));
++        findViewById(R.id.btnNormalSpeed).setOnClickListener(v -> ((GifDrawable) pvGif.getDrawable()).setSpeed(1));
++        findViewById(R.id.btnDoubleSpeed).setOnClickListener(v -> ((GifDrawable) pvGif.getDrawable()).setSpeed(2));
++    }
++}
+\ No newline at end of file
+diff --git a/sample/src/main/java/com/github/chrisbanes/photoview/sample/LauncherActivity.java b/sample/src/main/java/com/github/chrisbanes/photoview/sample/LauncherActivity.java
+index b987c881..0974bfab 100755
+--- a/sample/src/main/java/com/github/chrisbanes/photoview/sample/LauncherActivity.java
++++ b/sample/src/main/java/com/github/chrisbanes/photoview/sample/LauncherActivity.java
+@@ -37,7 +37,8 @@ public class LauncherActivity extends AppCompatActivity {
+             "Picasso Sample",
+             "Coil Sample",
+             "Activity Transition Sample",
+-            "Immersive Sample"
++            "Immersive Sample",
++            "Animation Sample"
+     };
+
+     @Override
+@@ -81,6 +82,9 @@ public ItemViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+                         break;
+                     case 6:
+                         clazz = ImmersiveActivity.class;
++                        break;
++                    case 7:
++                        clazz = AnimationSampleActivity.class;
+                 }
+
+                 Context context = holder.itemView.getContext();
+diff --git a/sample/src/main/res/layout/activity_animation_sample.xml b/sample/src/main/res/layout/activity_animation_sample.xml
+new file mode 100644
+index 00000000..7c21ea91
+--- /dev/null
++++ b/sample/src/main/res/layout/activity_animation_sample.xml
+@@ -0,0 +1,51 @@
++<?xml version="1.0" encoding="utf-8"?>
++<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    android:layout_width="match_parent"
++    android:layout_height="match_parent"
++    android:orientation="vertical">
++
++    <com.github.chrisbanes.photoview.PhotoView
++        android:id="@+id/pvGif"
++        android:layout_width="match_parent"
++        android:layout_height="0dp"
++        android:layout_weight="1"
++        android:src="@mipmap/pic_dog"
++        android:tag="pic_dog" />
++
++    <Button
++        android:id="@+id/btnSwitchPic"
++        android:layout_width="wrap_content"
++        android:layout_height="wrap_content"
++        android:layout_gravity="center_horizontal"
++        android:text="Switch Pic"
++        android:textAllCaps="false" />
++
++    <LinearLayout
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content">
++
++        <Button
++            android:id="@+id/btnHalfSpeed"
++            android:layout_width="0dp"
++            android:layout_height="wrap_content"
++            android:layout_weight="1"
++            android:text="Half Speed"
++            android:textAllCaps="false" />
++
++        <Button
++            android:id="@+id/btnNormalSpeed"
++            android:layout_width="0dp"
++            android:layout_height="wrap_content"
++            android:layout_weight="1"
++            android:text="Normal Speed"
++            android:textAllCaps="false" />
++
++        <Button
++            android:id="@+id/btnDoubleSpeed"
++            android:layout_width="0dp"
++            android:layout_height="wrap_content"
++            android:layout_weight="1"
++            android:text="Double Speed"
++            android:textAllCaps="false" />
++    </LinearLayout>
++</LinearLayout>
+\ No newline at end of file
+diff --git a/sample/src/main/res/mipmap-xxxhdpi/pic_cat.gif b/sample/src/main/res/mipmap-xxxhdpi/pic_cat.gif
+new file mode 100644
+index 00000000..559b92bf
+Binary files /dev/null and b/sample/src/main/res/mipmap-xxxhdpi/pic_cat.gif differ
+diff --git a/sample/src/main/res/mipmap-xxxhdpi/pic_dog.gif b/sample/src/main/res/mipmap-xxxhdpi/pic_dog.gif
+new file mode 100644
+index 00000000..fe4c9ed9
+Binary files /dev/null and b/sample/src/main/res/mipmap-xxxhdpi/pic_dog.gif differ

@@ -1,0 +1,604 @@
+diff --git a/js/apps/admin-ui/public/locales/en/translation.json b/js/apps/admin-ui/public/locales/en/translation.json
+index e8438a545c9..735da71cc69 100644
+--- a/js/apps/admin-ui/public/locales/en/translation.json
++++ b/js/apps/admin-ui/public/locales/en/translation.json
+@@ -3291,5 +3291,13 @@
+   "scopeTypeHelp": "Client scopes, which will be added as default scopes to each created client",
+   "clientDescriptionHelp": "Specifies description of the client. For example 'My Client for TimeSheets'. Supports keys for localized values as well. For example: ${my_client_description}",
+   "clientsClientTypeHelp": "'OpenID Connect' allows Clients to verify the identity of the End-User based on the authentication performed by an Authorization Server.'SAML' enables web-based authentication and authorization scenarios including cross-domain single sign-on (SSO) and uses security tokens containing assertions to pass information.",
+-  "clientsClientScopesHelp": "The scopes associated with this resource."
++  "clientsClientScopesHelp": "The scopes associated with this resource.",
++  "openIdEndpointConfiguration": "OpenID Endpoint Configuration",
++  "claimsSupportedHelp": "Claims supported by this realm. Values will be shown in claims_supported",
++  "claimsSupported": "Claims supported",
++  "submit": "Submit",
++  "addClaimButton": "Add new Supported Claim Button",
++  "newClaimInput": "New Supported Claim Input",
++  "removeClaimButton":"Remove Supported Claim Button",
++  "editClaimInput" : "Edit Supported Claim Input"
+ }
+diff --git a/js/apps/admin-ui/src/realm-settings/OpenIdEndpointConfigurationTab.tsx b/js/apps/admin-ui/src/realm-settings/OpenIdEndpointConfigurationTab.tsx
+new file mode 100644
+index 00000000000..5b81bcedcca
+--- /dev/null
++++ b/js/apps/admin-ui/src/realm-settings/OpenIdEndpointConfigurationTab.tsx
+@@ -0,0 +1,140 @@
++import type RealmRepresentation from "@keycloak/keycloak-admin-client/lib/defs/realmRepresentation";
++import {
++  ActionGroup,
++  Button,
++  FormGroup,
++  PageSection,
++  InputGroup,
++  TextInput,
++} from "@patternfly/react-core";
++import { useEffect, useState } from "react";
++import { Controller, useForm } from "react-hook-form";
++import { useTranslation } from "react-i18next";
++import { FormAccess } from "../components/form/FormAccess";
++import { HelpItem } from "ui-shared";
++import { MinusIcon, PlusIcon } from "@patternfly/react-icons";
++
++type RealmSettingsThemesTabProps = {
++  realm: RealmRepresentation;
++  save: (realm: RealmRepresentation) => void;
++};
++
++export const OpenIdEndpointConfigurationTab = ({
++  realm,
++  save,
++}: RealmSettingsThemesTabProps) => {
++  const { t } = useTranslation();
++
++  const [newClaim, setNewClaim] = useState("");
++  const { control, handleSubmit, setValue } = useForm<RealmRepresentation>();
++
++  const setupForm = () => {
++    const attributes = realm.attributes || {};
++    setValue("attributes", attributes);
++  };
++
++  useEffect(setupForm, []);
++
++  return (
++    <PageSection variant="light">
++      <FormAccess
++        isHorizontal
++        role="manage-realm"
++        className="pf-u-mt-lg"
++        onSubmit={handleSubmit(save)}
++      >
++        <FormGroup
++          label={t("claimsSupported")}
++          fieldId="kc-claims-supported"
++          labelIcon={
++            <HelpItem
++              helpText={t("claimsSupportedHelp")}
++              fieldLabelId="claimsSupported"
++            />
++          }
++        >
++          <Controller
++            name="attributes"
++            control={control}
++            render={({ field }) => {
++              const claimsSupported = field.value?.claimsSupported?.trim()
++                ? field.value.claimsSupported.split(",")
++                : [];
++              return (
++                <>
++                  {claimsSupported
++                    .filter(Boolean)
++                    .map((claim: string, index: number) => (
++                      <InputGroup key={index}>
++                        <TextInput
++                          value={claim}
++                          onChange={(value) => {
++                            const attributes = field.value || {};
++                            claimsSupported[index] = value;
++                            attributes.claimsSupported =
++                              claimsSupported.join(",");
++                            field.onChange(attributes);
++                          }}
++                          aria-label={t("editClaimInput")}
++                        />
++                        <Button
++                          icon={<MinusIcon />}
++                          aria-label={t("removeClaimButton")}
++                          onClick={() => {
++                            const attributes = field.value || {};
++                            claimsSupported.splice(index, 1);
++                            attributes.claimsSupported =
++                              claimsSupported.join(",");
++                            field.onChange(attributes);
++                          }}
++                          variant="control"
++                        />
++                      </InputGroup>
++                    ))}
++                  <InputGroup>
++                    <TextInput
++                      value={newClaim}
++                      onChange={(value) => {
++                        setNewClaim(value);
++                      }}
++                      aria-label={t("newClaimInput")}
++                    />
++                    <Button
++                      icon={<PlusIcon />}
++                      aria-label={t("addClaimButton")}
++                      onClick={() => {
++                        if (newClaim) {
++                          const attributes = field.value || {};
++                          claimsSupported.push(newClaim);
++                          attributes.claimsSupported =
++                            claimsSupported.join(",");
++                          setNewClaim("");
++                          field.onChange(attributes);
++                        }
++                      }}
++                      variant="control"
++                    />
++                  </InputGroup>
++                </>
++              );
++            }}
++          />
++        </FormGroup>
++
++        <ActionGroup>
++          <Button
++            variant="primary"
++            type="submit"
++            data-testid="openid-configuration-tab-save"
++            aria-label={t("submit")}
++          >
++            {t("save")}
++          </Button>
++          <Button variant="link" onClick={setupForm}>
++            {t("revert")}
++          </Button>
++        </ActionGroup>
++      </FormAccess>
++    </PageSection>
++  );
++};
+diff --git a/js/apps/admin-ui/src/realm-settings/RealmSettingsTabs.tsx b/js/apps/admin-ui/src/realm-settings/RealmSettingsTabs.tsx
+index 99268035645..26def7e9828 100644
+--- a/js/apps/admin-ui/src/realm-settings/RealmSettingsTabs.tsx
++++ b/js/apps/admin-ui/src/realm-settings/RealmSettingsTabs.tsx
+@@ -48,6 +48,7 @@ import { ClientPoliciesTab, toClientPolicies } from "./routes/ClientPolicies";
+ import { RealmSettingsTab, toRealmSettings } from "./routes/RealmSettings";
+ import { SecurityDefenses } from "./security-defences/SecurityDefenses";
+ import { UserProfileTab } from "./user-profile/UserProfileTab";
++import { OpenIdEndpointConfigurationTab } from "./OpenIdEndpointConfigurationTab";
+
+ type RealmSettingsHeaderProps = {
+   onChange: (value: boolean) => void;
+@@ -239,6 +240,9 @@ export const RealmSettingsTabs = ({
+   const clientPoliciesTab = useTab("client-policies");
+   const userProfileTab = useTab("user-profile");
+   const userRegistrationTab = useTab("user-registration");
++  const openIdEndpointConfigurationTab = useTab(
++    "openid-endpoint-configuration",
++  );
+
+   const useClientPoliciesTab = (tab: ClientPoliciesTab) =>
+     useRoutableTab(
+@@ -345,6 +349,15 @@ export const RealmSettingsTabs = ({
+           >
+             <RealmSettingsSessionsTab key={key} realm={realm} save={save} />
+           </Tab>
++          <Tab
++            title={
++              <TabTitleText>{t("openIdEndpointConfiguration")}</TabTitleText>
++            }
++            data-testid="rs-openid-tab"
++            {...openIdEndpointConfigurationTab}
++          >
++            <OpenIdEndpointConfigurationTab realm={realm} save={save} />
++          </Tab>
+           <Tab
+             title={<TabTitleText>{t("tokens")}</TabTitleText>}
+             data-testid="rs-tokens-tab"
+diff --git a/js/apps/admin-ui/src/realm-settings/routes/RealmSettings.tsx b/js/apps/admin-ui/src/realm-settings/routes/RealmSettings.tsx
+index 781bc692236..545eb269bc5 100644
+--- a/js/apps/admin-ui/src/realm-settings/routes/RealmSettings.tsx
++++ b/js/apps/admin-ui/src/realm-settings/routes/RealmSettings.tsx
+@@ -16,7 +16,8 @@ export type RealmSettingsTab =
+   | "tokens"
+   | "client-policies"
+   | "user-profile"
+-  | "user-registration";
++  | "user-registration"
++  | "openid-endpoint-configuration";
+
+ export type RealmSettingsParams = {
+   realm: string;
+diff --git a/model/infinispan/src/main/java/org/keycloak/models/cache/infinispan/RealmAdapter.java b/model/infinispan/src/main/java/org/keycloak/models/cache/infinispan/RealmAdapter.java
+index ee082565d74..78a9f5fc359 100755
+--- a/model/infinispan/src/main/java/org/keycloak/models/cache/infinispan/RealmAdapter.java
++++ b/model/infinispan/src/main/java/org/keycloak/models/cache/infinispan/RealmAdapter.java
+@@ -641,6 +641,18 @@ public void setActionTokenGeneratedByUserLifespan(String actionTokenId, Integer
+         }
+     }
+
++    @Override
++    public List<String> getClaimsSupported() {
++        if (isUpdated()) return updated.getClaimsSupported();
++        return cached.getClaimsSupported();
++    }
++
++    @Override
++    public void setClaimsSupported(List<String> claimsSupported) {
++        getDelegateForUpdate();
++        updated.setClaimsSupported(claimsSupported);
++    }
++
+     @Override
+     public Stream<RequiredCredentialModel> getRequiredCredentialsStream() {
+         if (isUpdated()) return updated.getRequiredCredentialsStream();
+diff --git a/model/infinispan/src/main/java/org/keycloak/models/cache/infinispan/entities/CachedRealm.java b/model/infinispan/src/main/java/org/keycloak/models/cache/infinispan/entities/CachedRealm.java
+index df4097a1b95..142bce4d7f1 100755
+--- a/model/infinispan/src/main/java/org/keycloak/models/cache/infinispan/entities/CachedRealm.java
++++ b/model/infinispan/src/main/java/org/keycloak/models/cache/infinispan/entities/CachedRealm.java
+@@ -173,6 +173,8 @@ public Set<IdentityProviderMapperModel> getIdentityProviderMapperSet() {
+
+     protected Map<String, Map<String,String>> realmLocalizationTexts;
+
++    protected List<String> claimsSupported;
++
+     public CachedRealm(Long revision, RealmModel model) {
+         super(revision, model.getId());
+         name = model.getName();
+@@ -239,6 +241,7 @@ public CachedRealm(Long revision, RealmModel model) {
+
+         requiredCredentials = model.getRequiredCredentialsStream().collect(Collectors.toList());
+         userActionTokenLifespans = Collections.unmodifiableMap(new HashMap<>(model.getUserActionTokenLifespans()));
++        claimsSupported = model.getClaimsSupported();
+
+         this.identityProviders = model.getIdentityProvidersStream().map(IdentityProviderModel::new)
+                 .collect(Collectors.toList());
+@@ -743,4 +746,8 @@ public boolean isAllowUserManagedAccess() {
+     public Map<String, Map<String, String>> getRealmLocalizationTexts() {
+         return realmLocalizationTexts;
+     }
++
++    public List<String> getClaimsSupported() {
++        return claimsSupported;
++    }
+ }
+diff --git a/model/jpa/src/main/java/org/keycloak/models/jpa/RealmAdapter.java b/model/jpa/src/main/java/org/keycloak/models/jpa/RealmAdapter.java
+index cff752cce09..6dc1cbd74b0 100755
+--- a/model/jpa/src/main/java/org/keycloak/models/jpa/RealmAdapter.java
++++ b/model/jpa/src/main/java/org/keycloak/models/jpa/RealmAdapter.java
+@@ -37,6 +37,7 @@
+ import jakarta.persistence.TypedQuery;
+ import java.util.*;
+ import java.util.function.Predicate;
++import java.util.stream.Collectors;
+ import java.util.stream.Stream;
+
+ import static java.util.Objects.nonNull;
+@@ -629,6 +630,20 @@ public void setActionTokenGeneratedByUserLifespan(String actionTokenId, Integer
+             setAttribute(RealmAttributes.ACTION_TOKEN_GENERATED_BY_USER_LIFESPAN + "." + actionTokenId, actionTokenGeneratedByUserLifespan);
+     }
+
++    @Override
++    public List<String> getClaimsSupported() {
++        if (getAttribute(RealmAttributes.CLAIMS_SUPPORTED) != null) {
++            return new ArrayList<String>(Arrays.asList(getAttribute(RealmAttributes.CLAIMS_SUPPORTED).split(",")));
++        } else {
++            return null;
++        }
++    }
++
++    @Override
++    public void setClaimsSupported(List<String> claimsSupported) {
++        setAttribute(RealmAttributes.CLAIMS_SUPPORTED, claimsSupported.stream().collect(Collectors.joining(",")));
++    }
++
+     protected RequiredCredentialModel initRequiredCredentialModel(String type) {
+         RequiredCredentialModel model = RequiredCredentialModel.BUILT_IN.get(type);
+         if (model == null) {
+diff --git a/model/jpa/src/main/java/org/keycloak/models/jpa/entities/RealmAttributes.java b/model/jpa/src/main/java/org/keycloak/models/jpa/entities/RealmAttributes.java
+index c6d5bbefb61..db33c6bf1f7 100644
+--- a/model/jpa/src/main/java/org/keycloak/models/jpa/entities/RealmAttributes.java
++++ b/model/jpa/src/main/java/org/keycloak/models/jpa/entities/RealmAttributes.java
+@@ -54,4 +54,6 @@ public interface RealmAttributes {
+
+     String ADMIN_EVENTS_EXPIRATION = "adminEventsExpiration";
+
++    String CLAIMS_SUPPORTED = "claimsSupported";
++
+ }
+diff --git a/model/legacy-private/src/main/java/org/keycloak/migration/migrators/MigrateTo23_0_0.java b/model/legacy-private/src/main/java/org/keycloak/migration/migrators/MigrateTo23_0_0.java
+new file mode 100644
+index 00000000000..577c65bf217
+--- /dev/null
++++ b/model/legacy-private/src/main/java/org/keycloak/migration/migrators/MigrateTo23_0_0.java
+@@ -0,0 +1,33 @@
++package org.keycloak.migration.migrators;
++
++import org.keycloak.migration.ModelVersion;
++import org.keycloak.models.KeycloakSession;
++import org.keycloak.models.RealmModel;
++import org.keycloak.models.utils.RepresentationToModel;
++import org.keycloak.representations.IDToken;
++import org.keycloak.representations.idm.RealmRepresentation;
++
++import java.util.Arrays;
++import java.util.List;
++
++public class MigrateTo23_0_0 implements Migration {
++
++    public static final ModelVersion VERSION = new ModelVersion("23.0.0");
++    private static final List<String> DEFAULT_CLAIMS_SUPPORTED = Arrays.asList("aud", "sub", "iss", IDToken.AUTH_TIME, IDToken.NAME, IDToken.GIVEN_NAME, IDToken.FAMILY_NAME, IDToken.PREFERRED_USERNAME, IDToken.EMAIL, IDToken.ACR);
++
++    @Override
++    public void migrate(KeycloakSession session) {
++        session.realms().getRealmsStream().forEach(realm -> realm.setClaimsSupported(DEFAULT_CLAIMS_SUPPORTED));
++    }
++
++    @Override
++    public void migrateImport(KeycloakSession session, RealmModel realm, RealmRepresentation rep, boolean skipUserDependent) {
++        realm.setClaimsSupported(DEFAULT_CLAIMS_SUPPORTED);
++    }
++
++
++    @Override
++    public ModelVersion getVersion() {
++        return VERSION;
++    }
++}
+diff --git a/model/map/src/main/java/org/keycloak/models/map/realm/MapRealmAdapter.java b/model/map/src/main/java/org/keycloak/models/map/realm/MapRealmAdapter.java
+index 8c9c1a41dec..75c4bf307cd 100644
+--- a/model/map/src/main/java/org/keycloak/models/map/realm/MapRealmAdapter.java
++++ b/model/map/src/main/java/org/keycloak/models/map/realm/MapRealmAdapter.java
+@@ -16,6 +16,8 @@
+  */
+ package org.keycloak.models.map.realm;
+
++import java.util.ArrayList;
++import java.util.Arrays;
+ import java.util.Collections;
+ import java.util.HashMap;
+ import java.util.List;
+@@ -86,6 +88,7 @@ public class MapRealmAdapter extends AbstractRealmModel<MapRealmEntity> implemen
+     private static final String MINIMUM_QUICK_LOGIN_WAIT_SECONDS = "minimumQuickLoginWaitSeconds";
+     private static final String MAX_DELTA_SECONDS = "maxDeltaTimeSeconds";
+     private static final String FAILURE_FACTOR = "failureFactor";
++    private static final String CLAIMS_SUPPORTED = "claimsSupported";
+
+     private PasswordPolicy passwordPolicy;
+
+@@ -1716,6 +1719,20 @@ public void setBrowserSecurityHeaders(Map<String, String> headers) {
+         entity.setBrowserSecurityHeaders(headers);
+     }
+
++    @Override
++    public List<String> getClaimsSupported() {
++        if (getAttribute(CLAIMS_SUPPORTED) != null) {
++            return new ArrayList<String>(Arrays.asList(getAttribute(CLAIMS_SUPPORTED).split(",")));
++        } else {
++            return null;
++        }
++    }
++
++    @Override
++    public void setClaimsSupported(List<String> claimsSupported) {
++        setAttribute(CLAIMS_SUPPORTED, claimsSupported.stream().collect(Collectors.joining(",")));
++    }
++
+     @Override
+     public ClientInitialAccessModel createClientInitialAccessModel(int expiration, int count) {
+         MapClientInitialAccessEntity clientInitialAccess = MapClientInitialAccessEntity.createEntity(expiration, count);
+diff --git a/server-spi-private/src/test/java/org/keycloak/broker/provider/util/IdentityBrokerStateTestHelpers.java b/server-spi-private/src/test/java/org/keycloak/broker/provider/util/IdentityBrokerStateTestHelpers.java
+index acea768b6ec..1a8ea5c0bbf 100644
+--- a/server-spi-private/src/test/java/org/keycloak/broker/provider/util/IdentityBrokerStateTestHelpers.java
++++ b/server-spi-private/src/test/java/org/keycloak/broker/provider/util/IdentityBrokerStateTestHelpers.java
+@@ -5,6 +5,7 @@
+ import org.keycloak.models.*;
+
+ import java.util.HashMap;
++import java.util.List;
+ import java.util.Map;
+ import java.util.Set;
+ import java.util.stream.Stream;
+@@ -1747,6 +1748,16 @@ public Stream<ClientInitialAccessModel> getClientInitialAccesses() {
+         public void decreaseRemainingCount(ClientInitialAccessModel clientInitialAccess) {
+
+         }
++
++        @Override
++        public List<String> getClaimsSupported() {
++            return null;
++        }
++
++        @Override
++        public void setClaimsSupported(List<String> claimsSupported) {
++
++        }
+     }
+
+ }
+diff --git a/server-spi/src/main/java/org/keycloak/models/RealmModel.java b/server-spi/src/main/java/org/keycloak/models/RealmModel.java
+index b2eb9093018..e5f4a04df7c 100755
+--- a/server-spi/src/main/java/org/keycloak/models/RealmModel.java
++++ b/server-spi/src/main/java/org/keycloak/models/RealmModel.java
+@@ -24,6 +24,7 @@
+ import org.keycloak.provider.ProviderEvent;
+ import org.keycloak.storage.SearchableModelField;
+
++import java.util.List;
+ import java.util.Map;
+ import java.util.Set;
+ import java.util.stream.Stream;
+@@ -239,6 +240,10 @@ default Boolean getAttribute(String name, Boolean defaultValue) {
+
+     void setAccessCodeLifespanUserAction(int seconds);
+
++    List<String> getClaimsSupported();
++
++    void setClaimsSupported(List<String> claimsSupported);
++
+     OAuth2DeviceConfig getOAuth2DeviceConfig();
+
+     CibaConfig getCibaPolicy();
+diff --git a/services/src/main/java/org/keycloak/protocol/oidc/OIDCWellKnownProvider.java b/services/src/main/java/org/keycloak/protocol/oidc/OIDCWellKnownProvider.java
+index 895c6cd67ed..d7b37b3398a 100755
+--- a/services/src/main/java/org/keycloak/protocol/oidc/OIDCWellKnownProvider.java
++++ b/services/src/main/java/org/keycloak/protocol/oidc/OIDCWellKnownProvider.java
+@@ -165,7 +165,7 @@ public Object getConfig() {
+         config.setAuthorizationEncryptionAlgValuesSupported(getSupportedEncryptionAlg(false));
+         config.setAuthorizationEncryptionEncValuesSupported(getSupportedEncryptionEnc(false));
+
+-        config.setClaimsSupported(DEFAULT_CLAIMS_SUPPORTED);
++        config.setClaimsSupported(realm.getClaimsSupported());
+         config.setClaimTypesSupported(DEFAULT_CLAIM_TYPES_SUPPORTED);
+         config.setClaimsParameterSupported(true);
+
+diff --git a/services/src/main/java/org/keycloak/services/managers/RealmManager.java b/services/src/main/java/org/keycloak/services/managers/RealmManager.java
+index 7a460152930..45e202f0cff 100755
+--- a/services/src/main/java/org/keycloak/services/managers/RealmManager.java
++++ b/services/src/main/java/org/keycloak/services/managers/RealmManager.java
+@@ -43,6 +43,7 @@
+ import org.keycloak.protocol.oidc.OIDCConfigAttributes;
+ import org.keycloak.protocol.oidc.OIDCLoginProtocol;
+ import org.keycloak.protocol.oidc.OIDCLoginProtocolFactory;
++import org.keycloak.protocol.oidc.OIDCWellKnownProvider;
+ import org.keycloak.protocol.oidc.mappers.AudienceResolveProtocolMapper;
+ import org.keycloak.representations.idm.ApplicationRepresentation;
+ import org.keycloak.representations.idm.ClientRepresentation;
+@@ -254,6 +255,7 @@ protected void setupRealmDefaults(RealmModel realm) {
+         realm.setSslRequired(SslRequired.EXTERNAL);
+         realm.setOTPPolicy(OTPPolicy.DEFAULT_POLICY);
+         realm.setLoginWithEmailAllowed(true);
++        realm.setClaimsSupported(OIDCWellKnownProvider.DEFAULT_CLAIMS_SUPPORTED);
+
+         realm.setEventsListeners(Collections.singleton("jboss-logging"));
+     }
+diff --git a/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/admin/realm/RealmTest.java b/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/admin/realm/RealmTest.java
+index 4749331b434..ebf59b511ec 100755
+--- a/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/admin/realm/RealmTest.java
++++ b/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/admin/realm/RealmTest.java
+@@ -39,6 +39,7 @@
+ import org.keycloak.models.OAuth2DeviceConfig;
+ import org.keycloak.models.OTPPolicy;
+ import org.keycloak.models.ParConfig;
++import org.keycloak.models.jpa.entities.RealmAttributes;
+ import org.keycloak.protocol.oidc.OIDCLoginProtocol;
+ import org.keycloak.protocol.saml.SamlProtocol;
+ import org.keycloak.representations.adapters.action.GlobalRequestResult;
+@@ -242,11 +243,12 @@ public void excludesFieldsFromAttributes() {
+
+         Set<String> attributesKeys = rep2.getAttributes().keySet();
+
+-        int expectedAttributesCount = 3;
++        int expectedAttributesCount = 4;
+         final Set<String> expectedAttributes = Sets.newHashSet(
+                 OAuth2DeviceConfig.OAUTH2_DEVICE_CODE_LIFESPAN,
+                 OAuth2DeviceConfig.OAUTH2_DEVICE_POLLING_INTERVAL,
+-                ParConfig.PAR_REQUEST_URI_LIFESPAN
++                ParConfig.PAR_REQUEST_URI_LIFESPAN,
++                RealmAttributes.CLAIMS_SUPPORTED
+         );
+
+         // This attribute is represented in Legacy store as attribute and for Map store as a field
+diff --git a/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/migration/AbstractMigrationTest.java b/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/migration/AbstractMigrationTest.java
+index 7a7c4d9ad9f..7180622516f 100644
+--- a/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/migration/AbstractMigrationTest.java
++++ b/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/migration/AbstractMigrationTest.java
+@@ -40,10 +40,12 @@
+ import org.keycloak.models.Constants;
+ import org.keycloak.models.LDAPConstants;
+ import org.keycloak.models.UserModel;
++import org.keycloak.models.jpa.entities.RealmAttributes;
+ import org.keycloak.models.utils.DefaultAuthenticationFlows;
+ import org.keycloak.models.utils.TimeBasedOTP;
+ import org.keycloak.protocol.oidc.OIDCConfigAttributes;
+ import org.keycloak.protocol.oidc.OIDCLoginProtocolFactory;
++import org.keycloak.protocol.oidc.OIDCWellKnownProvider;
+ import org.keycloak.protocol.saml.SamlConfigAttributes;
+ import org.keycloak.protocol.saml.util.ArtifactBindingUtils;
+ import org.keycloak.representations.AccessToken;
+@@ -363,6 +365,11 @@ protected void testMigrationTo22_0_0() {
+         testHttpChallengeFlow(migrationRealm);
+     }
+
++    protected void testMigrationTo23_0_0() {
++        testDefaultClaimsSupported(masterRealm);
++        testDefaultClaimsSupported(migrationRealm);
++    }
++
+     protected void testDeleteAccount(RealmResource realm) {
+         ClientRepresentation accountClient = realm.clients().findByClientId(ACCOUNT_MANAGEMENT_CLIENT_ID).get(0);
+         ClientResource accountResource = realm.clients().get(accountClient.getId());
+@@ -1142,6 +1149,12 @@ protected void testExtremelyLongClientAttribute(RealmResource realm) {
+           });
+     }
+
++    private void testDefaultClaimsSupported(RealmResource realm){
++        String claimsSupported = realm.toRepresentation().getAttributes().get(RealmAttributes.CLAIMS_SUPPORTED);
++        Assert.assertNotNull(claimsSupported);
++        Assert.assertNames(Arrays.asList(claimsSupported.split(",")), OIDCWellKnownProvider.DEFAULT_CLAIMS_SUPPORTED.toArray(new String[OIDCWellKnownProvider.DEFAULT_CLAIMS_SUPPORTED.size()]));
++    }
++
+     protected void testRealmAttributesMigration() {
+         log.info("testing realm attributes migration");
+         Map<String, String> realmAttributes = migrationRealm.toRepresentation().getAttributes();
+diff --git a/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/oidc/OIDCWellKnownProviderTest.java b/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/oidc/OIDCWellKnownProviderTest.java
+index d9b674bc6ac..09e9ce3b587 100644
+--- a/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/oidc/OIDCWellKnownProviderTest.java
++++ b/testsuite/integration-arquillian/tests/base/src/test/java/org/keycloak/testsuite/oidc/OIDCWellKnownProviderTest.java
+@@ -31,8 +31,10 @@
+ import org.keycloak.jose.jwe.JWEConstants;
+ import org.keycloak.jose.jwk.JSONWebKeySet;
+ import org.keycloak.models.Constants;
++import org.keycloak.models.jpa.entities.RealmAttributes;
+ import org.keycloak.protocol.oidc.OIDCLoginProtocolFactory;
+ import org.keycloak.protocol.oidc.OIDCLoginProtocolService;
++import org.keycloak.protocol.oidc.OIDCWellKnownProvider;
+ import org.keycloak.protocol.oidc.OIDCWellKnownProviderFactory;
+ import org.keycloak.protocol.oidc.representations.MTLSEndpointAliases;
+ import org.keycloak.protocol.oidc.representations.OIDCConfigurationRepresentation;
+@@ -66,6 +68,8 @@
+ import java.util.HashMap;
+ import java.util.List;
+ import java.util.Map;
++import java.util.stream.Collectors;
++import java.util.stream.Stream;
+
+ import static org.junit.Assert.assertEquals;
+ import static org.junit.Assert.assertTrue;
+@@ -401,10 +405,30 @@ public void testGrantTypesSupportedWithTokenExchange() throws IOException {
+         }
+     }
+
++    @Test
++    public void testChangeClaimsSupported() throws IOException {
++        Client client = AdminClientUtil.createResteasyClient();
++        RealmResource testRealm = adminClient.realm("test");
++        RealmRepresentation realmRep = testRealm.toRepresentation();
++        try {
++            realmRep.getAttributes().put(RealmAttributes.CLAIMS_SUPPORTED,Stream.of("aud", "sub", "iss", IDToken.AUTH_TIME, IDToken.NAME, IDToken.GIVEN_NAME, IDToken.FAMILY_NAME, IDToken.PREFERRED_USERNAME, IDToken.EMAIL, IDToken.ACR,"email_verified").collect(Collectors.joining(",")));
++            testRealm.update(realmRep);
++
++            OIDCConfigurationRepresentation oidcConfig = getOIDCDiscoveryRepresentation(client, OAuthClient.AUTH_SERVER_ROOT);
++            Assert.assertNames(oidcConfig.getClaimsSupported(), "aud", "sub", "iss", IDToken.AUTH_TIME, IDToken.NAME, IDToken.GIVEN_NAME, IDToken.FAMILY_NAME, IDToken.PREFERRED_USERNAME, IDToken.EMAIL, IDToken.ACR,"email_verified");
++
++        } finally {
++            realmRep.getAttributes().put(RealmAttributes.CLAIMS_SUPPORTED,OIDCWellKnownProvider.DEFAULT_CLAIMS_SUPPORTED.stream().collect(Collectors.joining(",")));
++            testRealm.update(realmRep);
++            client.close();
++        }
++    }
++
+     private void assertScopesSupportedMatchesWithRealm(OIDCConfigurationRepresentation oidcConfig) {
+         Assert.assertNames(oidcConfig.getScopesSupported(), OAuth2Constants.SCOPE_OPENID, OAuth2Constants.OFFLINE_ACCESS,
+                 OAuth2Constants.SCOPE_PROFILE, OAuth2Constants.SCOPE_EMAIL, OAuth2Constants.SCOPE_PHONE, OAuth2Constants.SCOPE_ADDRESS, OIDCLoginProtocolFactory.ACR_SCOPE,
+                 OIDCLoginProtocolFactory.ROLES_SCOPE, OIDCLoginProtocolFactory.WEB_ORIGINS_SCOPE, OIDCLoginProtocolFactory.MICROPROFILE_JWT_SCOPE);
++
+     }
+
+     private OIDCConfigurationRepresentation getOIDCDiscoveryRepresentation(Client client, String uriTemplate) {

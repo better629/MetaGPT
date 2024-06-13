@@ -1,0 +1,264 @@
+diff --git a/persistence-modules/spring-data-jpa-query-4/src/main/java/com/baeldung/spring/data/jpa/maxvalue/Employee.java b/persistence-modules/spring-data-jpa-query-4/src/main/java/com/baeldung/spring/data/jpa/maxvalue/Employee.java
+new file mode 100644
+index 000000000000..4383bfc3b0e1
+--- /dev/null
++++ b/persistence-modules/spring-data-jpa-query-4/src/main/java/com/baeldung/spring/data/jpa/maxvalue/Employee.java
+@@ -0,0 +1,61 @@
++package com.baeldung.spring.data.jpa.maxvalue;
++
++import javax.persistence.Entity;
++import javax.persistence.GeneratedValue;
++import javax.persistence.Id;
++import java.util.Objects;
++
++@Entity
++public class Employee {
++    @Id
++    @GeneratedValue
++    private Integer id;
++    private String name;
++    private Long salary;
++
++    public Employee() {
++    }
++
++    public Employee(Integer id, String name, Long salary) {
++        this.id = id;
++        this.name = name;
++        this.salary = salary;
++    }
++
++    public Integer getId() {
++        return id;
++    }
++
++    public void setId(Integer id) {
++        this.id = id;
++    }
++
++    public String getName() {
++        return name;
++    }
++
++    public void setName(String name) {
++        this.name = name;
++    }
++
++    public Long getSalary() {
++        return salary;
++    }
++
++    public void setSalary(Long salary) {
++        this.salary = salary;
++    }
++
++    @Override
++    public boolean equals(Object o) {
++        if (this == o) return true;
++        if (o == null || getClass() != o.getClass()) return false;
++        Employee employee = (Employee) o;
++        return Objects.equals(id, employee.id) && Objects.equals(name, employee.name) && Objects.equals(salary, employee.salary);
++    }
++
++    @Override
++    public int hashCode() {
++        return Objects.hash(id, name, salary);
++    }
++}
+diff --git a/persistence-modules/spring-data-jpa-query-4/src/main/java/com/baeldung/spring/data/jpa/maxvalue/EmployeeMaxValueService.java b/persistence-modules/spring-data-jpa-query-4/src/main/java/com/baeldung/spring/data/jpa/maxvalue/EmployeeMaxValueService.java
+new file mode 100644
+index 000000000000..71c8b93a0c75
+--- /dev/null
++++ b/persistence-modules/spring-data-jpa-query-4/src/main/java/com/baeldung/spring/data/jpa/maxvalue/EmployeeMaxValueService.java
+@@ -0,0 +1,30 @@
++package com.baeldung.spring.data.jpa.maxvalue;
++
++import org.springframework.stereotype.Service;
++
++import javax.persistence.EntityManager;
++import javax.persistence.TypedQuery;
++import javax.persistence.criteria.CriteriaBuilder;
++import javax.persistence.criteria.CriteriaQuery;
++import javax.persistence.criteria.Root;
++import java.util.Optional;
++
++@Service
++public class EmployeeMaxValueService {
++    private final EntityManager entityManager;
++
++    public EmployeeMaxValueService(EntityManager entityManager) {
++        this.entityManager = entityManager;
++    }
++
++    public Optional<Long> findMaxSalaryCriteriaAPI() {
++        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
++        CriteriaQuery<Long> query = cb.createQuery(Long.class);
++
++        Root<Employee> root = query.from(Employee.class);
++        query.select(cb.max(root.get("salary")));
++
++        TypedQuery<Long> typedQuery = entityManager.createQuery(query);
++        return Optional.ofNullable(typedQuery.getSingleResult());
++    }
++}
+diff --git a/persistence-modules/spring-data-jpa-query-4/src/main/java/com/baeldung/spring/data/jpa/maxvalue/EmployeeRepository.java b/persistence-modules/spring-data-jpa-query-4/src/main/java/com/baeldung/spring/data/jpa/maxvalue/EmployeeRepository.java
+new file mode 100644
+index 000000000000..31c194c6df81
+--- /dev/null
++++ b/persistence-modules/spring-data-jpa-query-4/src/main/java/com/baeldung/spring/data/jpa/maxvalue/EmployeeRepository.java
+@@ -0,0 +1,34 @@
++package com.baeldung.spring.data.jpa.maxvalue;
++
++import org.springframework.data.domain.PageRequest;
++import org.springframework.data.domain.Sort;
++import org.springframework.data.jpa.repository.JpaRepository;
++import org.springframework.data.jpa.repository.Query;
++
++import java.util.Comparator;
++import java.util.Optional;
++
++public interface EmployeeRepository extends JpaRepository<Employee, Integer> {
++    Optional<Employee> findTopByOrderBySalaryDesc();
++
++    Optional<EmployeeSalary> findTopSalaryByOrderBySalaryDesc();
++
++    @Query("SELECT MAX(e.salary) FROM Employee e")
++    Optional<Long> findTopSalaryJQPL();
++
++    @Query(value = "SELECT MAX(salary) FROM Employee", nativeQuery = true)
++    Optional<Long> findTopSalaryNative();
++
++    default Optional<Long> findTopSalaryCustomMethod() {
++        return findAll().stream()
++            .map(Employee::getSalary)
++            .max(Comparator.naturalOrder());
++    }
++
++    default Optional<Long> findTopSalaryPageable() {
++        return findAll(PageRequest.of(0, 1, Sort.by(Sort.Direction.DESC, "salary")))
++            .stream()
++            .map(Employee::getSalary)
++            .findFirst();
++    }
++}
+diff --git a/persistence-modules/spring-data-jpa-query-4/src/main/java/com/baeldung/spring/data/jpa/maxvalue/EmployeeSalary.java b/persistence-modules/spring-data-jpa-query-4/src/main/java/com/baeldung/spring/data/jpa/maxvalue/EmployeeSalary.java
+new file mode 100644
+index 000000000000..c3fb8d616d28
+--- /dev/null
++++ b/persistence-modules/spring-data-jpa-query-4/src/main/java/com/baeldung/spring/data/jpa/maxvalue/EmployeeSalary.java
+@@ -0,0 +1,8 @@
++package com.baeldung.spring.data.jpa.maxvalue;
++
++/**
++ * Projection for {@link com.baeldung.spring.data.jpa.maxvalue.Employee}
++ */
++public interface EmployeeSalary {
++    Long getSalary();
++}
+\ No newline at end of file
+diff --git a/persistence-modules/spring-data-jpa-query-4/src/test/java/com/baeldung/spring/data/jpa/maxvalue/FindingMaxValueIntegrationTest.java b/persistence-modules/spring-data-jpa-query-4/src/test/java/com/baeldung/spring/data/jpa/maxvalue/FindingMaxValueIntegrationTest.java
+new file mode 100644
+index 000000000000..2881fcf15869
+--- /dev/null
++++ b/persistence-modules/spring-data-jpa-query-4/src/test/java/com/baeldung/spring/data/jpa/maxvalue/FindingMaxValueIntegrationTest.java
+@@ -0,0 +1,100 @@
++package com.baeldung.spring.data.jpa.maxvalue;
++
++import org.assertj.core.api.Assertions;
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.Test;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.boot.autoconfigure.domain.EntityScan;
++import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
++import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
++import org.springframework.test.context.ContextConfiguration;
++
++import java.util.List;
++import java.util.Optional;
++
++@DataJpaTest
++@ContextConfiguration(classes = {FindingMaxValueIntegrationTest.class, EmployeeMaxValueService.class})
++@EntityScan(basePackageClasses = Employee.class)
++@EnableJpaRepositories(basePackageClasses = EmployeeRepository.class)
++public class FindingMaxValueIntegrationTest {
++
++    @Autowired
++    private EmployeeMaxValueService employeeMaxValueService;
++
++    @Autowired
++    private EmployeeRepository employeeRepository;
++
++    private final static Long EXPECTED_VALUE = 800L;
++
++    @BeforeEach
++    void givenEmployees() {
++        // given
++        Employee employee1 = new Employee(1, "John", 400L);
++        Employee employee2 = new Employee(2, "Paul", 800L);
++        Employee employee3 = new Employee(3, "Jack", 600L);
++
++        employeeRepository.saveAll(List.of(employee1, employee2, employee3));
++    }
++
++    @Test
++    void givenEmployees_whenFindMaxUsingDerivedQuery_thenMaxReturned() {
++        Optional<Employee> result = employeeRepository.findTopByOrderBySalaryDesc();
++
++        Assertions.assertThat(result)
++            .isNotEmpty()
++            .containsInstanceOf(Employee.class)
++            .get().extracting(Employee::getSalary)
++            .isEqualTo(EXPECTED_VALUE);
++    }
++
++    @Test
++    void givenEmployees_whenFindMaxUsingDerivedQueryWithProjection_thenMaxReturned() {
++        Optional<EmployeeSalary> result = employeeRepository.findTopSalaryByOrderBySalaryDesc();
++
++        Assertions.assertThat(result)
++            .isNotEmpty()
++            .containsInstanceOf(EmployeeSalary.class)
++            .get().extracting(EmployeeSalary::getSalary)
++            .isEqualTo(EXPECTED_VALUE);
++    }
++
++    @Test
++    void givenEmployees_whenFindMaxUsingJPQL_thenMaxReturned() {
++        Optional<Long> result = employeeRepository.findTopSalaryJQPL();
++
++        Assertions.assertThat(result)
++            .hasValue(EXPECTED_VALUE);
++    }
++
++    @Test
++    void givenEmployees_whenFindMaxUsingNativeQuery_thenMaxReturned() {
++        Optional<Long> result = employeeRepository.findTopSalaryNative();
++
++        Assertions.assertThat(result)
++            .hasValue(EXPECTED_VALUE);
++    }
++
++    @Test
++    void givenEmployees_whenFindMaxUsingCustomMethod_thenMaxReturned() {
++        Optional<Long> result = employeeRepository.findTopSalaryCustomMethod();
++
++        Assertions.assertThat(result)
++            .hasValue(EXPECTED_VALUE);
++    }
++
++    @Test
++    void givenEmployees_whenFindMaxUsingPageable_thenMaxReturned() {
++        Optional<Long> result = employeeRepository.findTopSalaryPageable();
++
++        Assertions.assertThat(result)
++            .hasValue(EXPECTED_VALUE);
++    }
++
++    @Test
++    void givenEmployees_whenFindMaxUsingCriteria_thenMaxReturned() {
++        Optional<Long> result = employeeMaxValueService.findMaxSalaryCriteriaAPI();
++
++        Assertions.assertThat(result)
++            .hasValue(EXPECTED_VALUE);
++    }
++}

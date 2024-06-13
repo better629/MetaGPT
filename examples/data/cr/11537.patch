@@ -1,0 +1,719 @@
+diff --git a/dubbo-common/src/main/java/org/apache/dubbo/rpc/model/PackableMethod.java b/dubbo-common/src/main/java/org/apache/dubbo/rpc/model/PackableMethod.java
+index f21cc4d690c..1c99dd95f6f 100644
+--- a/dubbo-common/src/main/java/org/apache/dubbo/rpc/model/PackableMethod.java
++++ b/dubbo-common/src/main/java/org/apache/dubbo/rpc/model/PackableMethod.java
+@@ -55,31 +55,31 @@ interface UnPack {
+          * @throws ClassNotFoundException when no class found
+          */
+         Object unpack(byte[] data) throws IOException, ClassNotFoundException;
+-
+     }
+
+-    default Object parseRequest(byte[] data) throws IOException, ClassNotFoundException {
+-        return getRequestUnpack().unpack(data);
++    default Object parseRequest(String contentType, byte[] data) throws IOException, ClassNotFoundException {
++        return getRequestUnpack(contentType).unpack(data);
+     }
+
+-    default Object parseResponse(byte[] data) throws IOException, ClassNotFoundException {
+-        return parseResponse(data, false);
++    default Object parseResponse(String contentType,byte[] data) throws IOException, ClassNotFoundException {
++        return parseResponse(contentType,data, false);
+     }
+
+-    default Object parseResponse(byte[] data, boolean isReturnTriException) throws IOException, ClassNotFoundException {
+-        UnPack unPack = getResponseUnpack();
++    default Object parseResponse(String contentType,byte[] data, boolean isReturnTriException) throws IOException, ClassNotFoundException {
++        UnPack unPack = getResponseUnpack(contentType);
+         if (unPack instanceof WrapperUnPack) {
+             return ((WrapperUnPack) unPack).unpack(data, isReturnTriException);
+         }
+         return unPack.unpack(data);
+     }
+
+-    default byte[] packRequest(Object request) throws IOException {
+-        return getRequestPack().pack(request);
++
++    default byte[] packRequest(String contentType, Object request) throws IOException {
++        return getRequestPack(contentType).pack(request);
+     }
+
+-    default byte[] packResponse(Object response) throws IOException {
+-        return getResponsePack().pack(response);
++    default byte[] packResponse(String contentType, Object response) throws IOException {
++        return getResponsePack(contentType).pack(response);
+     }
+
+
+@@ -87,12 +87,12 @@ default boolean needWrapper() {
+         return false;
+     }
+
+-    Pack getRequestPack();
++    Pack getRequestPack(String contentType);
+
+-    Pack getResponsePack();
++    Pack getResponsePack(String contentType);
+
+-    UnPack getResponseUnpack();
++    UnPack getResponseUnpack(String contentType);
+
+-    UnPack getRequestUnpack();
++    UnPack getRequestUnpack(String contentType);
+
+ }
+diff --git a/dubbo-common/src/main/java/org/apache/dubbo/rpc/model/StubMethodDescriptor.java b/dubbo-common/src/main/java/org/apache/dubbo/rpc/model/StubMethodDescriptor.java
+index af294d35e42..2ed57b61737 100644
+--- a/dubbo-common/src/main/java/org/apache/dubbo/rpc/model/StubMethodDescriptor.java
++++ b/dubbo-common/src/main/java/org/apache/dubbo/rpc/model/StubMethodDescriptor.java
+@@ -124,22 +124,22 @@ public Object getAttribute(String key) {
+     }
+
+     @Override
+-    public Pack getRequestPack() {
++    public Pack getRequestPack(String contentType) {
+         return requestPack;
+     }
+
+     @Override
+-    public Pack getResponsePack() {
++    public Pack getResponsePack(String contentType) {
+         return responsePack;
+     }
+
+     @Override
+-    public UnPack getResponseUnpack() {
++    public UnPack getResponseUnpack(String contentType) {
+         return responseUnpack;
+     }
+
+     @Override
+-    public UnPack getRequestUnpack() {
++    public UnPack getRequestUnpack(String contentType) {
+         return requestUnpack;
+     }
+ }
+diff --git a/dubbo-demo/dubbo-demo-triple/src/main/java/org/apache/dubbo/demo/consumer/ApiWrapperConsumer.java b/dubbo-demo/dubbo-demo-triple/src/main/java/org/apache/dubbo/demo/consumer/ApiWrapperConsumer.java
+index a67136b161c..a074659600a 100644
+--- a/dubbo-demo/dubbo-demo-triple/src/main/java/org/apache/dubbo/demo/consumer/ApiWrapperConsumer.java
++++ b/dubbo-demo/dubbo-demo-triple/src/main/java/org/apache/dubbo/demo/consumer/ApiWrapperConsumer.java
+@@ -16,11 +16,8 @@
+  */
+ package org.apache.dubbo.demo.consumer;
+
+-import org.apache.dubbo.common.constants.CommonConstants;
+ import org.apache.dubbo.config.ApplicationConfig;
+-import org.apache.dubbo.config.ProtocolConfig;
+ import org.apache.dubbo.config.ReferenceConfig;
+-import org.apache.dubbo.config.RegistryConfig;
+ import org.apache.dubbo.config.bootstrap.DubboBootstrap;
+ import org.apache.dubbo.demo.GreeterWrapperService;
+
+@@ -28,25 +25,28 @@
+
+ public class ApiWrapperConsumer {
+     public static void main(String[] args) throws IOException {
+-        ReferenceConfig<GreeterWrapperService> referenceConfig = new ReferenceConfig<>();
+-        referenceConfig.setInterface(GreeterWrapperService.class);
+-        referenceConfig.setCheck(false);
+-        referenceConfig.setProtocol("tri");
+-        referenceConfig.setLazy(true);
++
++        ReferenceConfig<GreeterWrapperService> reference = new ReferenceConfig<>();
++        reference.setInterface(GreeterWrapperService.class);
++        reference.setUrl("tri://127.0.0.1:50051");
++        reference.setProtocol("tri");
++        reference.setTimeout(3000);
+
+         DubboBootstrap bootstrap = DubboBootstrap.getInstance();
+         bootstrap.application(new ApplicationConfig("dubbo-demo-triple-api-wrapper-consumer"))
+-            .registry(new RegistryConfig("zookeeper://127.0.0.1:2181"))
+-            .protocol(new ProtocolConfig(CommonConstants.TRIPLE, -1))
+-            .reference(referenceConfig)
++            .reference(reference)
+             .start();
+
+-        final GreeterWrapperService greeterWrapperService = referenceConfig.get();
++        final GreeterWrapperService greeterWrapperService =  reference.get();
++
+         System.out.println("dubbo referenceConfig started");
+         long st = System.currentTimeMillis();
+         String reply = greeterWrapperService.sayHello("haha");
+         // 4MB response
++        System.out.println("============================================================================");
++        System.out.println("============================================================================");
+         System.out.println("Reply length:" + reply.length() + " cost:" + (System.currentTimeMillis() - st));
+         System.in.read();
+     }
++
+ }
+diff --git a/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/ReflectionPackableMethod.java b/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/ReflectionPackableMethod.java
+index ae647e5ca60..051805e250a 100644
+--- a/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/ReflectionPackableMethod.java
++++ b/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/ReflectionPackableMethod.java
+@@ -17,6 +17,15 @@
+
+ package org.apache.dubbo.rpc.protocol.tri;
+
++import java.io.ByteArrayInputStream;
++import java.io.ByteArrayOutputStream;
++import java.io.IOException;
++import java.lang.reflect.ParameterizedType;
++import java.nio.ByteBuffer;
++import java.util.ArrayList;
++import java.util.Iterator;
++import java.util.List;
++
+ import org.apache.dubbo.common.URL;
+ import org.apache.dubbo.common.constants.CommonConstants;
+ import org.apache.dubbo.common.serialize.MultipleSerialization;
+@@ -29,12 +38,7 @@
+
+ import com.google.protobuf.Message;
+
+-import java.io.ByteArrayInputStream;
+-import java.io.ByteArrayOutputStream;
+-import java.io.IOException;
+-import java.lang.reflect.ParameterizedType;
+ import java.util.Collection;
+-import java.util.Iterator;
+ import java.util.stream.Stream;
+
+ import static org.apache.dubbo.common.constants.CommonConstants.$ECHO;
+@@ -54,7 +58,8 @@ public class ReflectionPackableMethod implements PackableMethod {
+     private final Pack responsePack;
+     private final UnPack requestUnpack;
+     private final UnPack responseUnpack;
+-
++    private final Pack originalPack;
++    private final UnPack originalUnpack;
+     private final boolean needWrapper;
+
+     private final Collection<String> allSerialize;
+@@ -64,7 +69,8 @@ public boolean needWrapper() {
+         return this.needWrapper;
+     }
+
+-    public ReflectionPackableMethod(MethodDescriptor method, URL url, String serializeName, Collection<String> allSerialize) {
++    public ReflectionPackableMethod(MethodDescriptor method, URL url, String serializeName, boolean isServer, Collection<String> allSerialize) {
++        Class<?>[] actualTypes;
+         Class<?>[] actualRequestTypes;
+         Class<?> actualResponseType;
+         switch (method.getRpcType()) {
+@@ -93,9 +99,11 @@ public ReflectionPackableMethod(MethodDescriptor method, URL url, String seriali
+         this.needWrapper = needWrap(method, actualRequestTypes, actualResponseType);
+         if (!needWrapper) {
+             requestPack = new PbArrayPacker(singleArgument);
++            originalPack = new PbArrayPacker(singleArgument);
+             responsePack = PB_PACK;
+             requestUnpack = new PbUnpack<>(actualRequestTypes[0]);
+             responseUnpack = new PbUnpack<>(actualResponseType);
++            originalUnpack = new PbUnpack<>(actualResponseType);
+         } else {
+             final MultipleSerialization serialization = url.getOrDefaultFrameworkModel()
+                 .getExtensionLoader(MultipleSerialization.class)
+@@ -110,11 +118,18 @@ public ReflectionPackableMethod(MethodDescriptor method, URL url, String seriali
+             // server
+             this.responsePack = new WrapResponsePack(serialization, url, serializeName, actualResponseType);
+             this.requestUnpack = new WrapRequestUnpack(serialization, url, allSerialize, actualRequestTypes);
++
++
++            singleArgument = isServer ? isServer : singleArgument;
++            actualTypes = isServer ? new Class[]{actualResponseType} : actualRequestTypes;
++            this.originalPack = new OriginalPack(serialization, url, actualTypes, singleArgument);
++            actualTypes = isServer ? actualRequestTypes : new Class[]{actualResponseType};
++            this.originalUnpack = new OriginalUnpack(serialization, url, actualTypes);
+         }
+         this.allSerialize = allSerialize;
+     }
+
+-    public static ReflectionPackableMethod init(MethodDescriptor methodDescriptor, URL url) {
++    public static ReflectionPackableMethod init(MethodDescriptor methodDescriptor, URL url, boolean isServer) {
+         final String serializeName = UrlUtils.serializationOrDefault(url);
+         Object stored = methodDescriptor.getAttribute(METHOD_ATTR_PACK);
+         if (stored != null) {
+@@ -122,7 +137,7 @@ public static ReflectionPackableMethod init(MethodDescriptor methodDescriptor, U
+         }
+         final Collection<String> allSerialize = UrlUtils.allSerializations(url);
+         ReflectionPackableMethod reflectionPackableMethod = new ReflectionPackableMethod(
+-            methodDescriptor, url, serializeName, allSerialize);
++            methodDescriptor, url, serializeName, isServer,allSerialize);
+         methodDescriptor.addAttribute(METHOD_ATTR_PACK, reflectionPackableMethod);
+         return reflectionPackableMethod;
+     }
+@@ -300,23 +315,50 @@ private static String convertHessianFromWrapper(String serializeType) {
+     }
+
+     @Override
+-    public Pack getRequestPack() {
+-        return requestPack;
++    public Pack getRequestPack(String contentType) {
++        if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {
++            return requestPack;
++        }
++        ((OriginalPack) originalPack).serialize = getSerializeType(contentType);
++        return originalPack;
+     }
+
+     @Override
+-    public Pack getResponsePack() {
+-        return responsePack;
++    public Pack getResponsePack(String contentType) {
++        if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {
++            return responsePack;
++        }
++        ((OriginalPack) originalPack).serialize = getSerializeType(contentType);
++        return originalPack;
+     }
+
+     @Override
+-    public UnPack getResponseUnpack() {
+-        return responseUnpack;
++    public UnPack getResponseUnpack(String contentType) {
++        if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {
++            return responseUnpack;
++        }
++        ((OriginalUnpack) originalUnpack).serialize = getSerializeType(contentType);
++        return originalUnpack;
+     }
+
+     @Override
+-    public UnPack getRequestUnpack() {
+-        return requestUnpack;
++    public UnPack getRequestUnpack(String contentType) {
++        if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {
++            return requestUnpack;
++        }
++        ((OriginalUnpack) originalUnpack).serialize = getSerializeType(contentType);
++        return originalUnpack;
++    }
++
++    private boolean isNotOriginalSerializeType(String contentType) {
++
++        return TripleConstant.CONTENT_PROTO.contains(contentType);
++    }
++
++    private String getSerializeType(String contentType) {
++        // contentType：application/grpc、application/grpc+proto ...
++        String[] contentTypes = contentType.split("\\+");
++        return contentTypes[1];
+     }
+
+     private static class WrapResponsePack implements Pack {
+@@ -402,7 +444,7 @@ private WrapRequestPack(MultipleSerialization multipleSerialization,
+                                 Class<?>[] actualRequestTypes,
+                                 boolean singleArgument) {
+             this.url = url;
+-            this.serialize = convertHessianToWrapper(serialize);
++            this.serialize = serialize;
+             this.multipleSerialization = multipleSerialization;
+             this.actualRequestTypes = actualRequestTypes;
+             this.argumentsType = Stream.of(actualRequestTypes).map(Class::getName).toArray(String[]::new);
+@@ -432,20 +474,6 @@ public byte[] pack(Object obj) throws IOException {
+             return builder.build().toByteArray();
+         }
+
+-        /**
+-         * Convert hessian version from Dubbo's SPI version(hessian2) to wrapper API version
+-         * (hessian4)
+-         *
+-         * @param serializeType literal type
+-         * @return hessian4 if the param is hessian2, otherwise return the param
+-         */
+-        private String convertHessianToWrapper(String serializeType) {
+-            if (TripleConstant.HESSIAN2.equals(serializeType)) {
+-                return TripleConstant.HESSIAN4;
+-            }
+-            return serializeType;
+-        }
+-
+     }
+
+     private static class PbArrayPacker implements Pack {
+@@ -500,5 +528,120 @@ public Object unpack(byte[] data, boolean isReturnTriException) throws IOExcepti
+             }
+             return ret;
+         }
++
++
++    }
++
++    private static class OriginalPack implements Pack {
++
++        private final MultipleSerialization multipleSerialization;
++        private final URL url;
++        private final boolean singleArgument;
++        private final Class<?>[] actualTypes;
++
++        String serialize;
++
++        private OriginalPack(MultipleSerialization multipleSerialization,
++                             URL url,
++                             Class<?>[] actualTypes,
++                             boolean singleArgument) {
++            this.url = url;
++            this.multipleSerialization = multipleSerialization;
++            this.singleArgument = singleArgument;
++            this.actualTypes = actualTypes;
++        }
++
++        @Override
++        public byte[] pack(Object obj) throws IOException {
++            Object[] arguments = singleArgument ? new Object[]{obj} : (Object[]) obj;
++            List<byte[]> argumentByteList = new ArrayList<>(arguments.length);
++
++            for (int i = 0; i < arguments.length; i++) {
++                ByteArrayOutputStream bos = new ByteArrayOutputStream();
++                Class<?> clazz = arguments[i] == null ? actualTypes[i] : arguments[i].getClass();
++                multipleSerialization.serialize(url, serialize, clazz, arguments[i], bos);
++                argumentByteList.add(bos.toByteArray());
++            }
++
++            return argumentByteList.size() == 1 ? argumentByteList.get(0) : buildArgumentBytes(argumentByteList);
++        }
++
++        private byte[] buildArgumentBytes(List<byte[]> argumentByteList) {
++            int totalSize = 0;
++            int argTag = TripleCustomerProtocolWapper.makeTag(2, 2);
++
++            totalSize += TripleCustomerProtocolWapper.varIntComputeLength(argTag) * argumentByteList.size();
++            for (byte[] arg : argumentByteList) {
++                totalSize += arg.length + TripleCustomerProtocolWapper.varIntComputeLength(arg.length);
++            }
++
++            ByteBuffer byteBuffer = ByteBuffer.allocate(totalSize);
++            byte[] argTagBytes = TripleCustomerProtocolWapper.varIntEncode(argTag);
++            for (byte[] arg : argumentByteList) {
++                byteBuffer
++                    .put(argTagBytes)
++                    .put(TripleCustomerProtocolWapper.varIntEncode(arg.length))
++                    .put(arg);
++            }
++
++            return byteBuffer.array();
++        }
++
+     }
++
++    private static class OriginalUnpack implements UnPack {
++        private final MultipleSerialization serialization;
++        private final URL url;
++        private final Class<?>[] actualTypes;
++        private final boolean singleArgument;
++
++        String serialize;
++
++        private OriginalUnpack(MultipleSerialization serialization, URL url, Class<?>[] actualTypes) {
++            this.serialization = serialization;
++            this.url = url;
++            this.actualTypes = actualTypes;
++            this.singleArgument = actualTypes.length == 1 ;
++        }
++
++        @Override
++        public Object unpack(byte[] data) throws IOException, ClassNotFoundException {
++            List<byte[]> bytes;
++            if (singleArgument) {
++                List<byte[]> singleArgumentData = new ArrayList<>();
++                singleArgumentData.add(data);
++                bytes = singleArgumentData;
++            }else{
++                bytes = revertArgumentBytes(data);
++            }
++
++            Object[] ret = new Object[actualTypes.length];
++            for (int i = 0; i < actualTypes.length; i++) {
++                ByteArrayInputStream bais = new ByteArrayInputStream(bytes.get(i));
++                ret[i] = serialization.deserialize(url, serialize, actualTypes[i], bais);
++            }
++
++            return singleArgument ? ret[0] : ret;
++        }
++
++        private List<byte[]> revertArgumentBytes(byte[] data) {
++            ByteBuffer byteBuffer = ByteBuffer.wrap(data);
++            List<byte[]> args = new ArrayList<>();
++            while (byteBuffer.position() < byteBuffer.limit()) {
++                int tag = TripleCustomerProtocolWapper.readRawVarint32(byteBuffer);
++                int fieldNum = TripleCustomerProtocolWapper.extractFieldNumFromTag(tag);
++                if (fieldNum == 2) {
++                    int argLength = TripleCustomerProtocolWapper.readRawVarint32(byteBuffer);
++                    byte[] argBytes = new byte[argLength];
++                    byteBuffer.get(argBytes, 0, argLength);
++                    args.add(argBytes);
++                } else {
++                    throw new RuntimeException("fieldNum should is 2 ");
++                }
++            }
++            return args;
++        }
++
++    }
++
+ }
+diff --git a/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/RequestMetadata.java b/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/RequestMetadata.java
+index e60af175ff3..6ad2968e5fc 100644
+--- a/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/RequestMetadata.java
++++ b/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/RequestMetadata.java
+@@ -32,6 +32,8 @@
+
+ import java.util.Map;
+
++import static org.apache.dubbo.rpc.protocol.tri.TripleConstant.APPLICATION_GRPC;
++
+ public class RequestMetadata {
+
+     public AsciiString scheme;
+@@ -41,6 +43,7 @@ public class RequestMetadata {
+     public String group;
+     public String address;
+     public String acceptEncoding;
++    public String contentType;
+     public String timeout;
+     public Compressor compressor;
+     public CancellationContext cancellationContext;
+@@ -56,7 +59,7 @@ public DefaultHttp2Headers toHeaders() {
+             .authority(address)
+             .method(HttpMethod.POST.asciiName())
+             .path("/" + service + "/" + method.getMethodName())
+-            .set(TripleHeaderEnum.CONTENT_TYPE_KEY.getHeader(), TripleConstant.CONTENT_PROTO)
++            .set(TripleHeaderEnum.CONTENT_TYPE_KEY.getHeader(), getRemotingSerialization())
+             .set(HttpHeaderNames.TE, HttpHeaderValues.TRAILERS);
+         setIfNotNull(header, TripleHeaderEnum.TIMEOUT.getHeader(), timeout);
+         if (!ignoreDefaultVersion || !"1.0.0".equals(version)) {
+@@ -75,6 +78,14 @@ public DefaultHttp2Headers toHeaders() {
+         return header;
+     }
+
++    public String getRemotingSerialization() {
++
++        if (contentType == null) {
++            return TripleConstant.CONTENT_PROTO;
++        }
++        return String.format("%s+%s", APPLICATION_GRPC, contentType);
++    }
++
+     private void setIfNotNull(DefaultHttp2Headers headers, CharSequence key,
+         CharSequence value) {
+         if (value == null) {
+diff --git a/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/TripleInvoker.java b/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/TripleInvoker.java
+index 94713b34985..27b6368a920 100644
+--- a/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/TripleInvoker.java
++++ b/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/TripleInvoker.java
+@@ -23,6 +23,7 @@
+ import org.apache.dubbo.common.constants.CommonConstants;
+ import org.apache.dubbo.common.logger.ErrorTypeAwareLogger;
+ import org.apache.dubbo.common.logger.LoggerFactory;
++import org.apache.dubbo.common.serialize.support.DefaultSerializationSelector;
+ import org.apache.dubbo.common.stream.StreamObserver;
+ import org.apache.dubbo.common.threadpool.ThreadlessExecutor;
+ import org.apache.dubbo.remoting.api.connection.AbstractConnectionClient;
+@@ -74,6 +75,8 @@
+ import static org.apache.dubbo.rpc.Constants.COMPRESSOR_KEY;
+ import static org.apache.dubbo.rpc.Constants.TOKEN_KEY;
+ import static org.apache.dubbo.rpc.model.MethodDescriptor.RpcType.UNARY;
++import static org.apache.dubbo.rpc.protocol.tri.TripleConstant.SERIALIZATION_KEY;
++
+
+ /**
+  * TripleInvoker
+@@ -260,7 +263,7 @@ RequestMetadata createRequest(MethodDescriptor methodDescriptor, Invocation invo
+         if (methodDescriptor instanceof PackableMethod) {
+             meta.packableMethod = (PackableMethod) methodDescriptor;
+         } else {
+-            meta.packableMethod = ReflectionPackableMethod.init(methodDescriptor, url);
++            meta.packableMethod = ReflectionPackableMethod.init(methodDescriptor, url,false);
+         }
+         meta.convertNoLowerHeader = TripleProtocol.CONVERT_NO_LOWER_HEADER;
+         meta.ignoreDefaultVersion = TripleProtocol.IGNORE_1_0_0_VERSION;
+@@ -273,6 +276,7 @@ RequestMetadata createRequest(MethodDescriptor methodDescriptor, Invocation invo
+         meta.group = url.getGroup();
+         meta.version = url.getVersion();
+         meta.acceptEncoding = acceptEncodings;
++        meta.contentType = getSerializationContentType(url);
+         if (timeout != null) {
+             meta.timeout = timeout + "m";
+         }
+@@ -285,6 +289,11 @@ RequestMetadata createRequest(MethodDescriptor methodDescriptor, Invocation invo
+         return meta;
+     }
+
++    private String getSerializationContentType(URL url) {
++        String serializeType = url.getParameter(SERIALIZATION_KEY, DefaultSerializationSelector.getDefaultRemotingSerialization());
++        return serializeType;
++    }
++
+     @Override
+     public boolean isAvailable() {
+         if (!super.isAvailable()) {
+diff --git a/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/call/AbstractServerCall.java b/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/call/AbstractServerCall.java
+index 026031c8d48..15b77bcd3c6 100644
+--- a/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/call/AbstractServerCall.java
++++ b/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/call/AbstractServerCall.java
+@@ -32,7 +32,6 @@
+ import org.apache.dubbo.rpc.model.PackableMethod;
+ import org.apache.dubbo.rpc.model.ServiceDescriptor;
+ import org.apache.dubbo.rpc.protocol.tri.ClassLoadUtil;
+-import org.apache.dubbo.rpc.protocol.tri.TripleConstant;
+ import org.apache.dubbo.rpc.protocol.tri.TripleHeaderEnum;
+ import org.apache.dubbo.rpc.protocol.tri.compressor.Compressor;
+ import org.apache.dubbo.rpc.protocol.tri.compressor.Identity;
+@@ -163,7 +162,8 @@ private void doSendMessage(Object message) {
+         }
+         final byte[] data;
+         try {
+-            data = packableMethod.packResponse(message);
++            String contentType = requestMetadata.get(TripleHeaderEnum.CONTENT_TYPE_KEY.getHeader()).toString();
++            data = packableMethod.packResponse(contentType,message);
+         } catch (Exception e) {
+             close(TriRpcStatus.INTERNAL.withDescription("Serialize response failed")
+                 .withCause(e), null);
+@@ -212,7 +212,8 @@ public final void onMessage(byte[] message, boolean isReturnTriException) {
+         ClassLoader tccl = Thread.currentThread()
+             .getContextClassLoader();
+         try {
+-            Object instance = parseSingleMessage(message);
++            String contentType = requestMetadata.get(TripleHeaderEnum.CONTENT_TYPE_KEY.getHeader()).toString();
++            Object instance = parseSingleMessage(contentType,message);
+             listener.onMessage(instance);
+         } catch (Exception e) {
+             final TriRpcStatus status = TriRpcStatus.UNKNOWN.withDescription("Server error")
+@@ -225,7 +226,7 @@ public final void onMessage(byte[] message, boolean isReturnTriException) {
+         }
+     }
+
+-    protected abstract Object parseSingleMessage(byte[] data)
++    protected abstract Object parseSingleMessage(String contentType,byte[] data)
+         throws IOException, ClassNotFoundException;
+
+     @Override
+@@ -285,7 +286,8 @@ private void sendHeader() {
+         headerSent = true;
+         DefaultHttp2Headers headers = new DefaultHttp2Headers();
+         headers.status(HttpResponseStatus.OK.codeAsText());
+-        headers.set(HttpHeaderNames.CONTENT_TYPE, TripleConstant.CONTENT_PROTO);
++        String contentType = requestMetadata.get(TripleHeaderEnum.CONTENT_TYPE_KEY.getHeader()).toString();
++        headers.set(HttpHeaderNames.CONTENT_TYPE, contentType);
+         if (acceptEncoding != null) {
+             headers.set(HttpHeaderNames.ACCEPT_ENCODING, acceptEncoding);
+         }
+diff --git a/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/call/ReflectionAbstractServerCall.java b/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/call/ReflectionAbstractServerCall.java
+index 214edbe3eaa..073dc5c5986 100644
+--- a/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/call/ReflectionAbstractServerCall.java
++++ b/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/call/ReflectionAbstractServerCall.java
+@@ -116,7 +116,7 @@ public void startCall() {
+             }
+         }
+         if (methodDescriptor != null) {
+-            packableMethod = ReflectionPackableMethod.init(methodDescriptor, invoker.getUrl());
++            packableMethod = ReflectionPackableMethod.init(methodDescriptor, invoker.getUrl(),true);
+         }
+         trySetListener();
+         if (listener == null) {
+@@ -148,7 +148,7 @@ private void trySetListener() {
+     }
+
+     @Override
+-    protected Object parseSingleMessage(byte[] data)
++    protected Object parseSingleMessage(String contentType,byte[] data)
+         throws IOException, ClassNotFoundException {
+         trySetMethodDescriptor(data);
+         trySetListener();
+@@ -157,7 +157,7 @@ protected Object parseSingleMessage(byte[] data)
+         }
+         ClassLoadUtil.switchContextLoader(
+             invoker.getUrl().getServiceModel().getClassLoader());
+-        return packableMethod.getRequestUnpack().unpack(data);
++        return packableMethod.getRequestUnpack(contentType).unpack(data);
+     }
+
+
+@@ -185,7 +185,7 @@ private void trySetMethodDescriptor(byte[] data) throws IOException {
+                     + serviceDescriptor.getInterfaceName()), null);
+             return;
+         }
+-        packableMethod = ReflectionPackableMethod.init(methodDescriptor, invoker.getUrl());
++        packableMethod = ReflectionPackableMethod.init(methodDescriptor, invoker.getUrl(),true);
+     }
+
+ }
+diff --git a/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/call/StubAbstractServerCall.java b/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/call/StubAbstractServerCall.java
+index 20b5f80a2c3..b6a55d6f9cc 100644
+--- a/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/call/StubAbstractServerCall.java
++++ b/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/call/StubAbstractServerCall.java
+@@ -58,8 +58,8 @@ private static ServiceDescriptor getServiceDescriptor(URL url, String serviceNam
+     }
+
+     @Override
+-    protected Object parseSingleMessage(byte[] data) throws IOException, ClassNotFoundException {
+-        return packableMethod.parseRequest(data);
++    protected Object parseSingleMessage(String contentType,byte[] data) throws IOException, ClassNotFoundException {
++        return packableMethod.parseRequest(contentType, data);
+     }
+
+ }
+diff --git a/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/call/TripleClientCall.java b/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/call/TripleClientCall.java
+index 59aeede63b3..11a607d3012 100644
+--- a/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/call/TripleClientCall.java
++++ b/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/call/TripleClientCall.java
+@@ -77,7 +77,7 @@ public void onMessage(byte[] message, boolean isReturnTriException) {
+             return;
+         }
+         try {
+-            final Object unpacked = requestMetadata.packableMethod.parseResponse(message, isReturnTriException);
++            final Object unpacked = requestMetadata.packableMethod.parseResponse(requestMetadata.getRemotingSerialization(), message, isReturnTriException);
+             listener.onMessage(unpacked);
+         } catch (Throwable t) {
+             TriRpcStatus status = TriRpcStatus.INTERNAL.withDescription("Deserialize response failed")
+@@ -174,7 +174,7 @@ public void sendMessage(Object message) {
+         }
+         final byte[] data;
+         try {
+-            data = requestMetadata.packableMethod.packRequest(message);
++            data = requestMetadata.packableMethod.packRequest(requestMetadata.getRemotingSerialization(), message);
+             int compressed =
+                 Identity.MESSAGE_ENCODING.equals(requestMetadata.compressor.getMessageEncoding())
+                     ? 0 : 1;
+diff --git a/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/stream/TripleServerStream.java b/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/stream/TripleServerStream.java
+index be9bfc4951f..ddc9535e280 100644
+--- a/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/stream/TripleServerStream.java
++++ b/dubbo-rpc/dubbo-rpc-triple/src/main/java/org/apache/dubbo/rpc/protocol/tri/stream/TripleServerStream.java
+@@ -63,6 +63,7 @@
+ import java.io.IOException;
+ import java.net.InetSocketAddress;
+ import java.net.SocketAddress;
++import java.util.Arrays;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Optional;
+@@ -316,8 +317,16 @@ private ChannelFuture preCheck() {
+     public class ServerTransportObserver extends AbstractH2TransportListener implements
+         H2TransportListener {
+
++        private List<String> contentTypeList = Arrays.asList(
++            "x-application/java",
++            "x-application/nativejava",
++            "x-application/compactedjava",
++            "text/jsonb",
++            "x-application/hessian2",
++            "application/grpc");
++
+         /**
+-         * must starts from application/grpc
++         *  must starts from application/grpc
+          */
+         private boolean supportContentType(String contentType) {
+             if (contentType == null) {
+diff --git a/dubbo-rpc/dubbo-rpc-triple/src/test/java/org/apache/dubbo/rpc/protocol/tri/call/StubServerCallTest.java b/dubbo-rpc/dubbo-rpc-triple/src/test/java/org/apache/dubbo/rpc/protocol/tri/call/StubServerCallTest.java
+index 98949a9237f..ccebfee994a 100644
+--- a/dubbo-rpc/dubbo-rpc-triple/src/test/java/org/apache/dubbo/rpc/protocol/tri/call/StubServerCallTest.java
++++ b/dubbo-rpc/dubbo-rpc-triple/src/test/java/org/apache/dubbo/rpc/protocol/tri/call/StubServerCallTest.java
+@@ -57,7 +57,7 @@ void doStartCall() throws IOException, ClassNotFoundException {
+             .thenReturn(Collections.singletonList(methodDescriptor));
+         when(methodDescriptor.getRpcType())
+             .thenReturn(RpcType.UNARY);
+-        when(methodDescriptor.parseRequest(any(byte[].class)))
++        when(methodDescriptor.parseRequest(any(String.class), any(byte[].class)))
+             .thenReturn("test");
+         String service = "testService";
+         String method = "method";
