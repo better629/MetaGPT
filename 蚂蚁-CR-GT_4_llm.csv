@@ -162,7 +162,7 @@ if (ownersResults.isEmpty()) {
                 }
             }"
 2723,TaskRuntimeHelper.java,24,命名含义需优化,Integer ok = 0;
-18785,AbstractGoCodegen.java,15,避免对象进行不必要的 NULL或者null 检查,if (ref != null && !ref.isEmpty() && ref.endsWith(openAPIType))
+18785,AbstractGoCodegen.java,25,判断逻辑应简洁，不能有重复或者无意义的判断,if (ref != null && !ref.isEmpty() && ref.endsWith(openAPIType))
 1017,ERXShutdownHook.java,3,不要使用 System.out.println 去打印,"System.out.println( ""ERXShutdownHook waiting for "" + ALL_HOOKS.size() + "" hook"" + (ALL_HOOKS.size() > 1 ? ""s"" : """") + "" to complete: "" + names );"
 11537,ApiWrapperConsumer.java,3,不要使用 System.out.println 去打印,"System.out.println(""============================================================================"");"
 10001,CodeIssues.java,1,避免无效的 import ,import java.util.Map;
