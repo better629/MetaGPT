@@ -383,3 +383,4 @@ if (ownersResults.isEmpty()) {
 343,CommonUserController.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,"public String modifiPhone(String userMobile, HttpSession session,
    Model model) {"
 343,CommonUserController.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,"Map<String, Object> rtnMap = new HashMap<String, Object>();"
+183,ConnectionPool.java,12,禁止在日志中直接使用字符串输出异常，请使用占位符传递异常对象,"log.debug(""Unable to instantiate JDBC driver."", cn);"

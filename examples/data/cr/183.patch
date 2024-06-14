@@ -1,0 +1,305 @@
+diff --git a/.gitignore b/.gitignore
+index 69822baf69b9..c6527f9b405e 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -43,3 +43,4 @@ java/org/apache/catalina/startup/catalina.properties
+ modules/jdbc-pool/bin
+ modules/jdbc-pool/includes
+ webapps/docs/jdbc-pool.xml
++target
+diff --git a/modules/jdbc-pool/pom.xml b/modules/jdbc-pool/pom.xml
+index 59a990ad447b..e8c74816774a 100644
+--- a/modules/jdbc-pool/pom.xml
++++ b/modules/jdbc-pool/pom.xml
+@@ -155,6 +155,34 @@
+           </execution>
+         </executions>
+       </plugin>
++
++      <plugin>
++        <groupId>org.apache.maven.plugins</groupId>
++        <artifactId>maven-dependency-plugin</artifactId>
++        <version>3.1.1</version>
++        <executions>
++          <execution>
++            <id>copy</id>
++            <phase>process-test-resources</phase>
++            <goals>
++              <goal>copy</goal>
++            </goals>
++            <configuration>
++              <artifactItems>
++                <artifactItem>
++                  <groupId>org.hsqldb</groupId>
++                  <artifactId>hsqldb</artifactId>
++                  <version>2.5.0</version>
++                  <type>jar</type>
++                  <overWrite>true</overWrite>
++                  <outputDirectory>${project.build.directory}/test-libs</outputDirectory>
++                  <destFileName>hsqldb.jar</destFileName>
++                </artifactItem>
++              </artifactItems>
++            </configuration>
++          </execution>
++        </executions>
++      </plugin>
+     </plugins>
+   </build>
+ </project>
+diff --git a/modules/jdbc-pool/src/main/java/org/apache/tomcat/jdbc/pool/ConnectionPool.java b/modules/jdbc-pool/src/main/java/org/apache/tomcat/jdbc/pool/ConnectionPool.java
+index 99a9face827b..a4065f52f65c 100644
+--- a/modules/jdbc-pool/src/main/java/org/apache/tomcat/jdbc/pool/ConnectionPool.java
++++ b/modules/jdbc-pool/src/main/java/org/apache/tomcat/jdbc/pool/ConnectionPool.java
+@@ -23,6 +23,7 @@
+ import java.security.AccessController;
+ import java.security.PrivilegedAction;
+ import java.sql.Connection;
++import java.sql.Driver;
+ import java.sql.SQLException;
+ import java.util.Collections;
+ import java.util.ConcurrentModificationException;
+@@ -128,6 +129,8 @@ public class ConnectionPool {
+
+     private AtomicLong poolVersion = new AtomicLong(Long.MIN_VALUE);
+
++    private Driver driver;
++
+     /**
+      * The counters for statistics of the pool.
+      */
+@@ -220,6 +223,14 @@ public Connection getConnection(String username, String password) throws SQLExce
+         return setupConnection(con);
+     }
+
++    /**
++     * Driver for the pool when not using a pre-instantiated datasource.
++     * @return the driver to use for the connections of this pool.
++     */
++    public Driver getDriver() {
++        return driver;
++    }
++
+     /**
+      * Returns the name of this pool
+      * @return String - the name of the pool
+@@ -476,6 +487,9 @@ protected void init(PoolConfiguration properties) throws SQLException {
+             }
+         }
+
++        // preload driver to avoid to depend on the context later
++        reloadDriverIfNeeded();
++
+         //initialize the pool with its initial set of members
+         PooledConnection[] initialPool = new PooledConnection[poolProperties.getInitialSize()];
+         try {
+@@ -502,6 +516,38 @@ protected void init(PoolConfiguration properties) throws SQLException {
+         closed = false;
+     }
+
++    void reloadDriverIfNeeded() throws SQLException {
++        if (poolProperties.getDataSource() != null) {
++            return;
++        }
++        try {
++            if (poolProperties.getDriverClassName()!=null) {
++                if (log.isDebugEnabled()) {
++                    log.debug("Instantiating driver using class: "+poolProperties.getDriverClassName()+" [url="+poolProperties.getUrl()+"]");
++                }
++                if (poolProperties.getDriverClassName() == null) {
++                    //rely on DriverManager
++                    log.warn("Not loading a JDBC driver as driverClassName property is null.");
++                    driver = null;
++                } else {
++                    driver = (java.sql.Driver)
++                            ClassLoaderUtil.loadClass(
++                                    poolProperties.getDriverClassName(),
++                                    PooledConnection.class.getClassLoader(),
++                                    Thread.currentThread().getContextClassLoader()
++                            ).getConstructor().newInstance();
++                }
++            }
++        } catch (java.lang.Exception cn) {
++            if (log.isDebugEnabled()) {
++                log.debug("Unable to instantiate JDBC driver.", cn);
++            }
++            SQLException ex = new SQLException(cn.getMessage());
++            ex.initCause(cn);
++            throw ex;
++        }
++    }
++
+     public void checkPoolConfiguration(PoolConfiguration properties) {
+         //make sure the pool is properly configured
+         if (properties.getMaxActive()<1) {
+diff --git a/modules/jdbc-pool/src/main/java/org/apache/tomcat/jdbc/pool/DataSourceProxy.java b/modules/jdbc-pool/src/main/java/org/apache/tomcat/jdbc/pool/DataSourceProxy.java
+index ef01b008fdfd..709a393df177 100644
+--- a/modules/jdbc-pool/src/main/java/org/apache/tomcat/jdbc/pool/DataSourceProxy.java
++++ b/modules/jdbc-pool/src/main/java/org/apache/tomcat/jdbc/pool/DataSourceProxy.java
+@@ -274,6 +274,11 @@ public void setPoolProperties(PoolConfiguration poolProperties) {
+     @Override
+     public void setDriverClassName(String driverClassName) {
+         this.poolProperties.setDriverClassName(driverClassName);
++        try {
++            this.pool.reloadDriverIfNeeded();
++        } catch (SQLException e) {
++            throw new IllegalArgumentException(e);
++        }
+     }
+
+     /**
+diff --git a/modules/jdbc-pool/src/main/java/org/apache/tomcat/jdbc/pool/PooledConnection.java b/modules/jdbc-pool/src/main/java/org/apache/tomcat/jdbc/pool/PooledConnection.java
+index 404c72ef2e94..811bcc6f7b97 100644
+--- a/modules/jdbc-pool/src/main/java/org/apache/tomcat/jdbc/pool/PooledConnection.java
++++ b/modules/jdbc-pool/src/main/java/org/apache/tomcat/jdbc/pool/PooledConnection.java
+@@ -17,6 +17,7 @@
+ package org.apache.tomcat.jdbc.pool;
+
+
++import java.sql.Driver;
+ import java.sql.DriverManager;
+ import java.sql.SQLException;
+ import java.sql.Statement;
+@@ -125,8 +126,6 @@ public class PooledConnection implements PooledConnectionMBean {
+
+     private volatile boolean suspect = false;
+
+-    private java.sql.Driver driver = null;
+-
+     /**
+      * Constructor
+      * @param prop - pool properties
+@@ -267,32 +266,6 @@ protected void connectUsingDataSource() throws SQLException {
+         }
+     }
+     protected void connectUsingDriver() throws SQLException {
+-
+-        try {
+-            if (driver==null) {
+-                if (log.isDebugEnabled()) {
+-                    log.debug("Instantiating driver using class: "+poolProperties.getDriverClassName()+" [url="+poolProperties.getUrl()+"]");
+-                }
+-                if (poolProperties.getDriverClassName()==null) {
+-                    //rely on DriverManager
+-                    log.warn("Not loading a JDBC driver as driverClassName property is null.");
+-                } else {
+-                    driver = (java.sql.Driver)
+-                        ClassLoaderUtil.loadClass(
+-                            poolProperties.getDriverClassName(),
+-                            PooledConnection.class.getClassLoader(),
+-                            Thread.currentThread().getContextClassLoader()
+-                        ).getConstructor().newInstance();
+-                }
+-            }
+-        } catch (java.lang.Exception cn) {
+-            if (log.isDebugEnabled()) {
+-                log.debug("Unable to instantiate JDBC driver.", cn);
+-            }
+-            SQLException ex = new SQLException(cn.getMessage());
+-            ex.initCause(cn);
+-            throw ex;
+-        }
+         String driverURL = poolProperties.getUrl();
+         String usr = null;
+         String pwd = null;
+@@ -313,10 +286,10 @@ protected void connectUsingDriver() throws SQLException {
+         if (pwd != null) properties.setProperty(PROP_PASSWORD, pwd);
+
+         try {
+-            if (driver==null) {
++            if (parent.getDriver()==null) {
+                 connection = DriverManager.getConnection(driverURL, properties);
+             } else {
+-                connection = driver.connect(driverURL, properties);
++                connection = parent.getDriver().connect(driverURL, properties);
+             }
+         } catch (Exception x) {
+             if (log.isDebugEnabled()) {
+@@ -335,7 +308,7 @@ protected void connectUsingDriver() throws SQLException {
+             }
+         }
+         if (connection==null) {
+-            throw new SQLException("Driver:"+driver+" returned null for URL:"+driverURL);
++            throw new SQLException("Driver:"+parent.getDriver()+" returned null for URL:"+driverURL);
+         }
+     }
+
+diff --git a/modules/jdbc-pool/src/test/java/org/apache/tomcat/jdbc/pool/PooledConnectionTest.java b/modules/jdbc-pool/src/test/java/org/apache/tomcat/jdbc/pool/PooledConnectionTest.java
+new file mode 100644
+index 000000000000..1956071702f7
+--- /dev/null
++++ b/modules/jdbc-pool/src/test/java/org/apache/tomcat/jdbc/pool/PooledConnectionTest.java
+@@ -0,0 +1,74 @@
++/*
++ * Licensed to the Apache Software Foundation (ASF) under one or more
++ * contributor license agreements.  See the NOTICE file distributed with
++ * this work for additional information regarding copyright ownership.
++ * The ASF licenses this file to You under the Apache License, Version 2.0
++ * (the "License"); you may not use this file except in compliance with
++ * the License.  You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package org.apache.tomcat.jdbc.pool;
++
++import static org.junit.Assert.assertTrue;
++
++import java.io.IOException;
++import java.net.URL;
++import java.net.URLClassLoader;
++import java.nio.file.Paths;
++import java.sql.Connection;
++import java.sql.SQLException;
++
++import org.junit.Test;
++
++/**
++ * Test related to pooled connection.
++ */
++public class PooledConnectionTest {
++    @Test
++    public void avoidNPEWhenTcclIsNull() throws SQLException, IOException {
++        final PoolProperties poolProperties = new PoolProperties();
++        poolProperties.setDriverClassName("org.hsqldb.jdbcDriver"); // not in test loader otherwise test is broken
++        poolProperties.setUsername("sa");
++        poolProperties.setPassword("");
++        poolProperties.setUrl("jdbc:hsqldb:mem:PooledConnectionTest_avoidNPEWhenTcclIsNull");
++        poolProperties.setMaxIdle(1);
++        poolProperties.setMinIdle(1);
++        poolProperties.setInitialSize(1);
++        poolProperties.setMaxActive(1);
++
++        final Thread thread = Thread.currentThread();
++        final ClassLoader testLoader = thread.getContextClassLoader();
++        final DataSource dataSource;
++        try (final URLClassLoader loader = new URLClassLoader(new URL[] {
++                Paths.get("target/test-libs/hsqldb.jar").toUri().toURL()
++        }, testLoader)) {
++            thread.setContextClassLoader(loader);
++            dataSource = new DataSource(poolProperties);
++            checkConnection(dataSource);
++        } finally {
++            thread.setContextClassLoader(testLoader);
++        }
++
++        thread.setContextClassLoader(null);
++        try {
++            checkConnection(dataSource);
++        } finally {
++            thread.setContextClassLoader(testLoader);
++        }
++
++        dataSource.close();
++    }
++
++    private void checkConnection(DataSource dataSource) throws SQLException {
++        try (final Connection connection = dataSource.getConnection()) {
++            assertTrue(connection.isValid(5));
++        }
++    }
++}
