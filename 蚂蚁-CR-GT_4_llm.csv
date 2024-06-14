@@ -318,3 +318,18 @@ if (ownersResults.isEmpty()) {
         } finally {
             return 0;
         }"
+10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""Hello, World!"");"
+10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""This method has unused parameters."");"
+10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""This condition is always true."");"
+10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""This condition is always false."");"
+10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""Default case"");"
+10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""Case 1"");"
+10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""Strings are equal."");"
+10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""Exception occurred."");"
+10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""Exception occurred."");"
+10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""Formatted date: "" + formattedDate);"
+10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""Parsed date: "" + date);"
+10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""Error parsing date."");"
+10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""Strings are equal."");"
+10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""Result: "" + result);"
+10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""Parsed date: "" + date);"
