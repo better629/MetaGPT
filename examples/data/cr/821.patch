@@ -1,0 +1,50 @@
+diff --git a/CrawlPandaDanmu/src/main/java/CrawlUtils.java b/CrawlPandaDanmu/src/main/java/CrawlUtils.java
+new file mode 100644
+index 0000000..52250f4
+--- /dev/null
++++ b/CrawlPandaDanmu/src/main/java/CrawlUtils.java
+@@ -0,0 +1,44 @@
++import com.sun.org.slf4j.internal.LoggerFactory;
++
++import java.util.logging.Logger;
++
++public class CrawlUtils {
++
++
++    private static final Logger logger = LoggerFactory.getLogger(CrawlUtils.class);
++
++    public boolean unnecessaryTrueOrFalseCondition(int value) {
++        if (value > 0) {
++            return true;
++        } else {
++            return false;
++        }
++    }
++
++    public boolean compareStringsWithoutEquals(String str1, String str2) {
++        return str1 == str2;
++    }
++
++    public void logExceptionIncorrectly() {
++        try {
++        } catch (RuntimeException e) {
++            logger.error("Exception occurred", e);
++        } finally {
++        }
++    }
++
++    public void unnecessaryNullCheck(String str) {
++        if (str != null) {
++            System.out.println(str.length());
++        }
++    }
++
++    public int finallyWithReturn() {
++        try {
++            return 42;
++        } finally {
++            return 0;
++        }
++    }
++
++}

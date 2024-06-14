@@ -1,0 +1,132 @@
+diff --git a/demo-circuit-breaker/.gitignore b/demo-circuit-breaker/.gitignore
+new file mode 100644
+index 000000000..5ff6309b7
+--- /dev/null
++++ b/demo-circuit-breaker/.gitignore
+@@ -0,0 +1,38 @@
++target/
++!.mvn/wrapper/maven-wrapper.jar
++!**/src/main/**/target/
++!**/src/test/**/target/
++
++### IntelliJ IDEA ###
++.idea/modules.xml
++.idea/jarRepositories.xml
++.idea/compiler.xml
++.idea/libraries/
++*.iws
++*.iml
++*.ipr
++
++### Eclipse ###
++.apt_generated
++.classpath
++.factorypath
++.project
++.settings
++.springBeans
++.sts4-cache
++
++### NetBeans ###
++/nbproject/private/
++/nbbuild/
++/dist/
++/nbdist/
++/.nb-gradle/
++build/
++!**/src/main/**/build/
++!**/src/test/**/build/
++
++### VS Code ###
++.vscode/
++
++### Mac OS ###
++.DS_Store
+\ No newline at end of file
+diff --git a/demo-circuit-breaker/pom.xml b/demo-circuit-breaker/pom.xml
+new file mode 100644
+index 000000000..802cf4fdc
+--- /dev/null
++++ b/demo-circuit-breaker/pom.xml
+@@ -0,0 +1,27 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project xmlns="http://maven.apache.org/POM/4.0.0"
++         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
++         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
++  <modelVersion>4.0.0</modelVersion>
++  <parent>
++    <groupId>com.xkcoding</groupId>
++    <artifactId>spring-boot-demo</artifactId>
++    <version>1.0.0-SNAPSHOT</version>
++  </parent>
++
++  <artifactId>demo-circuit-breaker</artifactId>
++
++  <properties>
++    <maven.compiler.source>17</maven.compiler.source>
++    <maven.compiler.target>17</maven.compiler.target>
++    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
++  </properties>
++  <dependencies>
++    <dependency>
++      <groupId>io.github.resilience4j</groupId>
++      <artifactId>resilience4j-spring-boot2</artifactId>
++      <version>1.7.0</version>
++    </dependency>
++  </dependencies>
++
++</project>
+diff --git a/demo-circuit-breaker/src/main/java/PaymentCircuitBreaker.java b/demo-circuit-breaker/src/main/java/PaymentCircuitBreaker.java
+new file mode 100644
+index 000000000..31146e488
+--- /dev/null
++++ b/demo-circuit-breaker/src/main/java/PaymentCircuitBreaker.java
+@@ -0,0 +1,31 @@
++import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
++
++import java.io.IOException;
++import java.net.*;
++import java.net.http.HttpClient;
++import java.net.http.HttpRequest;
++import java.net.http.HttpResponse;
++
++public class PaymentCircuitBreaker {
++  PaymentService service = new PaymentService();
++
++  @CircuitBreaker(name = "updateOrder", fallbackMethod = "paymentAuthorizedPendingIntegration")
++  public void paymentConfirm() throws IOException, InterruptedException {
++
++    HttpClient client = HttpClient.newHttpClient();
++    HttpRequest request = HttpRequest.newBuilder()
++      .uri(URI.create("http://example.com/payment-confirm"))
++      .build();
++
++    HttpResponse<String> response = client.send(request,
++      HttpResponse.BodyHandlers.ofString());
++
++    service.paymentConfirm(response);
++
++
++  }
++
++  public void paymentAuthorizedPendingIntegration(Long id, Exception e) {
++    service.updateStatus();
++  }
++}
+diff --git a/demo-circuit-breaker/src/main/java/PaymentService.java b/demo-circuit-breaker/src/main/java/PaymentService.java
+new file mode 100644
+index 000000000..14c64f354
+--- /dev/null
++++ b/demo-circuit-breaker/src/main/java/PaymentService.java
+@@ -0,0 +1,11 @@
++import java.net.http.HttpResponse;
++
++public class PaymentService {
++  public void paymentConfirm(HttpResponse<String> confirms) {
++
++  }
++
++  public void updateStatus() {
++
++  }
++}

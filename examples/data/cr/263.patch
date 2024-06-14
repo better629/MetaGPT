@@ -1,0 +1,294 @@
+diff --git a/README.md b/README.md
+index 73702698e..db602e507 100644
+--- a/README.md
++++ b/README.md
+@@ -62,7 +62,11 @@
+
+ ### 开源推荐
+
++
++![11628591293_.pic_hd](https://static.aliyun.xkcoding.com/2021/08/14/11628591293pichd.jpg?x-oss-process=style/tag_compress)
++
+ - `JustAuth`：开箱即用的整合第三方登录的开源组件，已集成国内外数十家平台，是实现第三方 OAuth 登录的不二之选。https://github.com/justauth/JustAuth
++
+ - `Mica`：SpringBoot 微服务高效开发工具集，https://github.com/lets-mica/mica
+ - `awesome-collector`：https://github.com/P-P-X/awesome-collector
+ - `SpringBlade`：完整的线上解决方案(企业开发必备)，https://github.com/chillzhuang/SpringBlade
+@@ -142,11 +146,12 @@
+ | [demo-flyway](./demo-flyway)                                 | spring boot 集成 Flyway，项目启动时初始化数据库表结构，同时支持数据库脚本版本控制 |
+
+
+-### 感谢
+
+-- <a href="https://www.jetbrains.com/?from=spring-boot-demo"><img src="http://static.xkcoding.com/spring-boot-demo/064312.jpg" width="100px" alt="jetbrains">**感谢 JetBrains 提供的免费开源 License**</a>
++### 特别感谢
+
+--  [感谢史上最牛的代码生成插件 MyBatisCodeHelper-Pro 提供的永久激活码](https://gejun123456.github.io/MyBatisCodeHelper-Pro/#/?id=mybatiscodehelper-pro)
++- 感谢 [七牛云](https://portal.qiniu.com/signup?utm_source=kaiyuan&utm_media=xkcoding) 提供的免费云存储与 CDN 加速支持
++- 感谢史上最牛的代码生成插件 [MyBatisCodeHelper-Pro](https://gejun123456.github.io/MyBatisCodeHelper-Pro/#/?id=mybatiscodehelper-pro) 提供的永久激活码
++- <a href="https://www.jetbrains.com/?from=spring-boot-demo"><img src="http://static.xkcoding.com/spring-boot-demo/064312.jpg" width="100px" alt="jetbrains">**感谢 JetBrains 提供的免费开源 License**</a>
+
+ ### License
+
+diff --git a/demo-security-justauth/.gitignore b/demo-security-justauth/.gitignore
+new file mode 100644
+index 000000000..549e00a2a
+--- /dev/null
++++ b/demo-security-justauth/.gitignore
+@@ -0,0 +1,33 @@
++HELP.md
++target/
++!.mvn/wrapper/maven-wrapper.jar
++!**/src/main/**/target/
++!**/src/test/**/target/
++
++### STS ###
++.apt_generated
++.classpath
++.factorypath
++.project
++.settings
++.springBeans
++.sts4-cache
++
++### IntelliJ IDEA ###
++.idea
++*.iws
++*.iml
++*.ipr
++
++### NetBeans ###
++/nbproject/private/
++/nbbuild/
++/dist/
++/nbdist/
++/.nb-gradle/
++build/
++!**/src/main/**/build/
++!**/src/test/**/build/
++
++### VS Code ###
++.vscode/
+diff --git a/demo-security-justauth/.mvn/wrapper/maven-wrapper.jar b/demo-security-justauth/.mvn/wrapper/maven-wrapper.jar
+new file mode 100644
+index 000000000..cb28b0e37
+Binary files /dev/null and b/demo-security-justauth/.mvn/wrapper/maven-wrapper.jar differ
+diff --git a/demo-security-justauth/.mvn/wrapper/maven-wrapper.properties b/demo-security-justauth/.mvn/wrapper/maven-wrapper.properties
+new file mode 100644
+index 000000000..5f0536eb7
+--- /dev/null
++++ b/demo-security-justauth/.mvn/wrapper/maven-wrapper.properties
+@@ -0,0 +1,2 @@
++distributionUrl=https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.9.5/apache-maven-3.9.5-bin.zip
++wrapperUrl=https://repo.maven.apache.org/maven2/org/apache/maven/wrapper/maven-wrapper/3.2.0/maven-wrapper-3.2.0.jar
+diff --git a/demo-security-justauth/pom.xml b/demo-security-justauth/pom.xml
+new file mode 100644
+index 000000000..970140a64
+--- /dev/null
++++ b/demo-security-justauth/pom.xml
+@@ -0,0 +1,87 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
++         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
++  <modelVersion>4.0.0</modelVersion>
++  <parent>
++    <groupId>org.springframework.boot</groupId>
++    <artifactId>spring-boot-starter-parent</artifactId>
++    <version>3.1.4</version>
++    <relativePath/> <!-- lookup parent from repository -->
++  </parent>
++  <groupId>com.example</groupId>
++  <artifactId>demo-security-justauth</artifactId>
++  <version>0.0.1-SNAPSHOT</version>
++  <name>demo-security-justauth</name>
++  <description>demo-security-justauth</description>
++  <properties>
++    <java.version>17</java.version>
++  </properties>
++  <dependencies>
++    <dependency>
++      <groupId>org.springframework.boot</groupId>
++      <artifactId>spring-boot-starter-web</artifactId>
++    </dependency>
++
++    <dependency>
++      <groupId>me.zhyd.oauth</groupId>
++      <artifactId>JustAuth</artifactId>
++      <version>1.16.5</version>
++    </dependency>
++
++    <dependency>
++      <groupId>com.squareup.okhttp3</groupId>
++      <artifactId>okhttp</artifactId>
++      <version>4.9.1</version>
++    </dependency>
++
++    <!-- Spring Boot Starter Security  -->
++    <dependency>
++      <groupId>org.springframework.boot</groupId>
++      <artifactId>spring-boot-starter-security</artifactId>
++    </dependency>
++
++    <!--导入lombok-->
++    <dependency>
++      <groupId>org.projectlombok</groupId>
++      <artifactId>lombok</artifactId>
++      <version>1.18.12</version>
++      <scope>provided</scope>
++    </dependency>
++    <!--fastjson-->
++    <dependency>
++      <groupId>com.alibaba</groupId>
++      <artifactId>fastjson</artifactId>
++      <version>1.2.62</version>
++    </dependency>
++
++    <dependency>
++      <groupId>org.springframework.boot</groupId>
++      <artifactId>spring-boot-starter-test</artifactId>
++      <scope>test</scope>
++    </dependency>
++
++
++
++    <dependency>
++      <groupId>javax.servlet</groupId>
++      <artifactId>javax.servlet-api</artifactId>
++      <version>4.0.1</version> <!-- 使用适当的版本 -->
++    </dependency>
++    <dependency>
++      <groupId>org.springframework.security</groupId>
++      <artifactId>spring-security-config</artifactId>
++      <version>6.1.4</version>
++    </dependency>
++
++
++  </dependencies>
++
++  <build>
++    <plugins>
++      <plugin>
++        <groupId>org.springframework.boot</groupId>
++        <artifactId>spring-boot-maven-plugin</artifactId>
++      </plugin>
++    </plugins>
++  </build>
++</project>
+diff --git a/demo-security-justauth/src/main/java/com/example/demo/security/justauth/JustAuthController.java b/demo-security-justauth/src/main/java/com/example/demo/security/justauth/JustAuthController.java
+new file mode 100644
+index 000000000..ea2973470
+--- /dev/null
++++ b/demo-security-justauth/src/main/java/com/example/demo/security/justauth/JustAuthController.java
+@@ -0,0 +1,74 @@
++package com.example.demo.security.justauth;
++
++
++import jakarta.servlet.http.HttpServletResponse;
++import me.zhyd.oauth.config.AuthConfig;
++import me.zhyd.oauth.model.AuthCallback;
++import me.zhyd.oauth.request.AuthGithubRequest;
++import me.zhyd.oauth.request.AuthRequest;
++import me.zhyd.oauth.utils.AuthStateUtils;
++import org.springframework.boot.SpringApplication;
++import org.springframework.boot.autoconfigure.SpringBootApplication;
++import org.springframework.web.bind.annotation.RequestMapping;
++import org.springframework.web.bind.annotation.RestController;
++
++import java.io.IOException;
++
++/**
++ * 使用JustAuth实现第三方登录
++ *
++ * @author 860560622@qq.com
++ */
++@SpringBootApplication
++@RestController
++@RequestMapping("/oauth")
++public class JustAuthController {
++
++    public static void main(String[] args) {
++        SpringApplication.run(JustAuthController.class, args);
++    }
++
++
++    /**
++     * 获取授权链接并跳转到第三方授权页面
++     *
++     * @param response response
++     * @throws IOException response可能存在的异常
++     */
++    @RequestMapping("/link/{source}")
++    public void linkAuth(HttpServletResponse response) throws IOException {
++        AuthRequest authRequest = getAuthRequest();
++        String authorizeUrl = authRequest.authorize(AuthStateUtils.createState());
++        System.out.println("生成登录链接：" + authRequest.authorize("yourState"));//打印出生成的登录URL
++        response.sendRedirect(authorizeUrl);
++    }
++
++    /**
++     * 第三方平台授权登录后回调到该地址，并携带用户信息
++     *
++     * @param callback 第三方回调时的input
++     * @return 第三方平台的用户信息output
++     */
++    @RequestMapping("/callback/{source}")
++    public Object login(AuthCallback callback) {
++        AuthRequest authRequest = getAuthRequest();
++        // 打印返回的授权信息
++        System.out.println(callback.getCode());
++        return authRequest.login(callback);
++    }
++
++
++    /**
++     * 获取授权Request
++     *
++     * @return AuthRequest
++     */
++    private AuthRequest getAuthRequest() {
++        return new AuthGithubRequest(AuthConfig.builder()
++                .clientId("your id")
++                .clientSecret("your secret")
++                .redirectUri("your ad")
++                .build());
++    }
++
++}
+diff --git a/demo-security-justauth/src/main/resources/application.properties b/demo-security-justauth/src/main/resources/application.properties
+new file mode 100644
+index 000000000..f09d5df51
+--- /dev/null
++++ b/demo-security-justauth/src/main/resources/application.properties
+@@ -0,0 +1,13 @@
++#justauth:
++#enabled: true
++#type:
++#GITHUG:
++#client-id: your client-id
++#client-secret: your client-secret
++#redirect-uri: http://xx
++#spring.security.basic.enabled: false
++
++
++# Spring Security Configuration
++#spring.security.user.name=root
++#spring.security.user.password=root
+diff --git a/demo-security-justauth/src/test/java/com/example/demo/security/justauth/DemoSecurityJustauthApplicationTests.java b/demo-security-justauth/src/test/java/com/example/demo/security/justauth/DemoSecurityJustauthApplicationTests.java
+new file mode 100644
+index 000000000..6f41d9c1b
+--- /dev/null
++++ b/demo-security-justauth/src/test/java/com/example/demo/security/justauth/DemoSecurityJustauthApplicationTests.java
+@@ -0,0 +1,13 @@
++package com.example.demo.security.justauth;
++
++import org.junit.jupiter.api.Test;
++import org.springframework.boot.test.context.SpringBootTest;
++
++@SpringBootTest
++class DemoSecurityJustauthApplicationTests {
++
++  @Test
++  void contextLoads() {
++  }
++
++}
