@@ -364,3 +364,22 @@ if (ownersResults.isEmpty()) {
         }"
 10001,CodeIssues.java,28,非线程安全的 SimpleDateFormat 使用必须在函数或代码块级别使用 synchronized,"SimpleDateFormat sdf = new SimpleDateFormat(""yyyy/MM/dd"");
         String dateString = ""2023/06/12"";"
+343,WorkerScheduler.java,3,不要使用 System.out.println 去打印,"System.out.println(""计时器****************************************************"");"
+343,CommonUserController.java,3,不要使用 System.out.println 去打印,System.out.println(commonUser.getStatus());
+343,CommonUserController.java,3,不要使用 System.out.println 去打印,System.out.println(result);
+343,CommonUserController.java,3,不要使用 System.out.println 去打印,System.out.println(commonUser.getStatus());
+343,CommonUserController.java,26,代码结构冗余，避免重复代码,System.out.println(commonUser.getStatus());
+343,CommonUserController.java,26,代码结构冗余，避免重复代码,"if(userSex.equals(""男"")){
+   commonUserService.modifySex(userId, ""男"");
+  }else{
+   commonUserService.modifySex(userId, ""女"");
+  }"
+343,CommonUserController.java,25,判断逻辑应简洁，不能有重复或者无意义的判断,"if(userSex.equals(""男"")){
+   commonUserService.modifySex(userId, ""男"");
+  }else{
+   commonUserService.modifySex(userId, ""女"");
+  }"
+343,CommonUserController.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,"public String modifiPhone(final HttpSession session, Model model) {"
+343,CommonUserController.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,"public String modifiPhone(String userMobile, HttpSession session,
+   Model model) {"
+343,CommonUserController.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,"Map<String, Object> rtnMap = new HashMap<String, Object>();"

@@ -1,0 +1,1052 @@
+diff --git a/ssm_pro/.settings/org.eclipse.core.resources.prefs b/ssm_pro/.settings/org.eclipse.core.resources.prefs
+index 424b6ae..6bd5b11 100644
+--- a/ssm_pro/.settings/org.eclipse.core.resources.prefs
++++ b/ssm_pro/.settings/org.eclipse.core.resources.prefs
+@@ -1,2 +1,3 @@
+ eclipse.preferences.version=1
++encoding//src/main/webapp/404.jsp=UTF-8
+ encoding//src/main/webapp/WEB-INF/jsp/include/headtag.jsp=UTF-8
+diff --git a/ssm_pro/src/main/java/cn/sfturing/dao/CommonUserDao.java b/ssm_pro/src/main/java/cn/sfturing/dao/CommonUserDao.java
+index 25a37f3..5059466 100644
+--- a/ssm_pro/src/main/java/cn/sfturing/dao/CommonUserDao.java
++++ b/ssm_pro/src/main/java/cn/sfturing/dao/CommonUserDao.java
+@@ -42,6 +42,9 @@ public interface CommonUserDao {
+ 	/******************** 用户修改信息（用户个人中心修改方法） *************************/
+ 	// 修改用户密码，需要邮箱验证
+ 	public int modifyPassWord(@Param("userEmail") String userEmail, @Param("newPassWord") String newPassWord);
++
++	// 修改用户性别
++	public int modifySex(@Param("userId") int userId,@Param("userSex") String userSex);
+
+ 	// 修改用户手机，需要邮箱验证
+ 	public int modifyPhone(@Param("userEmail") String userEmail, @Param("newPhone") String newPhone);
+diff --git a/ssm_pro/src/main/java/cn/sfturing/entity/OrderRecords.java b/ssm_pro/src/main/java/cn/sfturing/entity/OrderRecords.java
+index 0df3d51..da7fd12 100644
+--- a/ssm_pro/src/main/java/cn/sfturing/entity/OrderRecords.java
++++ b/ssm_pro/src/main/java/cn/sfturing/entity/OrderRecords.java
+@@ -30,6 +30,8 @@ public class OrderRecords {
+ 	private int isSend;
+ 	//是否取消
+ 	private int isCancel;
++	//是否完成订单
++	private int isFinish;
+ 	//预约识别码
+ 	private int orderVer;
+ 	//创建预约时间
+@@ -100,6 +102,12 @@ public int getIsCancel() {
+ 	public void setIsCancel(int isCancel) {
+ 		this.isCancel = isCancel;
+ 	}
++	public int getIsFinish() {
++		return isFinish;
++	}
++	public void setIsFinish(int isFinish) {
++		this.isFinish = isFinish;
++	}
+ 	public int getOrderVer() {
+ 		return orderVer;
+ 	}
+@@ -117,14 +125,12 @@ public String toString() {
+ 		return "OrderRecords [id=" + id + ", UserID=" + UserID + ", hospitalName=" + hospitalName + ", officesName="
+ 				+ officesName + ", doctorName=" + doctorName + ", transactDate=" + transactDate + ", transactTime="
+ 				+ transactTime + ", diseaseInfo=" + diseaseInfo + ", isSuccess=" + isSuccess + ", isSend=" + isSend
+-				+ ", isCancel=" + isCancel + ", orderVer=" + orderVer + ", createTime=" + createTime + "]";
++				+ ", isCancel=" + isCancel + ", isFinish=" + isFinish + ", orderVer=" + orderVer + ", createTime="
++				+ createTime + "]";
+ 	}
+
+
+
+-	//
+-
+-
+
+
+
+diff --git a/ssm_pro/src/main/java/cn/sfturing/scheduler/WorkerScheduler.java b/ssm_pro/src/main/java/cn/sfturing/scheduler/WorkerScheduler.java
+new file mode 100644
+index 0000000..68b636e
+--- /dev/null
++++ b/ssm_pro/src/main/java/cn/sfturing/scheduler/WorkerScheduler.java
+@@ -0,0 +1,12 @@
++package cn.sfturing.scheduler;
++
++import org.springframework.scheduling.annotation.Scheduled;
++import org.springframework.stereotype.Component;
++
++@Component
++public class WorkerScheduler {
++	 @Scheduled(cron = "0 0/2 * * * ?")
++	 public void createWorkTime(){
++		 System.out.println("计时器****************************************************");
++	 }
++}
+diff --git a/ssm_pro/src/main/java/cn/sfturing/service/CommonUserService.java b/ssm_pro/src/main/java/cn/sfturing/service/CommonUserService.java
+index 2249e43..0ea1fc1 100644
+--- a/ssm_pro/src/main/java/cn/sfturing/service/CommonUserService.java
++++ b/ssm_pro/src/main/java/cn/sfturing/service/CommonUserService.java
+@@ -2,6 +2,7 @@
+
+ import javax.servlet.http.HttpServletRequest;
+
++import org.apache.ibatis.annotations.Param;
+
+ import cn.sfturing.entity.CommonUser;
+ /**
+@@ -97,6 +98,12 @@ public interface CommonUserService {
+ 	 */
+ 	public int addUserInfo(String userEmail,String userIdenf,String userName, String userMobile,String userSex);
+
++	// 修改用户性别
++	public int modifySex (int userId,String userSex);
++
++	// 修改用户手机
++	public int modifyPhone (String userPhone,String userEmail);
++
+
+
+ }
+diff --git a/ssm_pro/src/main/java/cn/sfturing/service/impl/CommonUserServiceImpl.java b/ssm_pro/src/main/java/cn/sfturing/service/impl/CommonUserServiceImpl.java
+index a3ff505..5573494 100644
+--- a/ssm_pro/src/main/java/cn/sfturing/service/impl/CommonUserServiceImpl.java
++++ b/ssm_pro/src/main/java/cn/sfturing/service/impl/CommonUserServiceImpl.java
+@@ -68,7 +68,7 @@ public int sign(CommonUser commonUser, HttpServletRequest request) {
+ 			return 0;// 用户身份证号已注册
+ 		}*/
+ 		String userEmail = commonUser.getUserEmail();
+-		if (commonUserDao.findCommonUserByEmail(userEmail) != null) {
++		if (commonUserDao.findCommonUserByEmail(userEmail.trim()) != null) {
+ 			return 1;// 用户邮箱已注册
+ 		}
+ 		/*String userMobile = commonUser.getUserMobile();
+@@ -81,8 +81,7 @@ public int sign(CommonUser commonUser, HttpServletRequest request) {
+ 		// 设置注册ip
+ 		commonUser.setRegIp(GetIP.getIpAddr(request));
+ 		commonUser.setUpdateTime(dateUtil.getCurrentTime(DateFormat.YYYY_MM_DD_HH_mm_ss));
+-		System.out.println(commonUser.getUserName());
+-		System.out.println(commonUser.getUserSex());
++		commonUser.setUserEmail(commonUser.getUserEmail().trim());
+ 		commonUserDao.insertCommonUser(commonUser);
+ 		return 3;// 用户注册成功
+
+@@ -195,5 +194,22 @@ public int addUserInfo(String userEmail, String userIdenf, String userName, Stri
+ 		return 1; //用户更新成功
+ 	}
+
++	@Override
++	public int modifySex(int userId, String userSex) {
++		// TODO Auto-generated method stub
++		return commonUserDao.modifySex(userId, userSex);
++	}
++
++	@Override
++	public int modifyPhone(String userPhone, String userEmail) {
++
++		if (commonUserDao.findCommonUserByMobile(userPhone) != null) {
++			return 2;// 用户手机号已注册
++		}
++		commonUserDao.modifyPhone(userEmail, userPhone);
++
++		return 1;
++	}
++
+
+ }
+diff --git a/ssm_pro/src/main/java/cn/sfturing/web/CommonUserController.java b/ssm_pro/src/main/java/cn/sfturing/web/CommonUserController.java
+index 9c1ecc8..6105645 100644
+--- a/ssm_pro/src/main/java/cn/sfturing/web/CommonUserController.java
++++ b/ssm_pro/src/main/java/cn/sfturing/web/CommonUserController.java
+@@ -1,6 +1,8 @@
+ package cn.sfturing.web;
+
++import java.util.HashMap;
+ import java.util.List;
++import java.util.Map;
+
+ import javax.servlet.http.HttpServletRequest;
+ import javax.servlet.http.HttpSession;
+@@ -12,6 +14,7 @@
+ import org.springframework.ui.Model;
+ import org.springframework.web.bind.annotation.RequestMapping;
+ import org.springframework.web.bind.annotation.RequestMethod;
++import org.springframework.web.bind.annotation.ResponseBody;
+
+ import cn.sfturing.entity.CommonUser;
+ import cn.sfturing.entity.OrderRecords;
+@@ -60,7 +63,7 @@ public String login(HttpSession session) {
+ 	public String login(Model model, String userEmail, String userPassword, HttpSession session,
+ 			HttpServletRequest request) {
+ 		// 登录用户，并将登录后的状态码返回，如果是0用户不存在，如果是1那么密码错误，如果是2那么密码正确
+-		int result = commonUserService.login(userEmail, userPassword, request);
++		int result = commonUserService.login(userEmail.trim(), userPassword, request);
+ 		// 错误信息
+ 		String error = "";
+ 		// 查找这个用户
+@@ -138,6 +141,50 @@ public String sign(Model model, CommonUser commonUser, HttpServletRequest reques
+ 	public String findPassword() {
+ 		return "user/findPassword";
+ 	}
++
++	/**
++	 * 用户修改手机
++	 */
++	@RequestMapping(value = "/modifiPhone", method = RequestMethod.GET)
++	public String modifiPhone(final HttpSession session, Model model) {
++		final CommonUser commonUser = (CommonUser) session.getAttribute("userInfo");
++		// 单独开启线程发送邮件，防止用户等待时间过长，成功日志输出，失败也输出。
++		new Thread(new Runnable() {
++			public void run() {
++				boolean isSuccess = commonUserService.sendEmailCheck(commonUser);
++				if (isSuccess) {
++					log.info(commonUser.getUserEmail() + "发送成功" + commonUser.getUpdateTime());
++					CommonUser userMSG = commonUserService.findCommonUserByEmail(commonUser.getUserEmail());
++					userMSG.setStatus(2);
++					session.setAttribute("userMSG", userMSG);
++				} else {
++					log.info(commonUser.getUserEmail() + "发送失败" + commonUser.getUpdateTime());
++				}
++			}
++		}).start();
++		return "/user/checkVerification";
++	}
++
++	/**
++	 * 用户修改手机
++	 */
++	@RequestMapping(value = "/modifiPhone", method = RequestMethod.POST)
++	public String modifiPhone(String userMobile, HttpSession session,
++			Model model) {
++		CommonUser commonUser = (CommonUser) session.getAttribute("userInfo");
++		String error = "";
++		int result = commonUserService.modifyPhone(userMobile, commonUser.getUserEmail());
++
++		if (result == 2) {
++			error = "手机号已经被注册";
++			log.info(error);
++			model.addAttribute("error", error);
++			return "user/modifiPhone";
++		}
++		CommonUser commonUser1 = commonUserService.findCommonUserByEmail(commonUser.getUserEmail());
++		session.setAttribute("userInfo", commonUser1);
++		return "redirect:/userCenter";
++	}
+
+ 	/**
+ 	 * 用户找回密码
+@@ -199,7 +246,9 @@ public void run() {
+ 	@RequestMapping(value = "/checkVerification", method = RequestMethod.POST)
+ 	public String checkVerification(Model model, int verificationCode, HttpSession session) {
+ 		CommonUser commonUser = (CommonUser) session.getAttribute("userMSG");
++		System.out.println(commonUser.getStatus());
+ 		int result = commonUserService.checkVerification(verificationCode, commonUser);
++		System.out.println(result);
+ 		// 错误信息
+ 		String error = "";
+ 		if (result == 0) {
+@@ -215,16 +264,23 @@ public String checkVerification(Model model, int verificationCode, HttpSession s
+ 			return "user/checkVerification";
+ 		}
+ 		if (result == 1) {
+-			commonUserService.clearVerification(commonUser.getUserEmail());
+-			if(commonUser.getStatus() ==0){
++			//commonUserService.clearVerification(commonUser.getUserEmail());
++			//状态为0修改密码
++			if (commonUser.getStatus() == 0) {
+ 				System.out.println(commonUser.getStatus());
+ 				return "/user/updatePassword";
+ 			}
+-			if(commonUser.getStatus() == 1 ){
++			//状态为1完善信息
++			if (commonUser.getStatus() == 1) {
+ 				System.out.println(commonUser.getStatus());
+ 				return "user/addUserInfo";
+ 			}
+-
++			//状态为2修改手机
++			if (commonUser.getStatus() == 2) {
++				System.out.println(commonUser.getStatus());
++				return "user/modifiPhone";
++			}
++
+ 		}
+ 		return "/user/checkVerification";
+ 	}
+@@ -257,7 +313,7 @@ public String updatePassword(String newPassWord, Model model, HttpSession sessio
+ 	 * 用户完善信息
+ 	 */
+ 	@RequestMapping(value = "/addUserInfo", method = RequestMethod.GET)
+-	public String addUserInfo(final HttpSession session,Model model) {
++	public String addUserInfo(final HttpSession session, Model model) {
+ 		final CommonUser commonUser = (CommonUser) session.getAttribute("userInfo");
+ 		// 单独开启线程发送邮件，防止用户等待时间过长，成功日志输出，失败也输出。
+ 		new Thread(new Runnable() {
+@@ -301,21 +357,46 @@ public String addUserInfo(String userIdenf, String userName, String userMobile,
+ 		session.setAttribute("userInfo", commonUser1);
+ 		return "index/index";
+ 	}
+-
++
+ 	/**
+ 	 * 用户个人中心
+ 	 */
+ 	/**
+-	 * 用户主页
++	 *
+ 	 *
+ 	 * @return
+ 	 */
+ 	@RequestMapping(value = "/userCenter", method = RequestMethod.GET)
+-	public String userCenter(HttpSession session,Model model) {
++	public String userCenter(HttpSession session, Model model) {
++		CommonUser commonUser = (CommonUser) session.getAttribute("userInfo");
++		if (commonUser != null) {
++			List<OrderRecords> orderRecords = orderRecordsService.findOrderRecordsByUserID(commonUser.getUserId());
++			model.addAttribute("orderRecords", orderRecords);
++			model.addAttribute("commonUser", commonUser);
++			return "userCenter/userCenter";
++		}
++		return "index/index";
++	}
++
++	/**
++	 * 用户更改性别
++	 *
++	 * @return
++	 */
++	@ResponseBody
++	@RequestMapping(value = "/updateSex", method = RequestMethod.POST)
++	public Map<String, Object> updateSex(String userSex, Model model, HttpSession session) {
+ 		CommonUser commonUser = (CommonUser) session.getAttribute("userInfo");
+-		List<OrderRecords> orderRecords = orderRecordsService.findOrderRecordsByUserID(commonUser.getUserId());
+-		model.addAttribute("orderRecords", orderRecords);
+-		return "userCenter/userCenter";
++		int userId = commonUser.getUserId();
++		if(userSex.equals("男")){
++			commonUserService.modifySex(userId, "男");
++		}else{
++			commonUserService.modifySex(userId, "女");
++		}
++		String userSexInfo = commonUserService.findCommonUserByEmail(commonUser.getUserEmail()).getUserSex();
++		Map<String, Object> rtnMap = new HashMap<String, Object>();
++		rtnMap.put("userSexInfo", userSexInfo);
++		return rtnMap;
+ 	}
+
+ }
+diff --git a/ssm_pro/src/main/resources/mapper/CommonUserDao.xml b/ssm_pro/src/main/resources/mapper/CommonUserDao.xml
+index 63d2986..70a7ec7 100644
+--- a/ssm_pro/src/main/resources/mapper/CommonUserDao.xml
++++ b/ssm_pro/src/main/resources/mapper/CommonUserDao.xml
+@@ -63,6 +63,13 @@
+ 		WHERE
+ 		user_email=#{userEmail}
+ 	</update>
++
++	<update id="modifySex">
++		UPDATE commonuser SET
++		user_sex=#{userSex}
++		WHERE
++		user_id=#{userId}
++	</update>
+
+ 	<!-- 更新验证码并设置发送时间 -->
+ 	<update id="sendVerification">
+diff --git a/ssm_pro/src/main/resources/mapper/OrderRecordsDao.xml b/ssm_pro/src/main/resources/mapper/OrderRecordsDao.xml
+index 67a28d3..3d0ee2b 100644
+--- a/ssm_pro/src/main/resources/mapper/OrderRecordsDao.xml
++++ b/ssm_pro/src/main/resources/mapper/OrderRecordsDao.xml
+@@ -17,7 +17,7 @@
+ 		parameterType="int">
+ 		SELECT * FROM `order_records`
+ 		WHERE userID = #{userID} AND order_ver=1
+-		order BY transact_date
++		order BY create_time DESC
+ 	</select>
+ 	<!--通过ID查询预约记录 -->
+ 	<select id="findLastId" resultType="int">
+diff --git a/ssm_pro/src/main/resources/spring/spring-dao.xml b/ssm_pro/src/main/resources/spring/spring-dao.xml
+index 0dda840..38b77a0 100644
+--- a/ssm_pro/src/main/resources/spring/spring-dao.xml
++++ b/ssm_pro/src/main/resources/spring/spring-dao.xml
+@@ -31,7 +31,7 @@
+
+
+ 		<!-- c3p0连接池的私有属性 -->
+-		<property name="maxPoolSize" value="30" />
++		<property name="maxPoolSize" value="50" />
+ 		<property name="minPoolSize" value="10" />
+ 		<!-- 关闭连接后不自动commit -->
+ 		<property name="autoCommitOnClose" value="false" />
+@@ -63,4 +63,5 @@
+
+ 	<!-- 5.扫描所需要的包 -->
+ 	<context:component-scan base-package="cn.sfturing.utils" />
++	<context:component-scan base-package="cn.sfturing.scheduler" />
+ </beans>
+diff --git a/ssm_pro/src/main/webapp/404.jsp b/ssm_pro/src/main/webapp/404.jsp
+new file mode 100644
+index 0000000..e660b7f
+--- /dev/null
++++ b/ssm_pro/src/main/webapp/404.jsp
+@@ -0,0 +1,119 @@
++<%@ page language="java" contentType="text/html; charset=UTF-8"
++	pageEncoding="UTF-8"%>
++<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
++<html>
++<head>
++<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
++<title>天津市医院预约挂号</title>
++<%
++	/********** 保存网站的基本路径 ***********/
++	String path = request.getContextPath();
++	String basePath = request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort()
++			+ path + "/";
++	//将该路径地址缓存到 session中 ,例如：http://localhost:8090/tjnu_ssh_1128/
++	session.setAttribute("mybasePath", basePath);
++%>
++<!-- CSS -->
++<jsp:include page="../include/headtag.jsp" />
++<!-- <link rel="stylesheet"
++	href="http://fonts.googleapis.com/css?family=Roboto:400,100,300,500"> -->
++<link rel="stylesheet"
++	href="${mybasePath}assets/font-awesome/css/font-awesome.min.css">
++<link rel="stylesheet" href="${mybasePath}assets/css/form-elements.css">
++<link rel="stylesheet" href="${mybasePath}assets/css/style.css">
++</head>
++<body>
++	<jsp:include page="../include/head.jsp" />
++	<jsp:include page="../include/menu.jsp" />
++	<div id="page-wrapper" style="margin-top: 50px;">
++		<div id="page-inner">
++			<div class="row">
++				<div class="col-md-12">
++					<!-- <br />
++					<br />
++					<h2>预留页面标题</h2>
++					<h5>预留内容小标题.</h5> -->
++					<div id="tip" class="jumbotron text-left" style="padding-left: 45px;background-color: #ffffff">
++						<div class="modal-header" style="padding-left: 45px;background-color: #ffffff">
++							<button id="close" name = "close" type="button" class="close" data-dismiss="modal"
++								aria-hidden="true">×</button>
++						</div>
++						<h2>
++							天津市医院挂号系统上线了
++							</h1>
++							<p>为提高患者预约效率,改善患者预约体验,建立天津市预约挂号统一平台.</p>
++							<p>
++								<a class="btn btn-primary btn-lg" href="/ssm_pro/help/" >了解挂号系统</a>
++							</p>
++					</div>
++
++				</div>
++			</div>
++			<!-- /. ROW  -->
++			<hr />
++			<div class="carousel slide" id="carousel-630453">
++				<ol class="carousel-indicators">
++					<li data-slide-to="0" data-target="#carousel-630453"></li>
++					<li data-slide-to="1" data-target="#carousel-630453" class="active"></li>
++					<li data-slide-to="2" data-target="#carousel-630453"></li>
++				</ol>
++				<div class="carousel-inner">
++					<div class="item">
++						<img alt="" src="${mybasePath}assets/img/1.jpg" />
++						<div class="carousel-caption">
++							<p>天津市挂号系统已上线</p>
++							<p>热烈庆祝挂号系统上线,已经支持网上预付功能。</p>
++						</div>
++					</div>
++					<div class="item active">
++						<img alt="" src="${mybasePath}assets/img/2.jpg" />
++						<div class="carousel-caption">
++							<p>全国医院查询功能</p>
++							<p>支持4万余医院信息查询，助您准确查询医院信息。</p>
++						</div>
++					</div>
++					<div class="item">
++						<img alt="" src="${mybasePath}assets/img/3.jpg" />
++						<div class="carousel-caption">
++							<p>常见疾病</p>
++							<p>查询常见疾病，提前预防，准确医治。</p>
++						</div>
++					</div>
++				</div>
++				<a class="left carousel-control" href="#carousel-630453"
++					data-slide="prev"><span
++					class="glyphicon glyphicon-chevron-left"></span></a> <a
++					class="right carousel-control" href="#carousel-630453"
++					data-slide="next"><span
++					class="glyphicon glyphicon-chevron-right"></span></a>
++			</div>
++		</div>
++		<!-- /. PAGE INNER  -->
++
++	</div>
++	<!-- /. PAGE WRAPPER  -->
++
++</body>
++<!-- Javascript -->
++<script src="${mybasePath}assets/bootstrap/js/bootstrap.min.js"></script>
++<script src="${mybasePath}assets/bootstrap/js/jquery.min.js"></script>
++<script src="${mybasePath}assets/js/jquery.backstretch.min.js"></script>
++<!--不需要背景 <script src="assets/js/scripts.js"></script> -->
++<!-- <script type="text/javascript">
++	jQuery(document).ready(function() {
++
++    $.backstretch("assets/img/backgrounds/1.jpg");
++
++    });
++    </script> -->
++    <script type="text/javascript">
++    $("#close").click(function(){
++    	 /*  $("#tip").remove();  */
++    	  $("#tip").fadeTo("slow", 0.01, function(){//fade
++    		    $(this).slideUp("slow", function() {//slide up
++    		      $(this).remove();//then remove from the DOM
++    		    });
++    		  });
++    });
++    </script>
++</html>
+\ No newline at end of file
+diff --git a/ssm_pro/src/main/webapp/WEB-INF/jsp/doctor/doctor.jsp b/ssm_pro/src/main/webapp/WEB-INF/jsp/doctor/doctor.jsp
+index 17d81a3..e49c5b8 100644
+--- a/ssm_pro/src/main/webapp/WEB-INF/jsp/doctor/doctor.jsp
++++ b/ssm_pro/src/main/webapp/WEB-INF/jsp/doctor/doctor.jsp
+@@ -126,7 +126,7 @@
+ 				<div class="col-md-3">
+ 					<div class="thumbnail">
+ 						<div>
+-							<img alt="Bootstrap Thumbnail Third" src="${doctor.doctorImg}"
++							<img alt="请检查网络，图片加载出现了一点小问题" src="${doctor.doctorImg}"
+ 								height="200" width="200" />
+ 						</div>
+ 						<div class="caption">
+diff --git a/ssm_pro/src/main/webapp/WEB-INF/jsp/doctor/doctorIndex.jsp b/ssm_pro/src/main/webapp/WEB-INF/jsp/doctor/doctorIndex.jsp
+index 383fc6e..1cd4f30 100644
+--- a/ssm_pro/src/main/webapp/WEB-INF/jsp/doctor/doctorIndex.jsp
++++ b/ssm_pro/src/main/webapp/WEB-INF/jsp/doctor/doctorIndex.jsp
+@@ -40,7 +40,7 @@
+ 				<div class="col-md-3">
+ 					<div class="thumbnail">
+ 						<div>
+-							<img alt="Bootstrap Thumbnail Third" src="${doctor.doctorImg}"
++							<img alt="请检查网络，图片加载出现了一点小问题" src="${doctor.doctorImg}"
+ 								height="200" width="200" />
+ 						</div>
+ 						<div class="caption">
+diff --git a/ssm_pro/src/main/webapp/WEB-INF/jsp/doctor/doctorInfoShow.jsp b/ssm_pro/src/main/webapp/WEB-INF/jsp/doctor/doctorInfoShow.jsp
+index bb4b288..21027b1 100644
+--- a/ssm_pro/src/main/webapp/WEB-INF/jsp/doctor/doctorInfoShow.jsp
++++ b/ssm_pro/src/main/webapp/WEB-INF/jsp/doctor/doctorInfoShow.jsp
+@@ -71,7 +71,7 @@
+ 				<hr />
+ 				<div class="col-md-12">
+ 					<div class="col-md-3">
+-						<img alt="Bootstrap Thumbnail Third" src="${doctor.doctorImg }"
++						<img alt="请检查网络，图片加载出现了一点小问题" src="${doctor.doctorImg }"
+ 							style="width: 180px; height: 180px;">
+ 					</div>
+ 					<div class="col-md-4">
+diff --git a/ssm_pro/src/main/webapp/WEB-INF/jsp/hospital/allHospital.jsp b/ssm_pro/src/main/webapp/WEB-INF/jsp/hospital/allHospital.jsp
+index dff94db..52aa06d 100644
+--- a/ssm_pro/src/main/webapp/WEB-INF/jsp/hospital/allHospital.jsp
++++ b/ssm_pro/src/main/webapp/WEB-INF/jsp/hospital/allHospital.jsp
+@@ -112,7 +112,7 @@
+ 				<div class="col-md-3">
+ 					<div class="thumbnail" style="width: 300px; height: 400px;">
+ 						<div>
+-							<img alt="Bootstrap Thumbnail Third" src="${hos.hospitalImg}"
++							<img alt="请检查网络，图片加载出现了一点小问题" src="${hos.hospitalImg}"
+ 								height="200" width="200" />
+ 						</div>
+ 						<div class="caption">
+diff --git a/ssm_pro/src/main/webapp/WEB-INF/jsp/hospital/hosIndex.jsp b/ssm_pro/src/main/webapp/WEB-INF/jsp/hospital/hosIndex.jsp
+index df15c9c..e6ac690 100644
+--- a/ssm_pro/src/main/webapp/WEB-INF/jsp/hospital/hosIndex.jsp
++++ b/ssm_pro/src/main/webapp/WEB-INF/jsp/hospital/hosIndex.jsp
+@@ -38,7 +38,7 @@
+ 				<div class="col-md-3">
+ 					<div class="thumbnail" style="width: 300px; height: 400px;">
+ 						<div>
+-							<img alt="Bootstrap Thumbnail Third" src="${hos.hospitalImg}"
++							<img alt="请检查网络，图片加载出现了一点小问题" src="${hos.hospitalImg}"
+ 								height="200" width="200" />
+ 						</div>
+ 						<div class="caption">
+diff --git a/ssm_pro/src/main/webapp/WEB-INF/jsp/hospital/hosInfoShow.jsp b/ssm_pro/src/main/webapp/WEB-INF/jsp/hospital/hosInfoShow.jsp
+index 2ef2806..5c42feb 100644
+--- a/ssm_pro/src/main/webapp/WEB-INF/jsp/hospital/hosInfoShow.jsp
++++ b/ssm_pro/src/main/webapp/WEB-INF/jsp/hospital/hosInfoShow.jsp
+@@ -74,7 +74,7 @@
+ 				<div class="panel-body">
+ 				<div class="col-md-12">
+ 					<div class="col-md-3">
+-						<img alt="Bootstrap Thumbnail Third" src="${hos.hospitalImg }">
++						<img alt="请检查网络，图片加载出现了一点小问题" src="${hos.hospitalImg }">
+ 					</div>
+ 					<div class="col-md-4">
+ 						<p class="text-left">
+diff --git a/ssm_pro/src/main/webapp/WEB-INF/jsp/hospital/orderHos.jsp b/ssm_pro/src/main/webapp/WEB-INF/jsp/hospital/orderHos.jsp
+index 53e86dc..9952d1e 100644
+--- a/ssm_pro/src/main/webapp/WEB-INF/jsp/hospital/orderHos.jsp
++++ b/ssm_pro/src/main/webapp/WEB-INF/jsp/hospital/orderHos.jsp
+@@ -116,7 +116,7 @@
+ 				<div class="col-md-3">
+ 					<div class="thumbnail" style="width: 300px; height: 400px;">
+ 						<div>
+-							<img alt="Bootstrap Thumbnail Third" src="${hos.hospitalImg}"
++							<img alt="请检查网络，图片加载出现了一点小问题" src="${hos.hospitalImg}"
+ 								height="200" width="200" />
+ 						</div>
+ 						<div class="caption">
+diff --git a/ssm_pro/src/main/webapp/WEB-INF/jsp/include/menu.jsp b/ssm_pro/src/main/webapp/WEB-INF/jsp/include/menu.jsp
+index 7ec7af5..90b496a 100644
+--- a/ssm_pro/src/main/webapp/WEB-INF/jsp/include/menu.jsp
++++ b/ssm_pro/src/main/webapp/WEB-INF/jsp/include/menu.jsp
+@@ -15,7 +15,7 @@
+ 			<li><a class="list-group-item" href="/ssm_pro/doctorIndex/1"><font color="#fff">医生挂号</font></a></li>
+
+
+-			<li><a class="list-group-item" href="/ssm_pro/orderIndex"><font color="#fff">快速预约</font></a></li>
++			<!-- <li><a class="list-group-item" href="/ssm_pro/orderIndex"><font color="#fff">快速预约</font></a></li> -->
+
+
+ 			<li><a class="list-group-item" href="#"><font color="#fff">意见反馈</font></a></li>
+diff --git a/ssm_pro/src/main/webapp/WEB-INF/jsp/office/officeInfoShow.jsp b/ssm_pro/src/main/webapp/WEB-INF/jsp/office/officeInfoShow.jsp
+index eea3e34..c6a7433 100644
+--- a/ssm_pro/src/main/webapp/WEB-INF/jsp/office/officeInfoShow.jsp
++++ b/ssm_pro/src/main/webapp/WEB-INF/jsp/office/officeInfoShow.jsp
+@@ -72,7 +72,7 @@
+ 				<hr />
+ 				<div class="col-md-12">
+ 					<div class="col-md-3">
+-						<img alt="Bootstrap Thumbnail Third" src="${hos.hospitalImg }">
++						<img alt="请检查网络，图片加载出现了一点小问题" src="${hos.hospitalImg }">
+ 					</div>
+ 					<div class="col-md-4">
+ 						<p class="text-left">
+diff --git a/ssm_pro/src/main/webapp/WEB-INF/jsp/order/orderInfo.jsp b/ssm_pro/src/main/webapp/WEB-INF/jsp/order/orderInfo.jsp
+index 08602b6..19789e8 100644
+--- a/ssm_pro/src/main/webapp/WEB-INF/jsp/order/orderInfo.jsp
++++ b/ssm_pro/src/main/webapp/WEB-INF/jsp/order/orderInfo.jsp
+@@ -20,8 +20,7 @@
+ 	<jsp:include page="../include/head.jsp" />
+ 	<jsp:include page="../include/menu.jsp" />
+ 	<div id="page-wrapper" style="margin-top: 50px;">
+-		<form class="form-search form-horizontal" id="setchInfo"
+-			action="<c:url value='/allHos/1' />"></form>
++
+ 		<div id="page-inner">
+ 			<div class="row">
+ 				<div class="col-md-12">
+diff --git a/ssm_pro/src/main/webapp/WEB-INF/jsp/user/checkVerification.jsp b/ssm_pro/src/main/webapp/WEB-INF/jsp/user/checkVerification.jsp
+index e61e253..2041bc8 100644
+--- a/ssm_pro/src/main/webapp/WEB-INF/jsp/user/checkVerification.jsp
++++ b/ssm_pro/src/main/webapp/WEB-INF/jsp/user/checkVerification.jsp
+@@ -5,7 +5,7 @@
+ <meta charset="utf-8">
+ <meta http-equiv="X-UA-Compatible" content="IE=edge">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+-<title>用户找回密码</title>
++<title>用户验证</title>
+ <jsp:include page="../include/headtag.jsp" />
+ <!-- CSS -->
+ <!-- <link rel="stylesheet"
+@@ -50,7 +50,7 @@ input:-webkit-autofill {
+ 					<div class="col-sm-6 col-sm-offset-3 form-box">
+ 						<div class="form-top">
+ 							<div class="form-top-left">
+-								<h3 style="color: #969696;">找回密码</h3>
++								<h3 style="color: #969696;">验证码</h3>
+ 								<p>验证码在1分钟内将发送至您的邮箱,请注意查收，验证码有效期为30分钟,且5分钟内只能发送一次。</p>
+ 							</div>
+ 							<div class="pull-right-bottom">
+diff --git a/ssm_pro/src/main/webapp/WEB-INF/jsp/user/modifiPhone.jsp b/ssm_pro/src/main/webapp/WEB-INF/jsp/user/modifiPhone.jsp
+new file mode 100644
+index 0000000..587cf67
+--- /dev/null
++++ b/ssm_pro/src/main/webapp/WEB-INF/jsp/user/modifiPhone.jsp
+@@ -0,0 +1,118 @@
++<%@ page language="java" contentType="text/html; charset=UTF-8"
++	pageEncoding="UTF-8"%>
++<head>
++
++<meta charset="utf-8">
++<meta http-equiv="X-UA-Compatible" content="IE=edge">
++<meta name="viewport" content="width=device-width, initial-scale=1">
++<title>用户找回密码</title>
++<jsp:include page="../include/headtag.jsp" />
++<!-- CSS -->
++<!-- <link rel="stylesheet"
++	href="http://fonts.googleapis.com/css?family=Roboto:400,100,300,500"> -->
++<link rel="stylesheet"
++	href="assets/font-awesome/css/font-awesome.min.css">
++<link rel="stylesheet" href="assets/css/form-elements.css">
++<link rel="stylesheet" href="assets/css/style.css">
++
++<!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
++<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
++<!--[if lt IE 9]>
++            <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
++            <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
++        <![endif]-->
++<!-- Favicon and touch icons -->
++<style>
++input:-webkit-autofill {
++	-webkit-box-shadow: 0 0 0px 1000px white inset;
++	border: 1px solid #CCC !important;
++}
++</style>
++</head>
++
++<body>
++	<jsp:include page="../include/head.jsp" />
++	<jsp:include page="../include/menu.jsp" />
++	<!-- Top content -->
++	<div class="top-content">
++
++		<div class="inner-bg">
++			<div class="container">
++				<!-- <div class="row">
++					<div class="col-sm-8 col-sm-offset-2 text">
++						<h1></h1>
++						<div class="description">
++							<h3 style="color: #96968E;">天津市医院预约挂号系统</h3	>
++						</div>
++					</div>
++				</div> -->
++				<div class="row">
++					<div class="col-sm-6 col-sm-offset-3 form-box">
++						<div class="form-top">
++							<div class="form-top-left">
++								<h3 style="color: #969696;">更换手机</h3>
++								<p>请输入新的手机号码</p>
++							</div>
++							<div class="pull-right-bottom">
++								<p class="text-danger"
++									style="position: absolute; right: 60px; bottom: 300px"
++									id="errorTip">${error}</p>
++							</div>
++
++						</div>
++
++						<div class="form-bottom">
++							<form role="form" action="modifiPhone" method="post" class="login-form" id="modifiPhone">
++								<div class="form-group col-xs-12">
++								<label class="sr-only" for="userMobile"></label>新手机号(*):<input
++									style="font-weight: bold" type="text" name="userMobile"
++									class=" form-control" id="userMobile" required />
++							</div>
++
++								<div class="form-group col-xs-12">
++									<button type="submit" class="btn">更改手机</button>
++								</div>
++							</form>
++							 <span><a href="login">用户登录</a></span> <span><a href="sign"
++								class="pull-right">用户注册</a></span>
++						</div>
++					</div>
++				</div>
++
++			</div>
++		</div>
++
++	</div>
++
++
++	<!-- Javascript -->
++	<script src="assets/js/jquery-1.11.1.min.js"></script>
++	<script src="assets/bootstrap/js/bootstrap.min.js"></script>
++	<script src="assets/js/jquery.backstretch.min.js"></script>
++	<script src="assets/js/scripts.js"></script>
++
++	<!--[if lt IE 10]>
++            <script src="assets/js/placeholder.js"></script>
++        <![endif]-->
++
++
++	<script type="text/javascript">
++		function isClearTip() {
++			document.getElementById("errorTip").innerHTML = "";
++		}
++	</script>
++	<!-- <script>
++    $(function() {
++        $(".btn").click(function(){
++            $(this).button('loading').delay(1000).queue(function() {
++            // $(this).button('reset');
++            // $(this).dequeue();
++            	document.getElementById("findPwdForm").submit();
++            });
++        });
++    });
++</script> -->
++
++</body>
++
++</html>
+\ No newline at end of file
+diff --git a/ssm_pro/src/main/webapp/WEB-INF/jsp/userCenter/userCenter.jsp b/ssm_pro/src/main/webapp/WEB-INF/jsp/userCenter/userCenter.jsp
+index eefdbc5..757ab9b 100644
+--- a/ssm_pro/src/main/webapp/WEB-INF/jsp/userCenter/userCenter.jsp
++++ b/ssm_pro/src/main/webapp/WEB-INF/jsp/userCenter/userCenter.jsp
+@@ -29,48 +29,151 @@
+ 			<hr />
+ 			<ul class="nav nav-tabs">
+ 				<li class="active"><a href="#order" data-toggle="tab">预约信息</a></li>
+-				<li><a href="#partener" data-toggle="tab">个人信息</a></li>
++				<li><a href="#userInfo" data-toggle="tab">个人信息</a></li>
+ 				<li><a href="#statement" data-toggle="tab">我的收藏</a></li>
+ 				<li><a href="#service" data-toggle="tab">我的评论</a></li>
+
+ 			</ul>
+-			<div class="tab-pane fade active in text-left" id="order">
+-				<div class="col-md-12">
+-					<!-- <div class="col-md-3"> -->
+-					<p class="text-left">
+-						<font color="#eb6864">我的预约</font>
+-					</p>
+-					<!-- </div> -->
+-				</div>
++			<br>
++			<div id="myTabContent" class="tab-content">
++				<div class="tab-pane fade active in text-left" id="order">
++					<div class="col-md-12">
++						<!-- <div class="col-md-3"> -->
++						<p class="text-left">
++							<font color="#eb6864">我的预约</font>
++						</p>
++						<!-- </div> -->
++					</div>
+
+-				<table class="table table-striped table-hover ">
+-					<thead>
+-						<tr>
+-							<th>订单</th>
+-							<th>就诊日期</th>
+-							<th>就诊时间段</th>
+-							<th>医院</th>
+-							<th>科室</th>
+-							<th>医生</th>
+-							<th>订单状态</th>
+-						</tr>
+-					</thead>
+-					<tbody>
+-						<c:forEach var="orderRecords" items="${orderRecords }"
+-							varStatus="status">
++					<table class="table table-striped table-hover ">
++						<thead>
+ 							<tr>
+-								<td>${ status.index + 1}</td>
+-								<%-- <td><a href="<c:url value='/officeInfoShow/${off.id}' />">${orderRecords.transactDate }</a></td> --%>
+-								<td>${orderRecords.transactDate }</td>
+-								<td>${orderRecords.transactTime }</td>
+-								<td>${orderRecords.hospitalName }</td>
+-								<td>${orderRecords.officesName }</td>
+-								<td>${orderRecords.doctorName }</td>
+-								<td><c:if test="${orderRecords.orderVer ==1 }">订单已提交(待审核)</c:if></td>
++								<th>订单</th>
++								<th>就诊日期</th>
++								<th>就诊时间段</th>
++								<th>医院</th>
++								<th>科室</th>
++								<th>医生</th>
++								<th>订单状态</th>
++								<th>订单创建时间</th>
+ 							</tr>
+-						</c:forEach>
+-					</tbody>
+-				</table>
++						</thead>
++						<tbody>
++							<c:forEach var="orderRecords" items="${orderRecords }"
++								varStatus="status">
++								<tr>
++									<td>${ status.index + 1}</td>
++									<%-- <td><a href="<c:url value='/officeInfoShow/${off.id}' />">${orderRecords.transactDate }</a></td> --%>
++									<td>${orderRecords.transactDate }</td>
++									<td>${orderRecords.transactTime }</td>
++									<td>${orderRecords.hospitalName }</td>
++									<td>${orderRecords.officesName }</td>
++									<td>${orderRecords.doctorName }</td>
++									<td><c:if test="${orderRecords.isFinish ==0 }">
++											<c:if test="${orderRecords.isCancel ==0 }">
++												<c:if test="${orderRecords.isSuccess ==0 }">
++													<c:if test="${orderRecords.orderVer ==1 }">订单已提交(待审核)</c:if>
++												</c:if>
++											</c:if>
++										</c:if> <c:if test="${orderRecords.isFinish ==0 }">
++											<c:if test="${orderRecords.isCancel ==0 }">
++												<c:if test="${orderRecords.isSend ==0 }">
++													<c:if test="${orderRecords.isSuccess ==1 }">
++														<font color="#eb6468">预约成功(待通知)</font>
++													</c:if>
++												</c:if>
++											</c:if>
++										</c:if> <c:if test="${orderRecords.isFinish ==0 }">
++											<c:if test="${orderRecords.isCancel ==0 }">
++												<c:if test="${orderRecords.isSend ==1 }">
++													<c:if test="${orderRecords.isSuccess ==1 }">
++														<font color="#eb6468">预约成功(已通知)</font>
++													</c:if>
++												</c:if>
++											</c:if>
++										</c:if> <c:if test="${orderRecords.isCancel ==1 }">
++											<font color="#000">已取消</font>
++
++										</c:if> <c:if test="${orderRecords.isFinish ==1 }">
++											<font color="#eb6468">订单已完成</font>
++										</c:if></td>
++									<td>${orderRecords.createTime }</td>
++								</tr>
++							</c:forEach>
++						</tbody>
++					</table>
++				</div>
++				<div class="tab-pane fade text-left" id="userInfo">
++					<div class="panel panel-primary text-left">
++						<div class="panel-heading">
++							<h3 class="panel-title">个人信息</h3>
++						</div>
++						<div class="panel-body">
++							<div class="col-md-12">
++								<div class="col-md-12">
++									<h3>姓名：${commonUser.userName }&nbsp;</h3>
++								</div>
++							</div>
++							<div class="col-md-12 text-left">
++								<div class="col-md-12 text-left">
++									<div
++										style="width: 70px; height: 36px; margin: 0px 0px 0px 0px; float: left;">
++										<h3>性别：</h3>
++									</div>
++									<div
++										style="width: 70px; height: 36px; margin-top: 15px; float: left;">
++
++										<select style="margin-bottom: 6px;"
++											class="col-md-2 form-control" id="userSex" name="userSex">
++											<option value="${commonUser.userSex }" selected="selected">${commonUser.userSex }</option>
++											<c:if test="${commonUser.userSex=='男' }">
++												<option value="女">女</option>
++											</c:if>
++											<c:if test="${commonUser.userSex=='女' }">
++												<option value="男">男</option>
++											</c:if>
++										</select>
++									</div>
++								</div>
++							</div>
++							<div class="col-md-12">
++								<div class="col-md-3">
++									<h3>手机号：${commonUser.userMobile }</h3>
++								</div>
++								<div class="col-md-3">
++									<h3>
++										<a href="/ssm_pro/modifiPhone">修改手机号码</a>
++									</h3>
++								</div>
++							</div>
++							<div class="col-md-12">
++								<div class="col-md-12">
++									<h3>邮箱：${commonUser.userEmail }</h3>
++									<div class="alert alert-dismissible alert-warning">
++										<button type="button" class="close" data-dismiss="alert">&times;</button>
++										<strong>请注意!</strong> 用户邮箱将作为通知依据 ，更改邮箱请进行申诉.）
++									</div>
++								</div>
++							</div>
++							<div class="col-md-12">
++								<div class="col-md-12">
++									<h3>身份证：${commonUser.userIdenf }</h3>
++									<div class="alert alert-dismissible alert-warning">
++										<button type="button" class="close" data-dismiss="alert">&times;</button>
++										<strong>请注意!</strong> 用户身份证将作为认证 ，更改身份证请进行申诉.）
++									</div>
++								</div>
++							</div>
++							<div class="col-md-12 text-left">
++								<div class="col-md-12">
++									<button class="btn btn-primary btn-lg" id="updateSexButton"
++										name="updateSexButton">保存信息</button>
++								</div>
++							</div>
++						</div>
++
++					</div>
++				</div>
+ 			</div>
+
+ 		</div>
+@@ -84,5 +187,49 @@
+ <script src="${mybasePath}assets/bootstrap/js/bootstrap.min.js"></script>
+ <script src="${mybasePath}assets/bootstrap/js/jquery.min.js"></script>
+ <script src="${mybasePath}assets/js/jquery.backstretch.min.js"></script>
++<script type="text/javascript">
++	$(function() {
++		$("#updateSexButton")
++				.click(
++						function() {
++							$
++									.post(
++											"/ssm_pro/updateSex",
++											{
++												'userSex' : $("#userSex").val()
++											},
++											function(result) {
++												if (result.userSexInfo != "") {
+
++													if (result.userSexInfo == "男") {
++														alert("修改成功");
++														var userSexInfo = '<option value="男">男</option>';
++														userSexInfo += '<option value="女">女</option>'
++														$(
++																"select[name='userSex']")
++																.empty()
++																.append(
++																		userSexInfo);
++													} else {
++														alert("修改成功");
++														var userSexInfo = '<option value="女">女</option>';
++														userSexInfo += '<option value="男">男</option>';
++														$(
++																"select[name='userSex']")
++																.empty()
++																.append(
++																		userSexInfo);
++													}
++													/* var noticeTypes = '<option value="-1">请选择</option>';
++													$.each(result.noticeTypes, function(i,item){
++
++														noticeTypes += '<option value="'+item.id+'">'+item.dictionaryValue+'</option>';
++													});
++
++													$("select[name='noticeTypeId']").empty().append(noticeTypes); */
++												}
++											});
++						});
++	});
++</script>
+ </html>
+\ No newline at end of file
+diff --git a/ssm_pro/src/main/webapp/WEB-INF/web.xml b/ssm_pro/src/main/webapp/WEB-INF/web.xml
+index b9a81fe..f6f6e4c 100644
+--- a/ssm_pro/src/main/webapp/WEB-INF/web.xml
++++ b/ssm_pro/src/main/webapp/WEB-INF/web.xml
+@@ -40,4 +40,5 @@
+ 		<filter-name>setCharacterEncoding</filter-name>
+ 		<url-pattern>/*</url-pattern>
+ 	</filter-mapping>
++
+ </web-app>
+\ No newline at end of file
+diff --git a/ssm_pro/src/main/webapp/assets/date/css/index.css b/ssm_pro/src/main/webapp/assets/date/css/index.css
+index a0ebe4c..0b5c92c 100644
+--- a/ssm_pro/src/main/webapp/assets/date/css/index.css
++++ b/ssm_pro/src/main/webapp/assets/date/css/index.css
+@@ -1,4 +1,4 @@
+-.date-table{margin-left: 220px;width: 1000px;height : 500px;border-collapse:collapse;font-size:16px;font-family:Arial,宋体;float: left;}
++.date-table{margin-left: 200px;width: 1000px;height : 500px;border-collapse:collapse;font-size:16px;font-family:Arial,宋体;float: left;}
+ .date-table .info-title-tr{height:26px;}
+ .date-table .week-tr{height:26px;border:1px solid #eb6864;background:#eb6864;color:#fff;}
+ .date-table .week-tr td{width:56px;height:26px;background:#eb6864;color:#fff;text-align:center;}
