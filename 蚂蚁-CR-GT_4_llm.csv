@@ -179,10 +179,10 @@ if (ownersResults.isEmpty()) {
                                                       }
                                                       @Override
                                                  public UnPack getRequestUnpack(String contentType) {"
-11537,ReflectionPackableMethod.java,25,断逻辑应简洁，不能有重复或者无意义的判断,"if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {"
-11537,ReflectionPackableMethod.java,25,断逻辑应简洁，不能有重复或者无意义的判断,"if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {"
-11537,ReflectionPackableMethod.java,25,断逻辑应简洁，不能有重复或者无意义的判断,"if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {"
-11537,ReflectionPackableMethod.java,25,断逻辑应简洁，不能有重复或者无意义的判断,"if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {"
+11537,ReflectionPackableMethod.java,25,判断逻辑应简洁，不能有重复或者无意义的判断,"if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {"
+11537,ReflectionPackableMethod.java,25,判断逻辑应简洁，不能有重复或者无意义的判断,"if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {"
+11537,ReflectionPackableMethod.java,25,判断逻辑应简洁，不能有重复或者无意义的判断,"if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {"
+11537,ReflectionPackableMethod.java,25,判断逻辑应简洁，不能有重复或者无意义的判断,"if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {"
 10001,CodeIssues.java,1,避免无效的 import ,import java.util.Map;
 10001,CodeIssues.java,2,未使用的临时变量,int temp = 10;
 10001,CodeIssues.java,4,函数中未使用的形参,"public void unusedParameter(int param1, int param2) {
@@ -191,7 +191,7 @@ if (ownersResults.isEmpty()) {
 10001,CodeIssues.java,5,if 语句块不能为空,"if (value > 0) {
 
     }"
-10001,CodeIssues.java,6,"循环体不能为空,不能有多余的分号","while (true) {
+10001,CodeIssues.java,6,循环体不能为空,"while (true) {
         }"
 10001,CodeIssues.java,7,"避免使用 printStackTrace(),应该使用日志的方式去记录","try {
         } catch (Exception e) {
@@ -230,7 +230,7 @@ if (ownersResults.isEmpty()) {
             System.out.println(""Exception occurred."");
         } finally {
         }"
-10001,CodeIssues.java,16,while 语句块不能为空,"while (true) {
+10001,CodeIssues.java,6,循环体不能为空,"while (true) {
         }"
 10001,CodeIssues.java,17,避免 finally 块中出现 return,"try {
             return 10;
@@ -252,7 +252,7 @@ if (ownersResults.isEmpty()) {
 10001,CodeIssues.java,24,命名含义需优化,"int x = 10;
         int y = 20;
         int result = x + y;"
-10001,CodeIssues.java,27,非线程安全的 SimpleDateFormat 使用必须在函数或代码块级别使用 synchronized,"SimpleDateFormat sdf = new SimpleDateFormat(""yyyy-MM-dd"");
+10001,CodeIssues.java,28,非线程安全的 SimpleDateFormat 使用必须在函数或代码块级别使用 synchronized,"SimpleDateFormat sdf = new SimpleDateFormat(""yyyy-MM-dd"");
         Date date = sdf.parse(""2023-06-12"");"
 159,PaymentCircuitBreaker.java,4,避免函数中未使用的形参,"public void paymentAuthorizedPendingIntegration(Long id, Exception e) {
     service.updateStatus();
@@ -333,3 +333,34 @@ if (ownersResults.isEmpty()) {
 10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""Strings are equal."");"
 10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""Result: "" + result);"
 10001,CodeIssues.java,3,不要使用 System.out.println 去打印,"System.out.println(""Parsed date: "" + date);"
+10002,thehuxleymeeseeks.java,24,变量/方法/类 命名，要有效清晰表示对应的实际含义,"public static int oi (int n1, int n2, int n3)"
+11537,ApiWrapperConsumer.java,3,不要使用 System.out.println 去打印,"System.out.println(""============================================================================"");"
+11537,ReflectionPackableMethod.java,4,函数中未使用的形参,"public UnPack getResponseUnpack(String contentType) {
+        return responseUnpack;
+    }"
+11537,ReflectionPackableMethod.java,4,函数中未使用的形参,"public UnPack getResponseUnpack(String contentType) {
+        return responseUnpack;
+    }"
+11537,TripleServerStream.java,2,避免未使用的临时变量,"private List<String> contentTypeList = Arrays.asList(
+            ""x-application/java"",
+            ""x-application/nativejava"",
+            ""x-application/compactedjava"",
+            ""text/jsonb"",
+            ""x-application/hessian2"",
+            ""application/grpc"");"
+10001,CodeIssues.java,6,循环体不能为空,for (int i = 0; i < 5; i++);
+10001,CodeIssues.java,14,try 语句块不能为空,"try {
+        } catch (Exception e) {
+        }"
+10001,CodeIssues.java,14,try 语句块不能为空,"try {
+        } catch (Exception e) {
+            System.out.println(""Exception occurred."");
+        } finally {
+        }"
+10001,CodeIssues.java,14,try 语句块不能为空,"try {
+        } catch (Exception e) {
+            System.out.println(""Exception occurred."");
+        } finally {
+        }"
+10001,CodeIssues.java,28,非线程安全的 SimpleDateFormat 使用必须在函数或代码块级别使用 synchronized,"SimpleDateFormat sdf = new SimpleDateFormat(""yyyy/MM/dd"");
+        String dateString = ""2023/06/12"";"
