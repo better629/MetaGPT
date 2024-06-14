@@ -165,6 +165,24 @@ if (ownersResults.isEmpty()) {
 18785,AbstractGoCodegen.java,25,判断逻辑应简洁，不能有重复或者无意义的判断,if (ref != null && !ref.isEmpty() && ref.endsWith(openAPIType))
 1017,ERXShutdownHook.java,3,不要使用 System.out.println 去打印,"System.out.println( ""ERXShutdownHook waiting for "" + ALL_HOOKS.size() + "" hook"" + (ALL_HOOKS.size() > 1 ? ""s"" : """") + "" to complete: "" + names );"
 11537,ApiWrapperConsumer.java,3,不要使用 System.out.println 去打印,"System.out.println(""============================================================================"");"
+11537,PackableMethod.java,26,代码结构冗余，避免重复代码,"default Object parseResponse(String contentType,byte[] data) throws IOException, ClassNotFoundException {"
+11537,StubMethodDescriptor.java,4,'避免函数中未使用的形参',"public Pack getRequestPack(String contentType) {
+                                                          return requestPack;
+                                                      }
+                                                      @Override
+                                                 public Pack getResponsePack(String contentType) {
+                                                          return responsePack;
+                                                      }
+                                                      @Override
+                                                 public UnPack getResponseUnpack(String contentType) {
+                                                          return responseUnpack;
+                                                      }
+                                                      @Override
+                                                 public UnPack getRequestUnpack(String contentType) {"
+11537,ReflectionPackableMethod.java,25,断逻辑应简洁，不能有重复或者无意义的判断,"if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {"
+11537,ReflectionPackableMethod.java,25,断逻辑应简洁，不能有重复或者无意义的判断,"if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {"
+11537,ReflectionPackableMethod.java,25,断逻辑应简洁，不能有重复或者无意义的判断,"if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {"
+11537,ReflectionPackableMethod.java,25,断逻辑应简洁，不能有重复或者无意义的判断,"if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {"
 10001,CodeIssues.java,1,避免无效的 import ,import java.util.Map;
 10001,CodeIssues.java,2,未使用的临时变量,int temp = 10;
 10001,CodeIssues.java,4,函数中未使用的形参,"public void unusedParameter(int param1, int param2) {
