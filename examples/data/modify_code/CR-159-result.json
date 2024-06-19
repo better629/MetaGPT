@@ -1,0 +1,1 @@
+[{"commented_file": "PaymentService.java", "code": "+  public void paymentConfirm(HttpResponse<String> confirms) {", "code_start_line": "35", "code_end_line": "35", "comment": "避免函数中未使用的形参，`confirms`参数在`paymentConfirm`方法中未被使用。", "point_id": 4, "point": "避免函数中未使用的形参", "point_detail": "缺陷类型：避免函数中未使用的形参；修复方案：忽略"}]

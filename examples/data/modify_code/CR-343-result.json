@@ -1,0 +1,82 @@
+[{
+  "commented_file": "WorkerScheduler.java",
+  "code": "+\t\t System.out.println(\"计时器****************************************************\");",
+  "code_start_line": "55",
+  "code_end_line": "55",
+  "comment": "不要使用 System.out.println 去打印，应该使用日志的方式去记录",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CommonUserController.java",
+  "code": "+\t\tSystem.out.println(commonUser.getStatus());",
+  "code_start_line": "192",
+  "code_end_line": "192",
+  "comment": "避免使用 System.out.println 进行调试输出，应使用日志记录方式。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CommonUserController.java",
+  "code": "+\t\tSystem.out.println(result);",
+  "code_start_line": "194",
+  "code_end_line": "194",
+  "comment": "避免使用 System.out.println 进行调试输出，应使用日志记录方式。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CommonUserController.java",
+  "code": " \t\t\t\tSystem.out.println(commonUser.getStatus());",
+  "code_start_line": "206",
+  "code_end_line": "206",
+  "comment": "避免使用 System.out.println 进行调试输出，应使用日志记录方式。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CommonUserController.java",
+  "code": " \t\t\t\tSystem.out.println(commonUser.getStatus());",
+  "code_start_line": "212",
+  "code_end_line": "212",
+  "comment": "避免使用 System.out.println 进行调试输出，应使用日志记录方式。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CommonUserController.java",
+  "code": "+\t\t\t\tSystem.out.println(commonUser.getStatus());",
+  "code_start_line": "218",
+  "code_end_line": "218",
+  "comment": "避免使用 System.out.println 进行调试输出，应使用日志记录方式。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CommonUserController.java",
+  "code": "+\t@RequestMapping(value = \"/modifiPhone\", method = RequestMethod.GET)",
+  "code_start_line": "146",
+  "code_end_line": "146",
+  "comment": "方法名 `modifiPhone` 可能存在拼写错误，建议修改为 `modifyPhone` 以更清晰地表示其实际含义，即修改电话号码。",
+  "point_id": 24,
+  "point": "变量/方法/类 命名，要有效清晰表示对应的实际含义",
+  "point_detail": "缺陷类型：变量/方法/类 命名，要有效清晰表示对应的实际含义；修复方案：修改成合适的变量/方法/类名，有效表示对应的实体含义"
+}, {
+  "commented_file": "CommonUserController.java",
+  "code": "+\t\t\tif (commonUser.getStatus() == 0) {\n \t\t\t\tSystem.out.println(commonUser.getStatus());\n \t\t\t\treturn \"/user/updatePassword\";\n \t\t\t}\n-\t\t\tif(commonUser.getStatus() == 1 ){\n+\t\t\t//状态为1完善信息\n+\t\t\tif (commonUser.getStatus() == 1) {\n \t\t\t\tSystem.out.println(commonUser.getStatus());\n \t\t\t\treturn \"user/addUserInfo\";\n \t\t\t}\n-\n+\t\t\t//状态为2修改手机\n+\t\t\tif (commonUser.getStatus() == 2) {\n+\t\t\t\tSystem.out.println(commonUser.getStatus());\n+\t\t\t\treturn \"user/modifiPhone\";",
+  "code_start_line": "205",
+  "code_end_line": "219",
+  "comment": "代码中存在重复的判断逻辑，例如对commonUser.getStatus()的多次判断，应简化为使用switch语句或其他方式减少重复。",
+  "point_id": 25,
+  "point": "判断逻辑应简洁，不能有重复或者无意义的判断",
+  "point_detail": "缺陷类型：判断逻辑应简洁，不能有重复或者无意义的判断；修复方案：简化或删除一些重复的，无意义的判断逻辑"
+}, {
+  "commented_file": "CommonUserController.java",
+  "code": "+\t\tif(userSex.equals(\"男\")){\n+\t\t\tcommonUserService.modifySex(userId, \"男\");\n+\t\t}else{\n+\t\t\tcommonUserService.modifySex(userId, \"女\");",
+  "code_start_line": "273",
+  "code_end_line": "276",
+  "comment": "updateSex方法中的性别判断逻辑重复，可以简化为直接调用commonUserService.modifySex(userId, userSex)。",
+  "point_id": 26,
+  "point": "代码结构冗余，避免重复代码",
+  "point_detail": "缺陷类型：代码结构冗余，避免重复代码；修复方案：忽略"
+}]

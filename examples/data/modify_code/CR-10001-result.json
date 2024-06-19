@@ -1,0 +1,325 @@
+[{
+  "commented_file": "CodeIssues.java",
+  "code": "+        int temp = 10;",
+  "code_start_line": "12",
+  "code_end_line": "12",
+  "comment": "避免未使用的临时变量，如此处的 `temp` 变量在定义后未被使用。",
+  "point_id": 2,
+  "point": "避免未使用的临时变量",
+  "point_detail": "缺陷类型：避免未使用的临时变量；对应Fixer：UnusedLocalVariableFixer；修复方案：删除未使用的临时变量"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        System.out.println(\"Hello, World!\");",
+  "code_start_line": "13",
+  "code_end_line": "13",
+  "comment": "不要使用 System.out.println 去打印，建议使用日志框架来替代。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+    public void unusedParameter(int param1, int param2) {\n+        System.out.println(\"This method has unused parameters.\");\n+    }",
+  "code_start_line": "17",
+  "code_end_line": "19",
+  "comment": "避免函数中未使用的形参，此方法中的 `param1` 和 `param2` 均未被使用。",
+  "point_id": 4,
+  "point": "避免函数中未使用的形参",
+  "point_detail": "缺陷类型：避免函数中未使用的形参；修复方案：忽略"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        System.out.println(\"This method has unused parameters.\");",
+  "code_start_line": "18",
+  "code_end_line": "18",
+  "comment": "不要使用 System.out.println 去打印，建议使用日志框架来替代。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+            System.out.println(\"This condition is always true.\");",
+  "code_start_line": "47",
+  "code_end_line": "47",
+  "comment": "不要使用 System.out.println 去打印，建议使用日志框架来替代。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+            System.out.println(\"This condition is always false.\");",
+  "code_start_line": "51",
+  "code_end_line": "51",
+  "comment": "不要使用 System.out.println 去打印，建议使用日志框架来替代。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+                System.out.println(\"Default case\");",
+  "code_start_line": "58",
+  "code_end_line": "58",
+  "comment": "不要使用 System.out.println 去打印，建议使用日志框架来替代。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+                System.out.println(\"Case 1\");",
+  "code_start_line": "61",
+  "code_end_line": "61",
+  "comment": "不要使用 System.out.println 去打印，建议使用日志框架来替代。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+            System.out.println(\"Strings are equal.\");",
+  "code_start_line": "68",
+  "code_end_line": "68",
+  "comment": "不要使用 System.out.println 去打印，建议使用日志框架来替代。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+            System.out.println(\"Exception occurred.\");",
+  "code_start_line": "75",
+  "code_end_line": "75",
+  "comment": "不要使用 System.out.println 去打印，建议使用日志框架来替代。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+            System.out.println(\"Exception occurred.\");",
+  "code_start_line": "83",
+  "code_end_line": "83",
+  "comment": "不要使用 System.out.println 去打印，建议使用日志框架来替代。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+            System.out.println(\"Exception occurred.\");",
+  "code_start_line": "96",
+  "code_end_line": "96",
+  "comment": "不要使用 System.out.println 去打印，建议使用日志框架来替代。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        System.out.println(\"Formatted date: \" + formattedDate);",
+  "code_start_line": "107",
+  "code_end_line": "107",
+  "comment": "不要使用 System.out.println 去打印，建议使用日志框架来替代。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+            System.out.println(\"Parsed date: \" + date);",
+  "code_start_line": "115",
+  "code_end_line": "115",
+  "comment": "不要使用 System.out.println 去打印，建议使用日志框架来替代。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+            System.out.println(\"Error parsing date.\");",
+  "code_start_line": "117",
+  "code_end_line": "117",
+  "comment": "不要使用 System.out.println 去打印，建议使用日志框架来替代。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        System.out.println(\"Result: \" + result);",
+  "code_start_line": "146",
+  "code_end_line": "146",
+  "comment": "不要使用 System.out.println 去打印，建议使用日志框架来替代。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        System.out.println(\"Parsed date: \" + date);",
+  "code_start_line": "152",
+  "code_end_line": "152",
+  "comment": "不要使用 System.out.println 去打印，建议使用日志框架来替代。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        if (value > 0) {\n+        }",
+  "code_start_line": "22",
+  "code_end_line": "23",
+  "comment": "if语句块不能为空，请添加适当的代码或者移除空的if语句。",
+  "point_id": 5,
+  "point": "if语句块不能为空",
+  "point_detail": "缺陷类型：if 语句块不能为空；对应Fixer：EmptyIfStmtFixer；修复方案：删除if语句块 或 适当的逻辑处理 或 注释说明为何为空"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        for (int i = 0; i < 5; i++);",
+  "code_start_line": "27",
+  "code_end_line": "27",
+  "comment": "循环体不能为空，请添加适当的代码或者移除空的for循环。",
+  "point_id": 6,
+  "point": "循环体不能为空",
+  "point_detail": "缺陷类型：循环体不能为空；对应Fixer：EmptyStatementNotInLoopFixer；修复方案：删除对应while、for、foreach 循环体 或 添加适当的逻辑处理或者注释说明为何为空"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        while (true) {\n+        }",
+  "code_start_line": "28",
+  "code_end_line": "29",
+  "comment": "循环体不能为空，请添加适当的代码或者移除空的while循环。",
+  "point_id": 6,
+  "point": "循环体不能为空",
+  "point_detail": "缺陷类型：循环体不能为空；对应Fixer：EmptyStatementNotInLoopFixer；修复方案：删除对应while、for、foreach 循环体 或 添加适当的逻辑处理或者注释说明为何为空"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        while (true) {\n+        }",
+  "code_start_line": "88",
+  "code_end_line": "89",
+  "comment": "循环体不能为空，请添加适当的代码或者移除空的while循环。",
+  "point_id": 6,
+  "point": "循环体不能为空",
+  "point_detail": "缺陷类型：循环体不能为空；对应Fixer：EmptyStatementNotInLoopFixer；修复方案：删除对应while、for、foreach 循环体 或 添加适当的逻辑处理或者注释说明为何为空"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+            e.printStackTrace();",
+  "code_start_line": "35",
+  "code_end_line": "35",
+  "comment": "避免使用 printStackTrace()，应该使用日志的方式去记录异常。",
+  "point_id": 7,
+  "point": "避免使用 printStackTrace()，应该使用日志的方式去记录",
+  "point_detail": "缺陷类型：避免使用 printStackTrace()，应该使 用日志的方式去记录；修复方案：用日志的方式去记录"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        }",
+  "code_start_line": "42",
+  "code_end_line": "42",
+  "comment": "catch 语句块不能为空，请添加适当的错误处理逻辑或至少记录错误。",
+  "point_id": 8,
+  "point": "catch 语句块不能为空",
+  "point_detail": "缺陷类型：catch 语句块不能为空；对应Fixer：EmptyCatchBlockFixer；修复方案：在catch里面添加注释"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        switch (value) {\n+            default:\n+                System.out.println(\"Default case\");\n+                break;\n+            case 1:\n+                System.out.println(\"Case 1\");\n+                break;\n+        }",
+  "code_start_line": "56",
+  "code_end_line": "63",
+  "comment": "switch 中 default 必须放在最后，以符合常规的编码习惯和提高代码可读性。",
+  "point_id": 10,
+  "point": "switch 中 default 必须放在最后",
+  "point_detail": "缺陷类型：switch 中 default 必须放在最后；对应Fixer：DefaultLabelNotLastInSwitchStmtFixer；修复方案：switch 中 default 放在最后"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        if (str1 == str2) {\n+            System.out.println(\"Strings are equal.\");\n+        }",
+  "code_start_line": "67",
+  "code_end_line": "69",
+  "comment": "未使用equals()函数对 String 作比较，应使用equals()方法来比较字符串内容是否相等。",
+  "point_id": 11,
+  "point": "未使用equals()函数对 String 作比较",
+  "point_detail": "缺陷类型：未使用equals()函数对 String 作比较；对应Fixer：UnSynStaticDateFormatter Fixer；修复方案：使用equals()函数对 String 作比较"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        } catch (Exception e) {",
+  "code_start_line": "34",
+  "code_end_line": "34",
+  "comment": "try 语句块不能为空，请在 try 块中添加适当的代码或逻辑处理。",
+  "point_id": 14,
+  "point": "try 语句块不能为空",
+  "point_detail": "缺陷类型：try 语句块不能为空；对应Fixer：EmptyTryBlockFixer；修复方案：删除整个 try 语句"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        } catch (Exception e) {",
+  "code_start_line": "41",
+  "code_end_line": "41",
+  "comment": "try 语句块不能为空，请在 try 块中添加适当的代码或逻辑处理。",
+  "point_id": 14,
+  "point": "try 语句块不能为空",
+  "point_detail": "缺陷类型：try 语句块不能为空；对应Fixer：EmptyTryBlockFixer；修复方案：删除整个 try 语句"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        try {",
+  "code_start_line": "73",
+  "code_end_line": "73",
+  "comment": "try 语句块不能为空，请在 try 块中添加适当的代码或逻辑处理。",
+  "point_id": 14,
+  "point": "try 语句块不能为空",
+  "point_detail": "缺陷类型：try 语句块不能为空；对应Fixer：EmptyTryBlockFixer；修复方案：删除整个 try 语句"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        try {",
+  "code_start_line": "81",
+  "code_end_line": "81",
+  "comment": "try 语句块不能为空，请在 try 块中添加适当的代码或逻辑处理。",
+  "point_id": 14,
+  "point": "try 语句块不能为空",
+  "point_detail": "缺陷类型：try 语句块不能为空；对应Fixer：EmptyTryBlockFixer；修复方案：删除整个 try 语句"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+            return 20;",
+  "code_start_line": "98",
+  "code_end_line": "98",
+  "comment": "避免在 finally 块中使用 return 语句，这可能会覆盖 try 或 catch 块中的返回值，并导致意外的程序行为。",
+  "point_id": 17,
+  "point": "避免 finally 块中出现 return",
+  "point_detail": "缺陷类型：避免 finally 块中出现 return；修复方案：无需修复"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        Calendar calendar = Calendar.getInstance();\n+        Date date = calendar.getTime();\n+        SimpleDateFormat sdf = new SimpleDateFormat(\"yyyy-MM-dd\");\n+        String formattedDate = sdf.format(date);\n+        System.out.println(\"Formatted date: \" + formattedDate);",
+  "code_start_line": "103",
+  "code_end_line": "107",
+  "comment": "避免日历类用法不当风险。建议使用Java 8的日期和时间API，例如LocalDate、LocalDateTime等，以避免Calendar类的使用。",
+  "point_id": 19,
+  "point": "避免日历类用法不当风险",
+  "point_detail": "缺陷类型：避免日历类用法不当风险；修复方案：使用Java 8 及以上版本中的 java.time 包的LocalDate"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        String[] stringArray = (String[]) stringList.toArray();",
+  "code_start_line": "127",
+  "code_end_line": "127",
+  "comment": "使用集合转数组的方法，必须使用集合的toArray(T[]array)，传入的是类型完全一样的数组，大小就是list.size()。当前代码直接使用了非泛型的toArray()方法，这将导致ClassCastException。",
+  "point_id": 21,
+  "point": "使用集合转数组的方法，必须使用集合的toArray(T[]array)，传入的是类型完全一样的数组，大小就是list.size()",
+  "point_detail": "缺陷类型：使用集合转数组的方法，必须使用集合的toArray(T[]array)，传入的是类型完全一样的数组，大小就是list.size()；对应Fixer：ClassCastExpWithToArrayF ixer；修复方案：使用集合的toArray(T[]array)，且传入的是类型完全一样的数组"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        if (str.equals(null)) {\n+            System.out.println(\"Strings are equal.\");\n+        }",
+  "code_start_line": "131",
+  "code_end_line": "133",
+  "comment": "禁止在 equals() 中使用 null 做比较，应使用特定的方法检查是否为 null。",
+  "point_id": 22,
+  "point": "禁止在 equals()中使用 NULL或者null 做比较",
+  "point_detail": "缺陷类型：禁止在 equals()中使用 NULL或者null 做比较；对应Fixer：EqualsNullFixer；修复方案：使用Object的判空函数 做比较"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        switch (value) {\n+\n+        }",
+  "code_start_line": "137",
+  "code_end_line": "139",
+  "comment": "switch 语句块不能为空，应至少包含一个 case 或 default 语句。",
+  "point_id": 23,
+  "point": "switch 语句块不能为空",
+  "point_detail": "缺陷类型：switch 语句块不能为空；对应Fixer：EmptySwitchStatementsFix；修复方案：删除整个空 switch 语句块"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+    public void poorlyNamedMethod() {\n+        int x = 10;\n+        int y = 20;\n+        int result = x + y;\n+        System.out.println(\"Result: \" + result);\n+    }",
+  "code_start_line": "142",
+  "code_end_line": "147",
+  "comment": "方法命名应清晰表达其功能，'poorlyNamedMethod' 应更名为更具描述性的名称，如 'addAndPrintResult'。",
+  "point_id": 24,
+  "point": "变量/方法/类 命名，要有效清晰表示对应的实际含义",
+  "point_detail": "缺陷类型：变量/方法/类 命名，要有效清晰表示对应的实际含义；修复方案：修改成合适的变量/方法/类名，有效表示对应的实体含义"
+}, {
+  "commented_file": "CodeIssues.java",
+  "code": "+        SimpleDateFormat sdf = new SimpleDateFormat(\"yyyy-MM-dd\");\n+        Date date = sdf.parse(\"2023-06-12\");\n+        System.out.println(\"Parsed date: \" + date);\n+    }",
+  "code_start_line": "150",
+  "code_end_line": "153",
+  "comment": "非线程安全的 SimpleDateFormat 使用，必须在函数或代码块级别使用synchronized",
+  "point_id": 28,
+  "point": "非线程安全的 SimpleDateFormat 使用，必须在函数或代码块级别使用synchronized",
+  "point_detail": "缺陷类型：非线程安全的 SimpleDateFormat 使用；修复方案：在函数或代码块级别加上synchronized修饰 或 使用其他线程安全的方式"
+}]

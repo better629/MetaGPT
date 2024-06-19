@@ -1,0 +1,10 @@
+[{
+  "commented_file": "ConnectionPool.java",
+  "code": "+                log.debug(\"Unable to instantiate JDBC driver.\", cn);",
+  "code_start_line": "66",
+  "code_end_line": "66",
+  "comment": "在日志输出异常时，请使用占位符传递异常对象，而不是直接使用字符串输出异常。这样可以提供更丰富的错误信息和堆栈跟踪。",
+  "point_id": 12,
+  "point": "禁止在日志中直接使用字符串输出异常，请使用占位符传递异常对象",
+  "point_detail": "缺陷类型：禁止在日志中直接使用字符串输出异常，请使用占位符传递异常对象 输出异常；对应Fixer：ConcatExceptionFixer；修复方案：使用占位符传递异常对象"
+}]

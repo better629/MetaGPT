@@ -1,0 +1,19 @@
+[{
+  "commented_file": "JustAuthController.java",
+  "code": "+        System.out.println(\"生成登录链接：\" + authRequest.authorize(\"yourState\"));//打印出生成的登录URL",
+  "code_start_line": "42",
+  "code_end_line": "42",
+  "comment": "请避免使用System.out.println进行打印，建议使用日志框架如Log4j或SLF4J进行日志记录。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "JustAuthController.java",
+  "code": "+        System.out.println(callback.getCode());",
+  "code_start_line": "56",
+  "code_end_line": "56",
+  "comment": "请避免使用System.out.println进行打印，建议使用日志框架如Log4j或SLF4J进行日志记录。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}]

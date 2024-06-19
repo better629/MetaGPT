@@ -1,0 +1,55 @@
+[{
+  "commented_file": "StubMethodDescriptor.java",
+  "code": "+    public Pack getRequestPack(String contentType) {",
+  "code_start_line": "63",
+  "code_end_line": "63",
+  "comment": "避免函数中未使用的形参。参数 'contentType' 在方法体内没有被使用。",
+  "point_id": 4,
+  "point": "避免函数中未使用的形参",
+  "point_detail": "缺陷类型：避免函数中未使用的形参；修复方案：忽略"
+}, {
+  "commented_file": "ApiWrapperConsumer.java",
+  "code": "+        System.out.println(\"============================================================================\");",
+  "code_start_line": "126",
+  "code_end_line": "126",
+  "comment": "避免使用 System.out.println 进行打印，建议使用日志框架来记录日志。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "ApiWrapperConsumer.java",
+  "code": "+        System.out.println(\"============================================================================\");",
+  "code_start_line": "127",
+  "code_end_line": "127",
+  "comment": "避免使用 System.out.println 进行打印，建议使用日志框架来记录日志。",
+  "point_id": 3,
+  "point": "不要使用 System.out.println 去打印",
+  "point_detail": "缺陷类型：不要使用 System.out.println 去打印；对应Fixer：SystemPrintlnFixer；修复方案：注释System.out.println代码"
+}, {
+  "commented_file": "ReflectionPackableMethod.java",
+  "code": "+        if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {\n+            return responsePack;\n+        }",
+  "code_start_line": "233",
+  "code_end_line": "235",
+  "comment": "存在重复的判断逻辑，建议将isNotOriginalSerializeType和instanceof OriginalPack的判断合并为一个方法，以简化代码并提高可读性。",
+  "point_id": 25,
+  "point": "判断逻辑应简洁，不能有重复或者无意义的判断",
+  "point_detail": "缺陷类型：判断逻辑应简洁，不能有重复或者无意义的判断；修复方案：简化或删除一些重复的，无意义的判断逻辑"
+}, {
+  "commented_file": "ReflectionPackableMethod.java",
+  "code": "+        if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {\n+            return responseUnpack;\n+        }",
+  "code_start_line": "244",
+  "code_end_line": "246",
+  "comment": "存在重复的判断逻辑，建议将isNotOriginalSerializeType和instanceof OriginalPack的判断合并为一个方法，以简化代码并提高可读性。",
+  "point_id": 25,
+  "point": "判断逻辑应简洁，不能有重复或者无意义的判断",
+  "point_detail": "缺陷类型：判断逻辑应简洁，不能有重复或者无意义的判断；修复方案：简化或删除一些重复的，无意义的判断逻辑"
+}, {
+  "commented_file": "ReflectionPackableMethod.java",
+  "code": "+        if (isNotOriginalSerializeType(contentType) || !(originalPack instanceof OriginalPack)) {\n+            return requestUnpack;\n+        }",
+  "code_start_line": "255",
+  "code_end_line": "257",
+  "comment": "存在重复的判断逻辑，建议将isNotOriginalSerializeType和instanceof OriginalPack的判断合并为一个方法，以简化代码并提高可读性。",
+  "point_id": 25,
+  "point": "判断逻辑应简洁，不能有重复或者无意义的判断",
+  "point_detail": "缺陷类型：判断逻辑应简洁，不能有重复或者无意义的判断；修复方案：简化或删除一些重复的，无意义的判断逻辑"
+}]
