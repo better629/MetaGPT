@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # @Desc   :
-
+import copy
 import json
 import re
 
@@ -97,17 +97,17 @@ class CodeReview(Action):
                     code = get_code_block_from_patch(patch, code_start_line, code_end_line)
 
                     new_comments.append(
-                                {
-                                    "commented_file": cmt.get("commented_file"),
-                                    "code": code,
-                                    "code_start_line": code_start_line,
-                                    "code_end_line": code_end_line,
-                                    "comment": cmt.get("comment"),
-                                    "point_id": p.id,
-                                    "point": p.text,
-                                    "point_detail": p.detail,
-                                }
-                            )
+                        {
+                            "commented_file": cmt.get("commented_file"),
+                            "code": code,
+                            "code_start_line": code_start_line,
+                            "code_end_line": code_end_line,
+                            "comment": cmt.get("comment"),
+                            "point_id": p.id,
+                            "point": p.text,
+                            "point_detail": p.detail,
+                        }
+                    )
                     break
 
         logger.debug(f"new_comments: {new_comments}")
@@ -130,7 +130,8 @@ class CodeReview(Action):
             code = get_code_block_from_patch(patch, str(max(1, int(code_start_line) - 3)), str(int(code_end_line) + 3))
             pattern = r'^[ \t\n\r(){}[\];,]*$'
             if re.match(pattern, code):
-                code = get_code_block_from_patch(patch, str(max(1, int(code_start_line) - 5)), str(int(code_end_line) + 5))
+                code = get_code_block_from_patch(patch, str(max(1, int(code_start_line) - 5)),
+                                                 str(int(code_end_line) + 5))
             prompt = CODE_REVIEW_COMFIRM_TEMPLATE.format(
                 code=code, comment=cmt.get("comment"), desc=point.text,
                 example=point.yes_example + '\n' + point.no_example
@@ -141,19 +142,44 @@ class CodeReview(Action):
         logger.info(f"original comments num: {len(comments)}, confirmed comments num: {len(new_comments)}")
         return new_comments
 
+    async def cr_moa(self, prompt):
+        comments = []
+        for i in ["openai/gpt-4o", "openai/gpt-4-turbo", "deepseek/deepseek-coder"]:
+            self.llm.config.model = i
+            resp = await self.llm.aask(prompt)
+            json_str = parse_json_code_block(resp)[0]
+            once_comments = json.loads(json_str)
+            once_comments_temp = []
+            if comments:
+                comments_copy = copy.deepcopy(comments)
+                for c in comments_copy:
+                    del c['comment']
+                for once_comment in once_comments:
+                    once_comment_copy = copy.deepcopy(once_comment)
+                    del once_comment_copy['comment']
+                    if once_comment_copy not in comments_copy:
+                        once_comments_temp.append(once_comment)
+                        for comment_copy in comments_copy:
+                            if (abs(int(once_comment_copy['code_start_line']) - int(comment_copy['code_start_line'])) <= 1 or abs(int(once_comment_copy['code_end_line']) - int(comment_copy['code_end_line'])) <= 1) and (once_comment_copy['point_id'] == comment_copy['point_id']):
+                                once_comments_temp.remove(once_comment)
+                                break
+                comments += once_comments_temp
+            else:
+                comments += once_comments
+
+        return comments
+
     async def cr_by_full_points(self, patch: PatchSet, points: list[Point]):
         comments = []
         points_str = "\n".join([f"{p.id} {p.text}" for p in points])
         for patched_file in patch:
             if len(str(patched_file).splitlines()) >= 50:
-                cr_by_segment_points_comments = await self.cr_by_segment_points(patched_file=patched_file, points=points)
+                cr_by_segment_points_comments = await self.cr_by_segment_points(patched_file=patched_file,
+                                                                                points=points)
                 comments += cr_by_segment_points_comments
                 continue
             prompt = CODE_REVIEW_PROMPT_TEMPLATE.format(patch=str(patched_file), points=points_str)
-            resp = await self.llm.aask(prompt)
-            json_str = parse_json_code_block(resp)[0]
-            comments += json.loads(json_str)
-
+            comments = await self.cr_moa(prompt)
         return comments
 
     async def cr_by_segment_points(self, patched_file: PatchedFile, points: list[Point]):
@@ -162,10 +188,7 @@ class CodeReview(Action):
         for group_point in group_points:
             points_str = "\n".join([f"{p.id} {p.text}" for p in group_point])
             prompt = CODE_REVIEW_PROMPT_TEMPLATE.format(patch=str(patched_file), points=points_str)
-            resp = await self.llm.aask(prompt)
-            json_str = parse_json_code_block(resp)[0]
-            comments_batch = json.loads(json_str)
-            comments += comments_batch
+            comments = await self.cr_moa(prompt)
 
         return comments
 
@@ -175,7 +198,7 @@ class CodeReview(Action):
         # 如果选择忽略不可精确描述问题的模式，则去掉
         if self.mode == 1:
             for point in points:
-                if point.id in [24, 25,26]:
+                if point.id in [24, 25, 26]:
                     points.remove(point)
         result = []
         comments = await self.cr_by_full_points(patch=patch, points=points)
